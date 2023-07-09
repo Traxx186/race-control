@@ -10,7 +10,6 @@ var client = new Client(
     "Streaming",
     new[] { "RaceControlMessages", "TrackStatus" }
 );
-
 await client.Start();
 
 static void InitLogging()

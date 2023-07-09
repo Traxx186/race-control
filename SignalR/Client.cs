@@ -1,20 +1,39 @@
 using System.Net;
 using Microsoft.AspNet.SignalR.Client;
+using Newtonsoft.Json;
 using Serilog;
 
 namespace RaceControl.SignalR;
 
+/// <summary>
+/// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.
+/// </summary>
 public class Client
 {
+    /// <summary>
+    /// The url to connect to.
+    /// </summary>
     private string _url;
 
+    /// <summary>
+    /// Subscription arguments.
+    /// </summary>
     private string[] _args;
 
+    /// <summary>
+    /// The hub name.
+    /// </summary>
     private string _hub;
 
+    /// <summary>
+    /// The connection object.
+    /// </summary>
     private HubConnection? _connection;
 
-    private List<Tuple<string, string, Action<string>>> _handlers = new();
+    /// <summary>
+    /// List of handlers
+    /// </summary>
+    private List<Tuple<string, string, Action<dynamic>>> _handlers = new();
 
     private bool _running;
 
@@ -65,8 +84,8 @@ public class Client
     /// <param name="hub">Name of the hub</param>
     /// <param name="method">Name of the executed method</param>
     /// <param name="handler">Function that will be executed</param>
-    public void AddHandler(string hub, string method, Action<string> handler) =>
-        _handlers.Add(new Tuple<string, string, Action<string>>(hub, method, handler));
+    public void AddHandler(string hub, string method, Action<dynamic> handler) =>
+        _handlers.Add(new Tuple<string, string, Action<dynamic>>(hub, method, handler));
 
     /// <summary>
     /// Checks if the incoming message can be used to call a handler.
@@ -74,7 +93,13 @@ public class Client
     /// <param name="message">The data received from the server</param>
     private void HandleMessage(string message)
     {
-        Console.WriteLine($"new message - {message}");
+        var data = JsonConvert.DeserializeObject<Message>(message);
+        if (null == data.A)
+            return;
+        
+        _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M)
+            .ToList()
+            .ForEach(x => x.Item3.Invoke(data.A));
     }
 
     /// <summary>
