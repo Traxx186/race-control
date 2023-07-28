@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.AspNet.SignalR.Client;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog;
 
 namespace RaceControl.SignalR;
@@ -8,22 +9,22 @@ namespace RaceControl.SignalR;
 /// <summary>
 /// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.
 /// </summary>
-public class Client
+public sealed class Client
 {
     /// <summary>
     /// The url to connect to.
     /// </summary>
-    private string _url;
+    private readonly string _url;
 
     /// <summary>
     /// Subscription arguments.
     /// </summary>
-    private string[] _args;
+    private readonly string[] _args;
 
     /// <summary>
     /// The hub name.
     /// </summary>
-    private string _hub;
+    private readonly string _hub;
 
     /// <summary>
     /// The connection object.
@@ -31,9 +32,9 @@ public class Client
     private HubConnection? _connection;
 
     /// <summary>
-    /// List of handlers
+    /// List of handlers.
     /// </summary>
-    private List<Tuple<string, string, Action<dynamic>>> _handlers = new();
+    private List<Tuple<string, string, Action<JArray>>> _handlers = new();
 
     private bool _running;
 
@@ -59,8 +60,10 @@ public class Client
         while (_running)
         {
             using var connection = new HubConnection(_url);
+#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
+#endif
             connection.CookieContainer = new CookieContainer();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
@@ -70,7 +73,7 @@ public class Client
             var f1Timing = connection.CreateHubProxy(_hub);
             _connection = connection;
 
-            Log.Information($"[SignalR] connected to {_url}");
+            Log.Information($"[SignalR] Connecting to {_url}");
             await connection.Start();
             await f1Timing.Invoke("Subscribe", _args.ToList());
 
@@ -79,24 +82,25 @@ public class Client
     }
 
     /// <summary>
-    /// Adds a handler to be called when the hub and method equal the incoming message
+    /// Adds a handler to be called when the hub and method equal the incoming message.
     /// </summary>
-    /// <param name="hub">Name of the hub</param>
-    /// <param name="method">Name of the executed method</param>
-    /// <param name="handler">Function that will be executed</param>
-    public void AddHandler(string hub, string method, Action<dynamic> handler) =>
-        _handlers.Add(new Tuple<string, string, Action<dynamic>>(hub, method, handler));
+    /// <param name="hub">Name of the hub.</param>
+    /// <param name="method">Name of the executed method.</param>
+    /// <param name="handler">Function that will be executed.</param>
+    public void AddHandler(string hub, string method, Action<JArray> handler) =>
+        _handlers.Add(new Tuple<string, string, Action<JArray>>(hub, method, handler));
 
     /// <summary>
     /// Checks if the incoming message can be used to call a handler.
     /// </summary>
-    /// <param name="message">The data received from the server</param>
+    /// <param name="message">The data received from the server.</param>
     private void HandleMessage(string message)
     {
         var data = JsonConvert.DeserializeObject<Message>(message);
         if (null == data.A)
             return;
         
+        Log.Information($"[SignalR] New message received");
         _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M)
             .ToList()
             .ForEach(x => x.Item3.Invoke(data.A));

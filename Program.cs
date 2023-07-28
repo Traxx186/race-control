@@ -1,16 +1,15 @@
 ﻿using System.Reflection;
-using RaceControl.SignalR;
+using RaceControl.Category;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
 InitLogging();
 
-var client = new Client(
-    "https://livetiming.formula1.com",
-    "Streaming",
-    new[] { "RaceControlMessages", "TrackStatus" }
-);
-await client.Start();
+var formula1 = new Formula1("https://livetiming.formula1.com");
+formula1.OnFlagParsed += data => { Console.WriteLine(data.Flag); };
+
+formula1.Start();
+
 
 static void InitLogging()
 {
@@ -19,7 +18,7 @@ static void InitLogging()
 
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
-        .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
+        .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
         .WriteTo.Console(
             theme: AnsiConsoleTheme.Literate,
             outputTemplate: "{Timestamp:HH:mm:ss} [{Level:u3}] {Message} {NewLine}{Exception}"

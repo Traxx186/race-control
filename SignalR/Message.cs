@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+
 namespace RaceControl.SignalR;
 
 /// <summary>
@@ -18,5 +20,5 @@ public struct Message
     /// <summary>
     /// The message's arguments.
     /// </summary>
-    public dynamic? A;
+    public JArray? A;
 }
