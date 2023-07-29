@@ -115,13 +115,6 @@ public sealed class Formula1 : ICategory
             return null;
         }
         
-        // If the message category is not 'Flag', the message can be ignored.
-        if (data.Value is not { Category: "Flag" })
-        {
-            Log.Information("[Formula 1] Race control message ignored");
-            return null;
-        }
-
         // Checks if the slippery surface flag is shown.
         if (data.Value.Message.Contains("SLIPPERY"))
         {
@@ -129,6 +122,13 @@ public sealed class Formula1 : ICategory
             return new FlagData { Flag = Flag.Surface };
         }
         
+        // If the message category is not 'Flag', the message can be ignored.
+        if (data.Value is not { Category: "Flag" })
+        {
+            Log.Information("[Formula 1] Race control message ignored");
+            return null;
+        }
+
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
         if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnorableFlags.Contains(flag))
         {
