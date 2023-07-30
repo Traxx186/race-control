@@ -10,7 +10,6 @@ formula1.OnFlagParsed += data => { Console.WriteLine(data.Flag); };
 
 formula1.Start();
 
-
 static void InitLogging()
 {
     var executingDir = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
