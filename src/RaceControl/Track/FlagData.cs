@@ -13,5 +13,5 @@ public record FlagData
     /// <summary>
     /// The number of the driver that related to te flag
     /// </summary>
-    public int? driver;
+    public int? Driver;
 }

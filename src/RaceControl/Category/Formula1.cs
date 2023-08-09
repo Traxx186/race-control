@@ -35,7 +35,7 @@ public sealed class Formula1 : ICategory
     /// <inheritdoc/>
     /// </summary>
     public event Action<FlagData>? OnFlagParsed;
-
+    
     public Formula1(string url)
     {
         _signalR = new Client(
@@ -52,7 +52,7 @@ public sealed class Formula1 : ICategory
     /// </summary>
     public void Start()
     {
-        _signalR.Start().Wait();
+        _signalR.Start();
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ public sealed class Formula1 : ICategory
             ? data.Value.RacingNumber
             : null;
         
-        return new FlagData { Flag = flag, driver = driver };
+        return new FlagData { Flag = flag, Driver = driver };
     }
 
     /// <summary>

@@ -1,0 +1,8 @@
+.dockerignore
+.gitignore
+.vs
+.vscode
+.idea
+.git
+*/bin
+*/obj

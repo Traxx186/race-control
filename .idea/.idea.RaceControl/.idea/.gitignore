@@ -2,9 +2,9 @@
 /shelf/
 /workspace.xml
 # Rider ignored files
+/projectSettingsUpdater.xml
 /contentModel.xml
 /.idea.RaceControl.iml
 /modules.xml
-/projectSettingsUpdater.xml
 # Editor-based HTTP Client requests
 /httpRequests/

@@ -35,15 +35,12 @@ public sealed class Client
     /// List of handlers.
     /// </summary>
     private List<Tuple<string, string, Action<JArray>>> _handlers = new();
-
-    private bool _running;
-
-    public bool Running
-    {
-        set => _running = value;
-        get => _running;
-    }
-
+    
+    /// <summary>
+    /// If the SignalR service is active.
+    /// </summary>
+    public bool Running { private set; get; }
+    
     public Client(string url, string hub, string[] args)
     {
         _url = url;
@@ -54,11 +51,11 @@ public sealed class Client
     /// <summary>
     /// Sets up, connects and processes incoming messages to the given SignalR server.
     /// </summary>
-    public async Task Start()
+    public async void Start()
     {
-        _running = true;
-        while (_running)
-        {
+        Running = true;
+        while (Running)
+        { 
             using var connection = new HubConnection(_url);
 #if DEBUG
             connection.TraceWriter = Console.Out;
@@ -77,7 +74,7 @@ public sealed class Client
             await connection.Start();
             await f1Timing.Invoke("Subscribe", _args.ToList());
 
-            Console.Read();
+            Console.Read();   
         }
     }
 
@@ -112,5 +109,6 @@ public sealed class Client
     public void Stop()
     {
         _connection?.Dispose();
+        Running = false;
     }
 }

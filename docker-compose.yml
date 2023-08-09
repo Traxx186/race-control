@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     stdin_open: true
     tty: true
+    ports:
+      - "8080:8000"
     labels:
       caddy: rc.justinvanderkruit.nl
       caddy.header: /*

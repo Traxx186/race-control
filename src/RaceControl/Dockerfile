@@ -18,4 +18,5 @@ COPY --from=build-env /App/out .
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
 
+EXPOSE 8080;
 ENTRYPOINT ["dotnet", "RaceControl.dll"]
