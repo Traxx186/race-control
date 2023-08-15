@@ -1,13 +1,13 @@
 version: '3.8'
 
-services: 
+services:
   app:
     image: ghcr.io/traxx186/race-control:feature-ci-cd
     container_name: race-control
     restart: unless-stopped
     stdin_open: true
     tty: true
-    networks: 
+    networks:
       - caddy
     labels:
       caddy: rc.justinvanderkruit.nl
@@ -16,7 +16,7 @@ services:
       caddy.header.Strict-Transport-Security: '"max-age=63072000;"'
       caddy.@ws.0_header: Connection *Upgrade*
       caddy.@ws.1_header: Upgrade websocket
-      caddy.reverse_proxy: "@ws app:8000"
+      caddy.reverse_proxy: "@ws app:8567"
       caddy.encode: zstd gzip
       
 networks:
