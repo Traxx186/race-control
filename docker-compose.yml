@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     stdin_open: true
     tty: true
-    ports:
-      - "8000:8000"
+    networks: 
+      - caddy
     labels:
       caddy: rc.justinvanderkruit.nl
       caddy.header: /*
@@ -18,3 +18,7 @@ services:
       caddy.@ws.1_header: Upgrade websocket
       caddy.reverse_proxy: "@ws app:8000"
       caddy.encode: zstd gzip
+      
+networks:
+  caddy:
+    external: true
