@@ -37,7 +37,7 @@ app.Map("/", async context =>
 var tasks = new List<Task>
 {
     Task.Run(() => formula1.Start()),
-    Task.Run(() => app.Run("http://localhost:8080"))
+    Task.Run(() => app.Run("http://localhost:8000"))
 };
 
 Task.WaitAll(tasks.ToArray());
