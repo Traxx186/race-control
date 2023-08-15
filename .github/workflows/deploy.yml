@@ -12,6 +12,9 @@ jobs:
   build:
     name: Build & push image to registry
     runs-on: ubuntu-latest
+    permissions: 
+      contents: read
+      packages: write
     steps:
       - name: 'Checkout Github Action'
         uses: actions/checkout@v3
