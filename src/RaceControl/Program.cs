@@ -11,12 +11,14 @@ using Serilog.Sinks.SystemConsole.Themes;
 InitLogging();
 
 var formula1 = new Formula1("https://livetiming.formula1.com");
+var host = Environment.GetEnvironmentVariable("APP_URL") ?? "http://localhost:5050";
 var tokenSource = new CancellationTokenSource();
 var token = tokenSource.Token;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseWebSockets();
 app.Map("/", async context =>
 {
@@ -37,7 +39,7 @@ app.Map("/", async context =>
 var tasks = new List<Task>
 {
     Task.Run(() => formula1.Start()),
-    Task.Run(() => app.Run("http://localhost:8567"))
+    Task.Run(() => app.Run(host))
 };
 
 Task.WaitAll(tasks.ToArray());

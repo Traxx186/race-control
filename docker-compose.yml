@@ -9,6 +9,8 @@ services:
     tty: true
     networks:
       - caddy
+    environment: 
+      APP_URL: http://0.0.0.0:8567
     labels:
       caddy: rc.justinvanderkruit.nl
       caddy.header: /*
