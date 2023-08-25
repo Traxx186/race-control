@@ -1,22 +1,21 @@
 using System.Net;
 using System.Net.WebSockets;
-using System.Reflection;
 using System.Text;
 using Newtonsoft.Json;
-using RaceControl.Category;
+using RaceControl;
 using RaceControl.Track;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
-InitLogging();
+SetupLogging();
 
-var formula1 = new Formula1("https://livetiming.formula1.com");
-var host = Environment.GetEnvironmentVariable("APP_URL") ?? "http://localhost:5050";
-var tokenSource = new CancellationTokenSource();
-var token = tokenSource.Token;
+var cancellationToken = SetupGracefulShutdown();
+var trackStatus = new TrackStatus();
+var category = new CategoryService();
+category.OnCategoryFlagChange += data => trackStatus.SetActiveFlag(data);
 
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+var appUrl = Environment.GetEnvironmentVariable("APP_URL") ?? "http://localhost:5050";
+var app = SetupWebApplication(args);
 
 app.UseForwardedHeaders();
 app.UseWebSockets();
@@ -29,24 +28,22 @@ app.Map("/", async context =>
     }
 
     var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-    while (!token.IsCancellationRequested)
+    while (!cancellationToken.IsCancellationRequested)
     {
-        formula1.OnFlagParsed += flagData => SendFlag(webSocket, flagData, token).Wait();
+        trackStatus.OnTrackFlagChange += flagData => SendFlag(webSocket, flagData, cancellationToken).Wait();
         Console.Read();
     }
 });
 
-var tasks = new List<Task>
-{
-    Task.Run(() => formula1.Start()),
-    Task.Run(() => app.Run(host))
-};
+Log.Information("[Race Control] Starting category service & WebSocket server");
+Task.WaitAll(
+    Task.Run(() => category.Start()),
+    Task.Run(() => app.Run(appUrl))
+);
 
-Task.WaitAll(tasks.ToArray());
-
-static void InitLogging()
+static void SetupLogging()
 {
-    var executingDir = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+    var executingDir = Path.GetDirectoryName(AppContext.BaseDirectory);
     var logPath = Path.Combine(executingDir ?? string.Empty, "logs", "verbose.log");
 
     Log.Logger = new LoggerConfiguration()
@@ -59,10 +56,27 @@ static void InitLogging()
         .CreateLogger();
 }
 
+static CancellationToken SetupGracefulShutdown()
+{
+    var tokenSource = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, _) => tokenSource.Cancel();
+    AppDomain.CurrentDomain.ProcessExit += (_, _) => tokenSource.Cancel();
+
+    return tokenSource.Token;
+}
+
+static WebApplication SetupWebApplication(string[] args)
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    return builder.Build();
+}
+
 static async Task SendFlag(WebSocket webSocket, FlagData flagData, CancellationToken cancellationToken)
 {
     var json = JsonConvert.SerializeObject(flagData);
-    var data = Encoding.UTF8.GetBytes(json);
-
+    var data = Encoding.UTF8.GetBytes(json); 
+    
+    Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients"); 
     await webSocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
 }
