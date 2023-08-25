@@ -1,3 +1,6 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace RaceControl.Track;
 
 /// <summary>
@@ -8,6 +11,7 @@ public record FlagData
     /// <summary>
     /// The <see cref="Flag"/>
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public Flag Flag;
     
     /// <summary>
