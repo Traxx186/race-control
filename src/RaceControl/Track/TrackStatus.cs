@@ -28,7 +28,7 @@ public sealed class TrackStatus
     /// <summary>
     /// Event that gets called when the flag of the active session changes.
     /// </summary>
-    public event Action<FlagData>? OnFlagChange;
+    public event Action<FlagData>? OnTrackFlagChange;
 
     /// <summary>
     /// Sets the current active flag. If the priority of the given flag equals 1, the OnFlagChange event will be called
@@ -45,20 +45,20 @@ public sealed class TrackStatus
         if (data.Flag == Flag.Chequered)
         {
             _activeFlag = data;
-            OnFlagChange?.Invoke(_activeFlag);
+            OnTrackFlagChange?.Invoke(_activeFlag);
             return;
         }
 
         if (_activeFlag.Flag == Flag.Clear && newFlagPrio == 1)
         {
-            OnFlagChange?.Invoke(data);
+            OnTrackFlagChange?.Invoke(data);
             return;
         }
 
         if (newFlagPrio < currentFlagPrio) return;
 
         _activeFlag = data;
-        OnFlagChange?.Invoke(_activeFlag);
+        OnTrackFlagChange?.Invoke(_activeFlag);
     }
 
     /// <summary>

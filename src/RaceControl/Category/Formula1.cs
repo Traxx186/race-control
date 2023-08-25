@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using RaceControl.SignalR;
 using RaceControl.Track;
@@ -52,6 +53,7 @@ public sealed class Formula1 : ICategory
     /// </summary>
     public void Start()
     {
+        Log.Information("[Formula 1] Starting API connection");
         _signalR.Start();
     }
 
@@ -120,6 +122,13 @@ public sealed class Formula1 : ICategory
         {
             Log.Information($"[Formula 1] Parsed race control message to {Flag.Surface}");
             return new FlagData { Flag = Flag.Surface };
+        }
+        
+        // Checks if the session will not be resumed.
+        if (Regex.IsMatch(data.Value.Message, @"\WILL|NOT|RESUME", RegexOptions.IgnoreCase))
+        {
+            Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
+            return new FlagData { Flag = Flag.Chequered };
         }
         
         // If the message category is not 'Flag', the message can be ignored.
