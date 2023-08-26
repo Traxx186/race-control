@@ -1,14 +1,16 @@
+using Serilog;
+
 namespace RaceControl.Track;
 
 public sealed class TrackStatus
 {
     /// <summary>
-    /// Flag with their given priority.
+    /// Flag with their given priority. Flags with priority 0 are information flags
     /// </summary>
     private static readonly Dictionary<Flag, short> FlagPriority = new()
     {
-        { Flag.Blue, 1 },
-        { Flag.Surface, 1 },
+        { Flag.Blue, 0 },
+        { Flag.Surface, 0 },
         { Flag.Clear, 1 },
         { Flag.Yellow, 2 },
         { Flag.DoubleYellow, 3 },
@@ -40,23 +42,33 @@ public sealed class TrackStatus
         if (data.Flag == _activeFlag.Flag)
             return;
 
+        Log.Information("[Track Status] New flag received");
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
         var currentFlagPrio = FlagPriority.GetValueOrDefault(_activeFlag.Flag);
         if (data.Flag == Flag.Chequered)
         {
+            Log.Information($"[Track Status] Received {Flag.Chequered} flag, sending flag and updating track status");
             _activeFlag = data;
             OnTrackFlagChange?.Invoke(_activeFlag);
+            
             return;
         }
 
-        if (_activeFlag.Flag == Flag.Clear && newFlagPrio == 1)
+        if (_activeFlag.Flag == Flag.Clear && newFlagPrio == 0)
         {
+            Log.Information("[Track Status] Received information flag, sending flag data but not updating track status");
             OnTrackFlagChange?.Invoke(data);
             return;
         }
 
-        if (newFlagPrio < currentFlagPrio) return;
+        Log.Information("[Track Status] Received status flag");
+        if (newFlagPrio < currentFlagPrio)
+        {
+            Log.Information("[Track Status] New received status flag has lower priority, ignoring flag");
+            return;
+        }
 
+        Log.Information("[Track Status] New received status flag with higher priority, updating track status");
         _activeFlag = data;
         OnTrackFlagChange?.Invoke(_activeFlag);
     }
