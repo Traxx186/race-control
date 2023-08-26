@@ -15,7 +15,8 @@ public record FlagData
     public Flag Flag;
     
     /// <summary>
-    /// The number of the driver that related to te flag
+    /// The driver number that related to the flag
     /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public int? Driver;
 }
