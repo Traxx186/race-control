@@ -11,7 +11,6 @@ public sealed class TrackStatus
     {
         { Flag.Blue, 0 },
         { Flag.Surface, 0 },
-        { Flag.Clear, 1 },
         { Flag.Yellow, 2 },
         { Flag.DoubleYellow, 3 },
         { Flag.Vsc, 4 },
@@ -19,9 +18,13 @@ public sealed class TrackStatus
         { Flag.Fyc, 4 },
         { Flag.SafetyCar, 5 },
         { Flag.Red, 6 },
-        { Flag.Chequered, 8 }
     };
 
+    /// <summary>
+    /// Flags that override the other race flags.
+    /// </summary>
+    private static readonly Flag[] OverrideFlags = { Flag.Clear, Flag.Chequered };
+    
     /// <summary>
     /// The current active flag of the session.
     /// </summary>
@@ -45,9 +48,9 @@ public sealed class TrackStatus
         Log.Information("[Track Status] New flag received");
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
         var currentFlagPrio = FlagPriority.GetValueOrDefault(_activeFlag.Flag);
-        if (data.Flag == Flag.Chequered)
+        if (OverrideFlags.Contains(data.Flag))
         {
-            Log.Information($"[Track Status] Received {Flag.Chequered} flag, sending flag and updating track status");
+            Log.Information($"[Track Status] Received override flag {data.Flag}, sending flag and updating track status");
             _activeFlag = data;
             OnTrackFlagChange?.Invoke(_activeFlag);
             
@@ -88,7 +91,8 @@ public sealed class TrackStatus
         {
             "BLUE" => Flag.Blue,
             "CHEQUERED" => Flag.Chequered,
-            "CLEAR" or "GREEN" => Flag.Clear,
+            "CLEAR" => Flag.Clear,
+            "GREEN" => Flag.Clear,
             "CODE 60" => Flag.Code60,
             "DOUBLE YELLOW" => Flag.DoubleYellow,
             "FULL COURSE YELLOW" => Flag.Fyc,
@@ -99,7 +103,7 @@ public sealed class TrackStatus
             "YELLOW" => Flag.Yellow,
             _ => Flag.None
         };
-
+        
         return flag != Flag.None;
     }
 }
