@@ -139,7 +139,7 @@ public sealed class Formula1 : ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnorableFlags.Contains(flag))
+        if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnoreRaceControlFlag(flag))
         {
             if (flag == Flag.None)
                 Log.Warning($"[Formula 1] Could not parse flag '{data.Value.Flag}'");
@@ -163,6 +163,15 @@ public sealed class Formula1 : ICategory
     private static bool ListenToRaceControlMessages => 
         _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="flag"></param>
+    /// <returns></returns>
+    private static bool IgnoreRaceControlFlag(Flag flag) =>
+        _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
+        
+    
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
