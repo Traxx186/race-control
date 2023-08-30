@@ -59,6 +59,7 @@ public sealed partial class Formula1 : ICategory
     /// </summary>
     public void Start()
     {
+        Log.Information("[Formula 1] Starting API connection");
         _signalR.Start();
     }
 
@@ -136,6 +137,13 @@ public sealed partial class Formula1 : ICategory
             return new FlagData { Flag = Flag.Chequered };
         }
         
+        // Checks if the session will not be resumed.
+        if (Regex.IsMatch(data.Value.Message, @"\WILL|NOT|RESUME", RegexOptions.IgnoreCase))
+        {
+            Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
+            return new FlagData { Flag = Flag.Chequered };
+        }
+        
         // If the message category is not 'Flag', the message can be ignored.
         if (data.Value is not { Category: "Flag" })
         {
@@ -144,7 +152,7 @@ public sealed partial class Formula1 : ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnorableFlags.Contains(flag))
+        if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnoreRaceControlFlag(flag))
         {
             if (flag == Flag.None)
                 Log.Warning($"[Formula 1] Could not parse flag '{data.Value.Flag}'");
@@ -168,6 +176,15 @@ public sealed partial class Formula1 : ICategory
     private static bool ListenToRaceControlMessages => 
         _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="flag"></param>
+    /// <returns></returns>
+    private static bool IgnoreRaceControlFlag(Flag flag) =>
+        _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
+        
+    
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
