@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using RaceControl.SignalR;
 using RaceControl.Track;
@@ -5,13 +6,13 @@ using Serilog;
 
 namespace RaceControl.Category;
 
-public sealed class Formula1 : ICategory
+public sealed partial class Formula1 : ICategory
 {
     /// <summary>
     /// Flags to be ignored by race control message parser.
     /// </summary>
     private static readonly Flag[] IgnorableFlags = { Flag.Clear };
-
+    
     /// <summary>
     /// Data streams to listen to and the related method to be called.
     /// </summary>
@@ -20,6 +21,12 @@ public sealed class Formula1 : ICategory
         { "TrackStatus", ParseTrackStatusMessage },
         { "RaceControlMessages", ParseRaceControlMessage }
     };
+    
+    /// <summary>
+    /// Regex for checking if a race control message contains the message that the race/session will not resume.
+    /// </summary>
+    [GeneratedRegex("^[RSQ0-9].+\\b(?:WILL NOT)\\b", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    private static partial Regex NotResumeRegex();
     
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
@@ -120,6 +127,13 @@ public sealed class Formula1 : ICategory
         {
             Log.Information($"[Formula 1] Parsed race control message to {Flag.Surface}");
             return new FlagData { Flag = Flag.Surface };
+        }
+
+        // Checks if the session will not be resumed.
+        if (NotResumeRegex().IsMatch(data.Value.Message))
+        {
+            Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
+            return new FlagData { Flag = Flag.Chequered };
         }
         
         // If the message category is not 'Flag', the message can be ignored.
