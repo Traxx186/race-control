@@ -42,12 +42,7 @@ public sealed class TrackStatus
     /// <param name="data">Flag data to be processed.</param>
     public void SetActiveFlag(FlagData data)
     {
-        if (data.Flag == _activeFlag.Flag)
-            return;
-
         Log.Information("[Track Status] New flag received");
-        var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(_activeFlag.Flag);
         if (OverrideFlags.Contains(data.Flag))
         {
             Log.Information($"[Track Status] Received override flag {data.Flag}, sending flag and updating track status");
@@ -57,6 +52,13 @@ public sealed class TrackStatus
             return;
         }
 
+        // If given flag is the same as the active flag, or the active flag is
+        // checkered. Do not try to set the given flag.
+        if (data.Flag == _activeFlag.Flag || _activeFlag.Flag == Flag.Chequered)
+            return;
+
+        var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(_activeFlag.Flag); 
         if (_activeFlag.Flag == Flag.Clear && newFlagPrio == 0)
         {
             Log.Information("[Track Status] Received information flag, sending flag data but not updating track status");
