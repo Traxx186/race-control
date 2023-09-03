@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using dotenv.net;
 using Newtonsoft.Json;
 using RaceControl;
 using RaceControl.Track;
@@ -8,6 +9,7 @@ using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
 SetupLogging();
+DotEnv.Load();
 
 var cancellationToken = SetupGracefulShutdown();
 var trackStatus = new TrackStatus();
