@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace RaceControl.SignalR;
 
@@ -11,14 +11,12 @@ public struct Message
     /// The hub name.
     /// </summary>
     public string? H;
-
     /// <summary>
     /// The message method.
     /// </summary>
     public string? M;
-
     /// <summary>
     /// The message's arguments.
     /// </summary>
-    public JArray? A;
+    public JsonArray? A;
 }

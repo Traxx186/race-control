@@ -1,3 +1,6 @@
+#####################################################################
+## Build project
+####################################################################
 FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS base
 WORKDIR /App
 
@@ -16,7 +19,9 @@ RUN dotnet publish -c Release -o out  \
    --self-contained true \
     /p:PublishSingleFile=true 
  
-# Build runtime image
+#####################################################################
+## Final image
+####################################################################
 FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
 WORKDIR /App
 COPY --from=base /App/out ./

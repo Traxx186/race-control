@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using dotenv.net;
-using Newtonsoft.Json;
 using RaceControl;
 using RaceControl.Track;
 using Serilog;
@@ -13,8 +13,8 @@ DotEnv.Load();
 
 var cancellationToken = SetupGracefulShutdown();
 var trackStatus = new TrackStatus();
-var category = new CategoryService();
-category.OnCategoryFlagChange += data => trackStatus.SetActiveFlag(data);
+var categoryService = new CategoryService();
+categoryService.OnCategoryFlagChange += trackStatus.SetActiveFlag;
 
 var appUrl = Environment.GetEnvironmentVariable("APP_URL") ?? "http://localhost:5050";
 var app = SetupWebApplication(args);
@@ -39,7 +39,7 @@ app.Map("/", async context =>
 
 Log.Information("[Race Control] Starting category service & WebSocket server");
 Task.WaitAll(
-    Task.Run(() => category.Start()),
+    Task.Run(categoryService.Start),
     Task.Run(() => app.Run(appUrl))
 );
 
@@ -76,9 +76,10 @@ static WebApplication SetupWebApplication(string[] args)
 
 static async Task SendFlag(WebSocket webSocket, FlagData flagData, CancellationToken cancellationToken)
 {
-    var json = JsonConvert.SerializeObject(flagData);
+    var json = JsonSerializer.Serialize(flagData.Clone());
     var data = Encoding.UTF8.GetBytes(json); 
     
     Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients"); 
+    await Task.Delay(35_000, cancellationToken);
     await webSocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
 }
