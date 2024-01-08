@@ -1,7 +1,5 @@
 using System.Timers;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Driver;
+using Npgsql;
 using RaceControl.Category;
 using RaceControl.Track;
 using Serilog;
@@ -32,7 +30,7 @@ public class CategoryService
     /// <summary>
     /// The MongoDB client connection to the category calendar database.
     /// </summary>
-    private MongoClient? _mongoClient;
+    private NpgsqlDataSource _pgsqlClient;
 
     /// <summary>
     /// If there is already an session active
@@ -46,7 +44,7 @@ public class CategoryService
 
     public CategoryService()
     {
-        _mongoClient = CreateMongoClient();
+        _pgsqlClient = CreatePgsqlConnection();
 
         _timer = new Timer(TimeSpan.FromMinutes(1));
         _timer.Elapsed += GetActiveCategory;
@@ -57,71 +55,96 @@ public class CategoryService
         _timer.Enabled = true;
     }
 
-    private void GetActiveCategory(object? source, ElapsedEventArgs e)
+    private async void GetActiveCategory(object? source, ElapsedEventArgs e)
     {
         if (_sessionActive)
             return;
 
         var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
         var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
-        var calendarItem = GetCategoryKey(signalTime);
-        var categoryKey = calendarItem?.Name;
-        var session = calendarItem?.Sessions
-            .Find(session => session.Value == $"{signalTime:s}Z")
-            .Key;
+        var calendarItem = await GetCategory(signalTime);
+        if (!calendarItem.HasValue || !Categories.TryGetValue(calendarItem.Value.Key, out var category)) return;
 
-        if (null == categoryKey || !Categories.TryGetValue(categoryKey, out var category)) return;
-
-        Log.Information($"[CategoryService] Found active session with key {categoryKey}");
+        Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.Key}");
         _activeCategory = category;
         _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
         _activeCategory.Start(string.Empty);
     }
 
-    private static MongoClient CreateMongoClient()
+    /// <summary>
+    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for quering the database.
+    /// </summary>
+    /// <returns>A <see cref="NpgsqlConnection"/> object.</returns>
+    private static NpgsqlDataSource CreatePgsqlConnection()
     {
-        var mongoUrl = Environment.GetEnvironmentVariable("MONGODB_URL");
-        if (null == mongoUrl)
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        if (null == databaseUrl)
         {
-            Log.Fatal("[CategoryService] 'MONGODB_URL' env variable must be set");
+            Log.Fatal("[CategoryService] 'DATABASE_URL' env variable must be set");
             Environment.Exit(0);
         }
 
-        return new MongoClient(mongoUrl);
-    }
-
-    private CalenderItem? GetCategoryKey(DateTime currentTime)
-    {
-        var calendarCollection = _mongoClient?.GetDatabase("calendar")
-            .GetCollection<BsonDocument>(currentTime.Year.ToString());
-
-        var matchBySessionTime = Builders<BsonDocument>.Filter.Eq("sessions.v", "2023-09-17T12:00:00Z");
-        var sortByPriority = Builders<BsonDocument>.Sort.Ascending("priority");
-        var aggregate = calendarCollection.Aggregate()
-            .Unwind("races")
-            .Project(new BsonDocument
-            {
-                { "key", "$key" },
-                { "priority", "$priority" },
-                { "sessions", new BsonDocument { { "$objectToArray", "$races.sessions" } } },
-                { "name", "$races.name" }
-            })
-            .Match(matchBySessionTime)
-            .Sort(sortByPriority)
-            .Limit(1);
-
-        var calenderItem = BsonSerializer.Deserialize<CalenderItem>(aggregate.ToBson());
-        return calenderItem;
+        var dataSource = NpgsqlDataSource.Create(databaseUrl);
+        return dataSource;
     }
 
     /// <summary>
-    /// Structure for a race weekend entry in the database
+    /// Queries the database to find of there is a session that will start at the given
+    /// time (UTC). 
     /// </summary>
-    private struct CalenderItem
+    /// <param name="currentTime">The current time (UTC).</param>
+    /// <returns>If there is an active session, else null.</returns>
+    private async Task<RaceSession?> GetCategory(DateTime currentTime)
     {
+        var query = @$"
+            SELECT s.name as session_name, 
+                s.key as session_key, 
+                c.key as category_key, 
+                c.priority as category_priority
+            FROM session s
+            INNER JOIN category c
+                ON c.id = s.category_id
+            WHERE s.time = @p1
+            ORDER BY category_priority ASC
+            LIMIT 1
+        ";
+
+        await using var connection = await _pgsqlClient.OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(query, connection)
+        {
+            Parameters = { new("p1", currentTime) }
+        };
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            return new RaceSession()
+            {
+                Key = (string)reader["category_key"],
+                Name = (string)reader["session_name"],
+                Priority = (short)reader["category_priority"]
+            };
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Structure for a session entry in the database
+    /// </summary>
+    private struct RaceSession
+    {
+        /// <summary>
+        /// A identification key for the race category e.g. f1, f2.
+        /// </summary>
         public string Key;
+        /// <summary>
+        /// The priority of the race category
+        /// </summary>
         public short Priority;
-        public List<KeyValuePair<string, string>> Sessions;
+        /// <summary>
+        /// The name of the active race weekend.
+        /// </summary>
         public string Name;
     }
 }
