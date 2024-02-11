@@ -8,10 +8,6 @@
     <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>1701;1702; 5001</NoWarn>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="dotenv.net" Version="3.1.3" />
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" />

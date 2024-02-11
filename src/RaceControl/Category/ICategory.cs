@@ -18,4 +18,9 @@ public interface ICategory
     /// Sets up and starts the live timing service related to the category.
     /// </summary>
     void Start(string session);
+
+    /// <summary>
+    /// Closes the connection to the live timing service related to the category.
+    /// </summary>
+    void Stop();
 }

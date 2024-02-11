@@ -1,7 +1,7 @@
 #####################################################################
 ## Build project
 ####################################################################
-FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
 WORKDIR /App
 
 # Copy csproj and restore as distinct layers
@@ -11,7 +11,7 @@ COPY RaceControl.csproj ./
 RUN dotnet restore --runtime linux-musl-x64
 
 # Copy everything
-COPY . ./
+COPY ./src/RaceControl/ ./
 
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
@@ -22,7 +22,7 @@ RUN dotnet publish -c Release -o out  \
 #####################################################################
 ## Final image
 ####################################################################
-FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
 WORKDIR /App
 COPY --from=base /App/out ./
 

@@ -25,12 +25,12 @@ public class CategoryService
     /// <summary>
     /// The timer used for checkin if there is an active category.
     /// </summary>
-    private Timer _timer;
+    private readonly Timer _timer;
 
     /// <summary>
     /// The MongoDB client connection to the category calendar database.
     /// </summary>
-    private NpgsqlDataSource _pgsqlClient;
+    private readonly NpgsqlDataSource _pgsqlClient;
 
     /// <summary>
     /// If there is already an session active
@@ -55,6 +55,12 @@ public class CategoryService
         _timer.Enabled = true;
     }
 
+    /// <summary>
+    /// Gets the key of the next active session and sets the correct connector to listen to the
+    /// live timing data.
+    /// </summary>
+    /// <param name="source">The timer source.</param>
+    /// <param name="e">Args of the timer event.</param>
     private async void GetActiveCategory(object? source, ElapsedEventArgs e)
     {
         if (_sessionActive)
@@ -63,12 +69,13 @@ public class CategoryService
         var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
         var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
         var calendarItem = await GetCategory(signalTime);
-        if (!calendarItem.HasValue || !Categories.TryGetValue(calendarItem.Value.Key, out var category)) return;
+        if (!calendarItem.HasValue || !Categories.TryGetValue(calendarItem.Value.CategoryKey, out var category)) return;
 
-        Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.Key}");
+        Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
         _activeCategory = category;
         _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
-        _activeCategory.Start(string.Empty);
+        _activeCategory.OnSessionFinished += StopActiveCategory;
+        _activeCategory.Start(calendarItem.Value.Key);
     }
 
     /// <summary>
@@ -120,13 +127,24 @@ public class CategoryService
         {
             return new RaceSession()
             {
-                Key = (string)reader["category_key"],
+                CategoryKey = (string)reader["category_key"],
+                Priority = (short)reader["category_priority"],
                 Name = (string)reader["session_name"],
-                Priority = (short)reader["category_priority"]
+                Key = (string)reader["session_key"]
             };
         }
 
         return null;
+    }
+
+    private async void StopActiveCategory()
+    {
+        await Task.Delay(new TimeSpan(0, 5, 0));
+
+        Log.Information("[CategoryService] Closing the active category");
+        _activeCategory.Stop();
+        _activeCategory = null;
+        _sessionActive = false;
     }
 
     /// <summary>
@@ -137,7 +155,7 @@ public class CategoryService
         /// <summary>
         /// A identification key for the race category e.g. f1, f2.
         /// </summary>
-        public string Key;
+        public string CategoryKey;
         /// <summary>
         /// The priority of the race category
         /// </summary>
@@ -146,5 +164,9 @@ public class CategoryService
         /// The name of the active race weekend.
         /// </summary>
         public string Name;
+        /// <summary>
+        /// The key of the active session  e.g. fp1, gp.
+        /// </summary>
+        public string Key;
     }
 }

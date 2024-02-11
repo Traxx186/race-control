@@ -21,6 +21,21 @@ public sealed partial class Formula1 : ICategory
         { "TrackStatus", ParseTrackStatusMessage },
         { "RaceControlMessages", ParseRaceControlMessage }
     };
+
+    /// <summary>
+    /// How many times a <see cref="Flag.Chequered"/> needs to be recieved until the API 
+    /// connections needs to be broken.
+    /// </summary>
+    private static readonly Dictionary<string, int> SessionChequered = new()
+    {
+        { "fp1", 1 },
+        { "fp2", 1 },
+        { "fp3", 1 },
+        { "qualifying", 3 },
+        { "sprintQualifying", 3 },
+        { "sprint", 1 },
+        { "gp", 1 }
+    };
     
     /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
@@ -37,6 +52,12 @@ public sealed partial class Formula1 : ICategory
     /// The record of the latest parsed flag.
     /// </summary>
     private static FlagData? _parsedFlag = new() { Flag = Flag.Chequered };
+
+    /// <summary>
+    /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
+    /// needs to be closed.
+    /// </summary>
+    private int NumberOfChequered;
 
     /// <summary>
     /// <inheritdoc/>
@@ -65,7 +86,23 @@ public sealed partial class Formula1 : ICategory
     public void Start(string session)
     {
         Log.Information("[Formula 1] Starting API connection");
+        if (!SessionChequered.TryGetValue(session, out var numOfChequered))
+        {
+            Log.Error($"[Formula 1] Cannot find session {session}");
+            return;
+        }
+
+        NumberOfChequered = numOfChequered;
         _signalR.Start();
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Stop()
+    {
+        Log.Information("[Formula 1] Closing API connection");
+        _signalR.Stop();
     }
 
     /// <summary>
@@ -84,6 +121,8 @@ public sealed partial class Formula1 : ICategory
             return;
 
         _parsedFlag = parsedFlag;
+        if (parsedFlag.Flag is Flag.Chequered && --NumberOfChequered < 1)
+            OnSessionFinished?.Invoke();
 
         Log.Information($"[Formula 1] New flag {_parsedFlag.Flag}");
         OnFlagParsed?.Invoke(_parsedFlag);
@@ -181,8 +220,7 @@ public sealed partial class Formula1 : ICategory
     /// <returns></returns>
     private static bool IgnoreRaceControlFlag(Flag flag) =>
         _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
-        
-    
+
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
