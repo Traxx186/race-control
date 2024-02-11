@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
 WORKDIR /App
 
 # Copy csproj and restore as distinct layers
-COPY RaceControl.csproj ./
+COPY ./src/RaceControl/RaceControl.csproj ./
 
 # Restore as distinct layers
 RUN dotnet restore --runtime linux-musl-x64
@@ -16,8 +16,7 @@ COPY ./src/RaceControl/ ./
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
    --runtime linux-musl-x64 \
-   --self-contained true \
-    /p:PublishSingleFile=true 
+   --self-contained true 
  
 #####################################################################
 ## Final image

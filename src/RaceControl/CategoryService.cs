@@ -76,6 +76,8 @@ public class CategoryService
         _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
         _activeCategory.OnSessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Value.Key);
+
+        _sessionActive = true;
     }
 
     /// <summary>
