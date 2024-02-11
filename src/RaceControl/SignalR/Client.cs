@@ -1,7 +1,7 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNet.SignalR.Client;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Serilog;
 
 namespace RaceControl.SignalR;
@@ -34,7 +34,7 @@ public sealed class Client
     /// <summary>
     /// List of handlers.
     /// </summary>
-    private List<Tuple<string, string, Action<JArray>>> _handlers = new();
+    private List<Tuple<string, string, Action<JsonArray>>> _handlers = new();
     
     /// <summary>
     /// If the SignalR service is active.
@@ -84,8 +84,8 @@ public sealed class Client
     /// <param name="hub">Name of the hub.</param>
     /// <param name="method">Name of the executed method.</param>
     /// <param name="handler">Function that will be executed.</param>
-    public void AddHandler(string hub, string method, Action<JArray> handler) =>
-        _handlers.Add(new Tuple<string, string, Action<JArray>>(hub, method, handler));
+    public void AddHandler(string hub, string method, Action<JsonArray> handler) =>
+        _handlers.Add(new Tuple<string, string, Action<JsonArray>>(hub, method, handler));
 
     /// <summary>
     /// Checks if the incoming message can be used to call a handler.
@@ -93,7 +93,7 @@ public sealed class Client
     /// <param name="message">The data received from the server.</param>
     private void HandleMessage(string message)
     {
-        var data = JsonConvert.DeserializeObject<Message>(message);
+        var data = JsonSerializer.Deserialize<Message>(message);
         if (null == data.A)
             return;
         

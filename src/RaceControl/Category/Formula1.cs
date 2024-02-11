@@ -1,5 +1,5 @@
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
 using RaceControl.SignalR;
 using RaceControl.Track;
 using Serilog;
@@ -11,15 +11,30 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// Flags to be ignored by race control message parser.
     /// </summary>
-    private static readonly Flag[] IgnorableFlags = { Flag.Clear };
+    private static readonly Flag[] IgnorableFlags = [Flag.Clear];
     
     /// <summary>
     /// Data streams to listen to and the related method to be called.
     /// </summary>
-    private static readonly Dictionary<string, Func<JToken, FlagData?>> DataStreams = new()
+    private static readonly Dictionary<string, Func<JsonNode, FlagData?>> DataStreams = new()
     {
         { "TrackStatus", ParseTrackStatusMessage },
         { "RaceControlMessages", ParseRaceControlMessage }
+    };
+
+    /// <summary>
+    /// How many times a <see cref="Flag.Chequered"/> needs to be recieved until the API 
+    /// connections needs to be broken.
+    /// </summary>
+    private static readonly Dictionary<string, int> SessionChequered = new()
+    {
+        { "fp1", 1 },
+        { "fp2", 1 },
+        { "fp3", 1 },
+        { "qualifying", 3 },
+        { "sprintQualifying", 3 },
+        { "sprint", 1 },
+        { "gp", 1 }
     };
     
     /// <summary>
@@ -39,16 +54,27 @@ public sealed partial class Formula1 : ICategory
     private static FlagData? _parsedFlag = new() { Flag = Flag.Chequered };
 
     /// <summary>
+    /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
+    /// needs to be closed.
+    /// </summary>
+    private int NumberOfChequered;
+
+    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event Action<FlagData>? OnFlagParsed;
-    
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public event Action? OnSessionFinished;
+
     public Formula1(string url)
     {
         _signalR = new Client(
             url,
             "Streaming",
-            new[] { "RaceControlMessages", "TrackStatus" }
+            ["RaceControlMessages", "TrackStatus"]
         );
 
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
@@ -57,10 +83,26 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Start()
+    public void Start(string session)
     {
         Log.Information("[Formula 1] Starting API connection");
+        if (!SessionChequered.TryGetValue(session, out var numOfChequered))
+        {
+            Log.Error($"[Formula 1] Cannot find session {session}");
+            return;
+        }
+
+        NumberOfChequered = numOfChequered;
         _signalR.Start();
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Stop()
+    {
+        Log.Information("[Formula 1] Closing API connection");
+        _signalR.Stop();
     }
 
     /// <summary>
@@ -68,9 +110,9 @@ public sealed partial class Formula1 : ICategory
     /// argument.
     /// </summary>
     /// <param name="message">Message received from Formula 1 API.</param>
-    private void HandleMessage(JArray message)
+    private void HandleMessage(JsonArray message)
     {
-        var argument = message[0].ToString();
+        var argument = message[0]?.ToString() ?? string.Empty;
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
         
@@ -79,6 +121,8 @@ public sealed partial class Formula1 : ICategory
             return;
 
         _parsedFlag = parsedFlag;
+        if (parsedFlag.Flag is Flag.Chequered && --NumberOfChequered < 1)
+            OnSessionFinished?.Invoke();
 
         Log.Information($"[Formula 1] New flag {_parsedFlag.Flag}");
         OnFlagParsed?.Invoke(_parsedFlag);
@@ -89,10 +133,10 @@ public sealed partial class Formula1 : ICategory
     /// </summary>
     /// <param name="message">Message object.</param>
     /// <returns>Parsed flag.</returns>
-    private static FlagData ParseTrackStatusMessage(JToken message)
+    private static FlagData ParseTrackStatusMessage(JsonNode message)
     {
         Log.Information("[Formula 1] Parsing track status message");
-        var data = message.ToObject<TrackStatusMessage>();
+        var data = message.GetValue<TrackStatusMessage>();
         var flag = data.Status switch
         {
             2 => Flag.Yellow,
@@ -110,13 +154,13 @@ public sealed partial class Formula1 : ICategory
     /// </summary>
     /// <param name="message">Message object.</param>
     /// <returns>Parsed flag.</returns>
-    private static FlagData? ParseRaceControlMessage(JToken message)
+    private static FlagData? ParseRaceControlMessage(JsonNode message)
     {
         if (!ListenToRaceControlMessages)
             return null;
 
         Log.Information("[Formula 1] Parsing race control message");
-        var data = message["Messages"]?.SelectToken("*")?.ToObject<RaceControlMessage>();
+        var data = message["Messages"]?.AsArray()[0]?.GetValue<RaceControlMessage>();
         if (null == data)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
@@ -155,9 +199,9 @@ public sealed partial class Formula1 : ICategory
             return null;
         }
 
-        int? driver = flag == Flag.Blue
+        var driver = flag == Flag.Blue
             ? data.Value.RacingNumber
-            : null;
+            : 0;
         
         return new FlagData { Flag = flag, Driver = driver };
     }
@@ -176,8 +220,7 @@ public sealed partial class Formula1 : ICategory
     /// <returns></returns>
     private static bool IgnoreRaceControlFlag(Flag flag) =>
         _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
-        
-    
+
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
@@ -185,12 +228,6 @@ public sealed partial class Formula1 : ICategory
     {
         public short Status;
         public string Message;
-
-        public TrackStatusMessage()
-        {
-            Status = 0;
-            Message = string.Empty;
-        }
     }
 
     /// <summary>
@@ -199,26 +236,13 @@ public sealed partial class Formula1 : ICategory
     private struct RaceControlMessage
     {
         public DateTime Utc;
-        public short Lap;
+        public int Lap;
         public string Category;
         public string Message;
-        public string? Flag;
-        public string? Scope;
-        public short? RacingNumber;
-        public short? Sector;
-        public string? Mode;
-
-        public RaceControlMessage()
-        {
-            Utc = DateTime.Now;
-            Lap = 0;
-            Category = string.Empty;
-            Message = string.Empty;
-            Flag = string.Empty;
-            Scope = string.Empty;
-            RacingNumber = 0;
-            Sector = 0;
-            Mode = string.Empty;
-        }
+        public string Flag;
+        public string Scope;
+        public int RacingNumber;
+        public int Sector;
+        public string Mode;
     }
 }

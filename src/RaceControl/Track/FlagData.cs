@@ -1,22 +1,31 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
 
 namespace RaceControl.Track;
 
 /// <summary>
 /// Object that contains a flag and the related driver.
 /// </summary>
-public record FlagData
+public class FlagData : ICloneable
 {
     /// <summary>
     /// The <see cref="Flag"/>
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public Flag Flag;
-    
+
     /// <summary>
     /// The driver number that related to the flag
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? Driver;
+    public int Driver;
+
+    public object Clone()
+    {
+        var flagData = new FlagData()
+        {
+            Flag = Flag,
+            Driver = Driver
+        };
+
+        return flagData;
+    }
 }
