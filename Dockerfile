@@ -28,4 +28,6 @@ COPY --from=base /App/out ./
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
 
+EXPOSE 5050
+
 ENTRYPOINT ["./RaceControl"]

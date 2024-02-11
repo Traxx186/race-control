@@ -16,9 +16,7 @@ var trackStatus = new TrackStatus();
 var categoryService = new CategoryService();
 categoryService.OnCategoryFlagChange += trackStatus.SetActiveFlag;
 
-var appUrl = Environment.GetEnvironmentVariable("APP_URL") ?? "http://localhost:5050";
 var app = SetupWebApplication(args);
-
 app.UseForwardedHeaders();
 app.UseWebSockets();
 app.Map("/", async context =>
@@ -40,7 +38,7 @@ app.Map("/", async context =>
 Log.Information("[Race Control] Starting category service & WebSocket server");
 Task.WaitAll(
     Task.Run(categoryService.Start),
-    Task.Run(() => app.Run(appUrl))
+    Task.Run(app.Run)
 );
 
 static void SetupLogging()
