@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using RaceControl.SignalR;
@@ -115,7 +116,6 @@ public sealed partial class Formula1 : ICategory
         var argument = message[0]?.ToString() ?? string.Empty;
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
-        
         var parsedFlag = callable.Invoke(message[1]);
         if (null == parsedFlag)
             return;
@@ -136,7 +136,7 @@ public sealed partial class Formula1 : ICategory
     private static FlagData ParseTrackStatusMessage(JsonNode message)
     {
         Log.Information("[Formula 1] Parsing track status message");
-        var data = message.GetValue<TrackStatusMessage>();
+        var data = message.Deserialize<TrackStatusMessage>();
         var flag = data.Status switch
         {
             2 => Flag.Yellow,
@@ -160,7 +160,7 @@ public sealed partial class Formula1 : ICategory
             return null;
 
         Log.Information("[Formula 1] Parsing race control message");
-        var data = message["Messages"]?.AsArray()[0]?.GetValue<RaceControlMessage>();
+        var data = message["Messages"]?.AsArray()[0]?.Deserialize<RaceControlMessage>();
         if (null == data)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
@@ -168,31 +168,31 @@ public sealed partial class Formula1 : ICategory
         }
         
         // Checks if the slippery surface flag is shown.
-        if (data.Value.Message.Contains("SLIPPERY"))
+        if (data.Message.Contains("SLIPPERY"))
         {
             Log.Information($"[Formula 1] Parsed race control message to {Flag.Surface}");
             return new FlagData { Flag = Flag.Surface };
         }
 
         // Checks if the session will not be resumed.
-        if (NotResumeRegex().IsMatch(data.Value.Message))
+        if (NotResumeRegex().IsMatch(data.Message))
         {
             Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
             return new FlagData { Flag = Flag.Chequered };
         }
 
         // If the message category is not 'Flag', the message can be ignored.
-        if (data.Value is not { Category: "Flag" })
+        if (data is not { Category: "Flag" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(data.Value.Flag, out var flag) || IgnoreRaceControlFlag(flag))
+        if (!TrackStatus.TryParseFlag(data.Flag, out var flag) || IgnoreRaceControlFlag(flag))
         {
             if (flag == Flag.None)
-                Log.Warning($"[Formula 1] Could not parse flag '{data.Value.Flag}'");
+                Log.Warning($"[Formula 1] Could not parse flag '{data.Flag}'");
             else 
                 Log.Information("[Formula 1] Parsed flag ignored");
             
@@ -200,7 +200,7 @@ public sealed partial class Formula1 : ICategory
         }
 
         var driver = flag == Flag.Blue
-            ? data.Value.RacingNumber
+            ? data.RacingNumber
             : 0;
         
         return new FlagData { Flag = flag, Driver = driver };
@@ -224,25 +224,23 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
-    private struct TrackStatusMessage
-    {
-        public short Status;
-        public string Message;
-    }
+    private sealed record class TrackStatusMessage(
+        short Status,
+        string Message
+    );
 
     /// <summary>
     /// Structure of a race control message.
     /// </summary>
-    private struct RaceControlMessage
-    {
-        public DateTime Utc;
-        public int Lap;
-        public string Category;
-        public string Message;
-        public string Flag;
-        public string Scope;
-        public int RacingNumber;
-        public int Sector;
-        public string Mode;
-    }
+    private sealed record class RaceControlMessage(
+        DateTime Utc,
+        int Lap,
+        string Category,
+        string Message,
+        string Flag,
+        string Scope,
+        int RacingNumber,
+        int Sector,
+        string Mode
+    );
 }

@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNet.SignalR.Client;
@@ -34,7 +33,7 @@ public sealed class Client
     /// <summary>
     /// List of handlers.
     /// </summary>
-    private List<Tuple<string, string, Action<JsonArray>>> _handlers = new();
+    private List<(string, string, Action<JsonArray>)> _handlers = [];
     
     /// <summary>
     /// If the SignalR service is active.
@@ -61,7 +60,6 @@ public sealed class Client
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
 #endif
-            connection.CookieContainer = new CookieContainer();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Warning("[SignalR] Reconnecting");
@@ -85,7 +83,7 @@ public sealed class Client
     /// <param name="method">Name of the executed method.</param>
     /// <param name="handler">Function that will be executed.</param>
     public void AddHandler(string hub, string method, Action<JsonArray> handler) =>
-        _handlers.Add(new Tuple<string, string, Action<JsonArray>>(hub, method, handler));
+        _handlers.Add((hub, method, handler));
 
     /// <summary>
     /// Checks if the incoming message can be used to call a handler.
@@ -94,9 +92,9 @@ public sealed class Client
     private void HandleMessage(string message)
     {
         var data = JsonSerializer.Deserialize<Message>(message);
-        if (null == data.A)
+        if (null == data || null == data.A)
             return;
-        
+
         Log.Information($"[SignalR] New message received");
         _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M)
             .ToList()

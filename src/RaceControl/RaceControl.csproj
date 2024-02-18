@@ -5,10 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>RaceControl</RootNamespace>
-    <PublishSingleFile>true</PublishSingleFile>
+    <!-- <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
-    <TrimMode>partial</TrimMode>
+    <TrimMode>partial</TrimMode> -->
     <Authors>Traxx186</Authors>
     <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
   </PropertyGroup>

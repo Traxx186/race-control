@@ -5,18 +5,17 @@ namespace RaceControl.SignalR;
 /// <summary>
 /// SignalR message.
 /// </summary>
-public struct Message
-{
+public sealed record class Message(
     /// <summary>
     /// The hub name.
     /// </summary>
-    public string? H;
+    string? H,
     /// <summary>
     /// The message method.
     /// </summary>
-    public string? M;
+    string? M,
     /// <summary>
     /// The message's arguments.
     /// </summary>
-    public JsonArray? A;
-}
+    JsonArray? A
+);
