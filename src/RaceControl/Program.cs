@@ -67,7 +67,7 @@ static CancellationToken SetupGracefulShutdown()
 
 static WebApplication SetupWebApplication(string[] args)
 {
-    var builder = WebApplication.CreateBuilder(args);
+    var builder = WebApplication.CreateSlimBuilder(args);
 
     return builder.Build();
 }

@@ -64,6 +64,7 @@ public sealed class Client
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Warning("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
+            connection.Protocol = new(1, 5);
 
             var f1Timing = connection.CreateHubProxy(_hub);
             _connection = connection;

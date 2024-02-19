@@ -33,11 +33,6 @@ public class CategoryService
     private readonly NpgsqlDataSource _pgsqlClient;
 
     /// <summary>
-    /// If there is already an session active
-    /// </summary>
-    private bool _sessionActive = false;
-
-    /// <summary>
     /// Event that will be triggered when a category parser has parsed a flag. 
     /// </summary>
     public event Action<FlagData>? OnCategoryFlagChange;
@@ -63,9 +58,6 @@ public class CategoryService
     /// <param name="e">Args of the timer event.</param>
     private async void GetActiveCategory(object? source, ElapsedEventArgs e)
     {
-        if (_sessionActive)
-            return;
-
         var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
         var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
         var calendarItem = await GetCategory(signalTime);
@@ -77,7 +69,7 @@ public class CategoryService
         _activeCategory.OnSessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Value.Key);
 
-        _sessionActive = true;
+        _timer.Enabled = false;
     }
 
     /// <summary>
@@ -144,9 +136,9 @@ public class CategoryService
         await Task.Delay(new TimeSpan(0, 5, 0));
 
         Log.Information("[CategoryService] Closing the active category");
-        _activeCategory.Stop();
+        _activeCategory?.Stop();
         _activeCategory = null;
-        _sessionActive = false;
+        _timer.Enabled = true;
     }
 
     /// <summary>
