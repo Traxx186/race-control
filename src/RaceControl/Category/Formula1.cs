@@ -133,11 +133,17 @@ public sealed partial class Formula1 : ICategory
     /// </summary>
     /// <param name="message">Message object.</param>
     /// <returns>Parsed flag.</returns>
-    private static FlagData ParseTrackStatusMessage(JsonNode message)
+    private static FlagData? ParseTrackStatusMessage(JsonNode message)
     {
         Log.Information("[Formula 1] Parsing track status message");
         var data = message.Deserialize<TrackStatusMessage>();
-        var flag = data.Status switch
+        if (data == null || !short.TryParse(data.Status, out var status))
+        {
+            Log.Error("[Formula 1] Invalid track status message recieved");
+            return null;
+        }
+
+        var flag = status switch
         {
             2 => Flag.Yellow,
             4 => Flag.SafetyCar,
@@ -160,39 +166,49 @@ public sealed partial class Formula1 : ICategory
             return null;
 
         Log.Information("[Formula 1] Parsing race control message");
-        var data = message["Messages"]?.AsArray()[0]?.Deserialize<RaceControlMessage>();
+
+        // Extract the race control message object from the SignalR message.
+        var data = message["Messages"]?.ToJsonString().Split(':', 2)[1];
         if (null == data)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
             return null;
         }
-        
+
+        // Parse the extracted message to the RaceControlMessage record
+        var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data.Remove(data.Length - 1));
+        if (null == raceControlMessage)
+        {
+            Log.Warning("[Formula 1] Race control message could not be parsed");
+            return null;
+        }
+
         // Checks if the slippery surface flag is shown.
-        if (data.Message.Contains("SLIPPERY"))
+        if (raceControlMessage.Message.Contains("SLIPPERY"))
         {
             Log.Information($"[Formula 1] Parsed race control message to {Flag.Surface}");
             return new FlagData { Flag = Flag.Surface };
         }
 
         // Checks if the session will not be resumed.
-        if (NotResumeRegex().IsMatch(data.Message))
+        if (NotResumeRegex().IsMatch(raceControlMessage.Message))
         {
             Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
             return new FlagData { Flag = Flag.Chequered };
         }
 
         // If the message category is not 'Flag', the message can be ignored.
-        if (data is not { Category: "Flag" })
+        if (raceControlMessage is not { Category: "Flag" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(data.Flag, out var flag) || IgnoreRaceControlFlag(flag))
+        if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag) || IgnoreRaceControlFlag(flag))
         {
             if (flag == Flag.None)
-                Log.Warning($"[Formula 1] Could not parse flag '{data.Flag}'");
+                Log.Warning($"[Formula 1] Could not parse flag '{raceControlMessage.Flag}'");
             else 
                 Log.Information("[Formula 1] Parsed flag ignored");
             
@@ -200,7 +216,7 @@ public sealed partial class Formula1 : ICategory
         }
 
         var driver = flag == Flag.Blue
-            ? data.RacingNumber
+            ? raceControlMessage.RacingNumber
             : 0;
         
         return new FlagData { Flag = flag, Driver = driver };
@@ -225,7 +241,7 @@ public sealed partial class Formula1 : ICategory
     /// Structure of a track status message.
     /// </summary>
     private sealed record class TrackStatusMessage(
-        short Status,
+        string Status,
         string Message
     );
 

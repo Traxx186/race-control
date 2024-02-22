@@ -60,6 +60,7 @@ public sealed class Client
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
 #endif
+            connection.CookieContainer = new();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Warning("[SignalR] Reconnecting");
