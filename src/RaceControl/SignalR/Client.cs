@@ -67,10 +67,10 @@ public sealed class Client
         while (Running)
         { 
             using var connection = new HubConnection(_url);
-//#if DEBUG
+#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
-//#endif
+#endif
             connection.CookieContainer = new();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
