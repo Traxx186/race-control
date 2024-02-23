@@ -25,15 +25,16 @@ public sealed class TrackStatus
     /// </summary>
     private static readonly Flag[] OverrideFlags = { Flag.Clear, Flag.Chequered };
     
-    /// <summary>
-    /// The current active flag of the session.
-    /// </summary>
-    private FlagData _activeFlag = new() { Flag = Flag.Chequered };
 
     /// <summary>
     /// Event that gets called when the flag of the active session changes.
     /// </summary>
     public event Action<FlagData>? OnTrackFlagChange;
+
+    /// <summary>
+    /// The current active flag of the session.
+    /// </summary>
+    public FlagData ActiveFlag { get; private set; } = new FlagData() { Flag = Flag.Clear };
 
     /// <summary>
     /// Sets the current active flag. If the priority of the given flag equals 1, the OnFlagChange event will be called
@@ -46,20 +47,20 @@ public sealed class TrackStatus
         if (OverrideFlags.Contains(data.Flag))
         {
             Log.Information($"[Track Status] Received override flag {data.Flag}, sending flag and updating track status");
-            _activeFlag = data;
-            OnTrackFlagChange?.Invoke(_activeFlag);
+            ActiveFlag = data;
+            OnTrackFlagChange?.Invoke(ActiveFlag);
             
             return;
         }
 
         // If given flag is the same as the active flag, or the active flag is
         // checkered. Do not try to set the given flag.
-        if (data.Flag == _activeFlag.Flag || _activeFlag.Flag == Flag.Chequered)
+        if (data.Flag == ActiveFlag.Flag)
             return;
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(_activeFlag.Flag); 
-        if (_activeFlag.Flag == Flag.Clear && newFlagPrio == 0)
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag.Flag); 
+        if (ActiveFlag.Flag == Flag.Clear && newFlagPrio == 0)
         {
             Log.Information("[Track Status] Received information flag, sending flag data but not updating track status");
             OnTrackFlagChange?.Invoke(data);
@@ -74,8 +75,8 @@ public sealed class TrackStatus
         }
 
         Log.Information("[Track Status] New received status flag with higher priority, updating track status");
-        _activeFlag = data;
-        OnTrackFlagChange?.Invoke(_activeFlag);
+        ActiveFlag = data;
+        OnTrackFlagChange?.Invoke(ActiveFlag);
     }
 
     /// <summary>

@@ -41,7 +41,7 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
     /// </summary>
-    [GeneratedRegex("^[RSQ0-9].+\\b(?:WILL NOT)\\b", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
     private static partial Regex NotResumeRegex();
     
     /// <summary>
@@ -75,7 +75,8 @@ public sealed partial class Formula1 : ICategory
         _signalR = new Client(
             url,
             "Streaming",
-            ["RaceControlMessages", "TrackStatus"]
+            ["RaceControlMessages", "TrackStatus"],
+            new(1, 5)
         );
 
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
@@ -191,7 +192,7 @@ public sealed partial class Formula1 : ICategory
         }
 
         // Checks if the session will not be resumed.
-        if (NotResumeRegex().IsMatch(raceControlMessage.Message))
+        if (raceControlMessage.Message.Contains("WILL NOT BE RESUMED"))
         {
             Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
             return new FlagData { Flag = Flag.Chequered };

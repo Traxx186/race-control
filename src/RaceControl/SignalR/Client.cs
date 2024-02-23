@@ -26,6 +26,11 @@ public sealed class Client
     private readonly string _hub;
 
     /// <summary>
+    /// The protocol version to be used
+    /// </summary>
+    private readonly Version? _version;
+    
+    /// <summary>
     /// The connection object.
     /// </summary>
     private HubConnection? _connection;
@@ -33,7 +38,7 @@ public sealed class Client
     /// <summary>
     /// List of handlers.
     /// </summary>
-    private List<(string, string, Action<JsonArray>)> _handlers = [];
+    private readonly List<(string, string, Action<JsonArray>)> _handlers = [];
     
     /// <summary>
     /// If the SignalR service is active.
@@ -47,6 +52,12 @@ public sealed class Client
         _args = args;
     }
 
+    public Client(string url, string hub, string[] args, Version version)
+        : this(url, hub, args)
+    {
+          _version = version;
+    }
+
     /// <summary>
     /// Sets up, connects and processes incoming messages to the given SignalR server.
     /// </summary>
@@ -56,16 +67,19 @@ public sealed class Client
         while (Running)
         { 
             using var connection = new HubConnection(_url);
-#if DEBUG
+//#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
-#endif
+//#endif
             connection.CookieContainer = new();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
-            connection.Reconnecting += () => Log.Warning("[SignalR] Reconnecting");
+            connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
-            connection.Protocol = new(1, 5);
+            connection.DeadlockErrorTimeout  = TimeSpan.FromSeconds(60);
+
+            if (null != _version)
+                connection.Protocol = _version;
 
             var f1Timing = connection.CreateHubProxy(_hub);
             _connection = connection;

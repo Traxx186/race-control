@@ -11,12 +11,12 @@ public class FlagData : ICloneable
     /// The <see cref="Flag"/>
     /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public Flag Flag;
+    public Flag Flag { get; set; }
 
     /// <summary>
     /// The driver number that related to the flag
     /// </summary>
-    public int Driver;
+    public int Driver { get; set; }
 
     public object Clone()
     {
