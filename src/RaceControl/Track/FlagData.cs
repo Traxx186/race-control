@@ -18,6 +18,9 @@ public class FlagData : ICloneable
     /// </summary>
     public int Driver { get; set; }
 
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
     public object Clone()
     {
         var flagData = new FlagData()
