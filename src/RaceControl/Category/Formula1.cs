@@ -192,7 +192,7 @@ public sealed partial class Formula1 : ICategory
         }
 
         // Checks if the session will not be resumed.
-        if (raceControlMessage.Message.Contains("WILL NOT BE RESUMED"))
+        if (NotResumeRegex().IsMatch(raceControlMessage.Message))
         {
             Log.Information($"[Formula 1] Session will not be resumed, setting current flag to {Flag.Chequered}");
             return new FlagData { Flag = Flag.Chequered };
