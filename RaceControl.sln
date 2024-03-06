@@ -19,7 +19,4 @@ Global
 		{D35DC244-88BF-4C1F-BA02-C80AE3C0A213}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D35DC244-88BF-4C1F-BA02-C80AE3C0A213}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{D35DC244-88BF-4C1F-BA02-C80AE3C0A213} = {6A2EF701-4EA5-4813-A405-0D6BDD1A3A82}
-	EndGlobalSection
 EndGlobal

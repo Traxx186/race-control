@@ -8,8 +8,8 @@ using RaceControl.Track;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
-SetupLogging();
 DotEnv.Load();
+SetupLogging();
 
 var cancellationToken = SetupGracefulShutdown();
 var connections = new List<WebSocket>();

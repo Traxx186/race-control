@@ -136,7 +136,7 @@ public class CategoryService
         await Task.Delay(new TimeSpan(0, 5, 0));
 
         Log.Information("[CategoryService] Closing the active category");
-        _activeCategory?.Stop();
+        _activeCategory?.Dispose();
         _activeCategory = null;
         _timer.Enabled = true;
     }

@@ -7,7 +7,7 @@ using Serilog;
 
 namespace RaceControl.Category;
 
-public sealed partial class Formula1 : ICategory
+public partial class Formula1 : ICategory
 {
     /// <summary>
     /// Flags to be ignored by race control message parser.
@@ -47,7 +47,7 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
-    private readonly Client _signalR;
+    private Client? _signalR;
 
     /// <summary>
     /// The record of the latest parsed flag.
@@ -58,7 +58,12 @@ public sealed partial class Formula1 : ICategory
     /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
     /// needs to be closed.
     /// </summary>
-    private int NumberOfChequered;
+    private int _numberOfChequered;
+
+    /// <summary>
+    /// To detect redundant calls.
+    /// </summary>
+    private bool _disposedValue;
 
     /// <summary>
     /// <inheritdoc/>
@@ -94,8 +99,8 @@ public sealed partial class Formula1 : ICategory
             return;
         }
 
-        NumberOfChequered = numOfChequered;
-        _signalR.Start();
+        _numberOfChequered = numOfChequered;
+        _signalR?.Start();
     }
 
     /// <summary>
@@ -104,9 +109,32 @@ public sealed partial class Formula1 : ICategory
     public void Stop()
     {
         Log.Information("[Formula 1] Closing API connection");
-        _signalR.Stop();
+        Dispose();
     }
 
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposedValue)
+            return;
+
+        if (disposing)
+        {
+            _signalR?.Stop();
+            _signalR = null;
+        }
+
+        _disposedValue = true;
+    }
+    
     /// <summary>
     /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
     /// argument.
@@ -122,7 +150,7 @@ public sealed partial class Formula1 : ICategory
             return;
 
         _parsedFlag = parsedFlag;
-        if (parsedFlag.Flag is Flag.Chequered && --NumberOfChequered < 1)
+        if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
             OnSessionFinished?.Invoke();
 
         Log.Information($"[Formula 1] New flag {_parsedFlag.Flag}");
