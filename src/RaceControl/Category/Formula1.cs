@@ -66,6 +66,11 @@ public partial class Formula1 : ICategory
     private bool _disposedValue;
 
     /// <summary>
+    /// The URL to the live timing API.
+    /// </summary>
+    private readonly string _url;
+
+    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event Action<FlagData>? OnFlagParsed;
@@ -77,14 +82,7 @@ public partial class Formula1 : ICategory
 
     public Formula1(string url)
     {
-        _signalR = new Client(
-            url,
-            "Streaming",
-            ["RaceControlMessages", "TrackStatus"],
-            new(1, 5)
-        );
-
-        _signalR.AddHandler("Streaming", "feed", HandleMessage);
+        _url = url;
     }
 
     /// <summary>
@@ -98,6 +96,15 @@ public partial class Formula1 : ICategory
             Log.Error($"[Formula 1] Cannot find session {session}");
             return;
         }
+
+        _signalR = new Client(
+            _url,
+            "Streaming",
+            ["RaceControlMessages", "TrackStatus"],
+            new(1, 5)
+        );
+
+        _signalR.AddHandler("Streaming", "feed", HandleMessage);
 
         _numberOfChequered = numOfChequered;
         _signalR?.Start();
@@ -244,9 +251,8 @@ public partial class Formula1 : ICategory
             return null;
         }
 
-        var driver = flag == Flag.Blue
-            ? raceControlMessage.RacingNumber
-            : 0;
+        if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
+            driver = 0;
         
         return new FlagData { Flag = flag, Driver = driver };
     }
@@ -284,7 +290,7 @@ public partial class Formula1 : ICategory
         string Message,
         string Flag,
         string Scope,
-        int RacingNumber,
+        string RacingNumber,
         int Sector,
         string Mode
     );
