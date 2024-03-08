@@ -7,7 +7,7 @@ using Serilog;
 
 namespace RaceControl.Category;
 
-public sealed partial class Formula1 : ICategory
+public partial class Formula1 : ICategory
 {
     /// <summary>
     /// Flags to be ignored by race control message parser.
@@ -47,7 +47,7 @@ public sealed partial class Formula1 : ICategory
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
-    private readonly Client _signalR;
+    private Client? _signalR;
 
     /// <summary>
     /// The record of the latest parsed flag.
@@ -58,7 +58,17 @@ public sealed partial class Formula1 : ICategory
     /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
     /// needs to be closed.
     /// </summary>
-    private int NumberOfChequered;
+    private int _numberOfChequered;
+
+    /// <summary>
+    /// To detect redundant calls.
+    /// </summary>
+    private bool _disposedValue;
+
+    /// <summary>
+    /// The URL to the live timing API.
+    /// </summary>
+    private readonly string _url;
 
     /// <summary>
     /// <inheritdoc/>
@@ -72,14 +82,7 @@ public sealed partial class Formula1 : ICategory
 
     public Formula1(string url)
     {
-        _signalR = new Client(
-            url,
-            "Streaming",
-            ["RaceControlMessages", "TrackStatus"],
-            new(1, 5)
-        );
-
-        _signalR.AddHandler("Streaming", "feed", HandleMessage);
+        _url = url;
     }
 
     /// <summary>
@@ -94,8 +97,17 @@ public sealed partial class Formula1 : ICategory
             return;
         }
 
-        NumberOfChequered = numOfChequered;
-        _signalR.Start();
+        _signalR = new Client(
+            _url,
+            "Streaming",
+            ["RaceControlMessages", "TrackStatus"],
+            new(1, 5)
+        );
+
+        _signalR.AddHandler("Streaming", "feed", HandleMessage);
+
+        _numberOfChequered = numOfChequered;
+        _signalR?.Start();
     }
 
     /// <summary>
@@ -104,9 +116,32 @@ public sealed partial class Formula1 : ICategory
     public void Stop()
     {
         Log.Information("[Formula 1] Closing API connection");
-        _signalR.Stop();
+        Dispose();
     }
 
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposedValue)
+            return;
+
+        if (disposing)
+        {
+            _signalR?.Stop();
+            _signalR = null;
+        }
+
+        _disposedValue = true;
+    }
+    
     /// <summary>
     /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
     /// argument.
@@ -122,7 +157,7 @@ public sealed partial class Formula1 : ICategory
             return;
 
         _parsedFlag = parsedFlag;
-        if (parsedFlag.Flag is Flag.Chequered && --NumberOfChequered < 1)
+        if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
             OnSessionFinished?.Invoke();
 
         Log.Information($"[Formula 1] New flag {_parsedFlag.Flag}");
@@ -168,13 +203,17 @@ public sealed partial class Formula1 : ICategory
 
         Log.Information("[Formula 1] Parsing race control message");
 
-        // Extract the race control message object from the SignalR message.
-        var data = message["Messages"]?.ToJsonString().Split(':', 2)[1];
+        var data = message["Messages"]?.ToJsonString();
         if (null == data)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
             return null;
         }
+
+        // Extract the race control message object from the SignalR message.
+        data = data.StartsWith('[')
+            ? data.TrimStart('[').TrimEnd(']')
+            : data.Split(':', 2)[1];
 
         // Parse the extracted message to the RaceControlMessage record
         var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data.Remove(data.Length - 1));
@@ -216,9 +255,8 @@ public sealed partial class Formula1 : ICategory
             return null;
         }
 
-        var driver = flag == Flag.Blue
-            ? raceControlMessage.RacingNumber
-            : 0;
+        if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
+            driver = 0;
         
         return new FlagData { Flag = flag, Driver = driver };
     }
@@ -256,7 +294,7 @@ public sealed partial class Formula1 : ICategory
         string Message,
         string Flag,
         string Scope,
-        int RacingNumber,
+        string RacingNumber,
         int Sector,
         string Mode
     );

@@ -9,6 +9,7 @@ public sealed class TrackStatus
     /// </summary>
     private static readonly Dictionary<Flag, short> FlagPriority = new()
     {
+        { Flag.BlackWhite, 0 },
         { Flag.Blue, 0 },
         { Flag.Surface, 0 },
         { Flag.Yellow, 2 },
@@ -23,7 +24,7 @@ public sealed class TrackStatus
     /// <summary>
     /// Flags that override the other race flags.
     /// </summary>
-    private static readonly Flag[] OverrideFlags = { Flag.Clear, Flag.Chequered };
+    private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
     
 
     /// <summary>
@@ -92,6 +93,7 @@ public sealed class TrackStatus
     {
         flag = input switch
         {
+            "BLACK AND WHITE" => Flag.BlackWhite,
             "BLUE" => Flag.Blue,
             "CHEQUERED" => Flag.Chequered,
             "CLEAR" => Flag.Clear,

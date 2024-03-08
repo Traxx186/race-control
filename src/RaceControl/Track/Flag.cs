@@ -6,6 +6,7 @@ namespace RaceControl.Track;
 /// </summary>
 public enum Flag
 {
+    BlackWhite,
     Blue,
     Chequered,
     Clear,

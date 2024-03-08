@@ -8,8 +8,8 @@ using RaceControl.Track;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
-SetupLogging();
 DotEnv.Load();
+SetupLogging();
 
 var cancellationToken = SetupGracefulShutdown();
 var connections = new List<WebSocket>();
@@ -91,11 +91,11 @@ static WebApplication SetupWebApplication(string[] args)
 // Sends a message to all connected clients.
 static async Task Broadcast(List<WebSocket> connections, FlagData flagData, CancellationToken cancellationToken)
 {
-    flagData = flagData.Clone() as FlagData;
+    flagData = (FlagData)flagData.Clone();
     if (null == flagData)
         return;
 
-    await Task.Delay(35_000, cancellationToken);
+    await Task.Delay(25_000, cancellationToken);
     Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
 
     foreach (var websocket in connections)
