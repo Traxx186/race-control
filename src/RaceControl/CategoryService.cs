@@ -15,7 +15,7 @@ public class CategoryService
     private static readonly Dictionary<string, ICategory> Categories = new()
     {
         { "f1", new Formula1("https://livetiming.formula1.com") },
-        { "f2", new Formula2("") }
+        { "f2", new Formula2("https://ltss.fiaformula2.com") }
     };
 
     /// <summary>

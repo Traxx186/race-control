@@ -61,7 +61,7 @@ public sealed class Client
     /// <summary>
     /// Sets up, connects and processes incoming messages to the given SignalR server.
     /// </summary>
-    public async void Start()
+    public async void Start(string method)
     {
         Running = true;
         while (Running)
@@ -86,7 +86,7 @@ public sealed class Client
 
             Log.Information($"[SignalR] Connecting to {_url}");
             await connection.Start();
-            await f1Timing.Invoke("Subscribe", _args.ToList());
+            await f1Timing.Invoke(method, _args.ToList());
 
             Console.Read();   
         }

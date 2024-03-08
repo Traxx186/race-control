@@ -107,7 +107,7 @@ public partial class Formula1 : ICategory
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
 
         _numberOfChequered = numOfChequered;
-        _signalR?.Start();
+        _signalR?.Start("Streaming");
     }
 
     /// <summary>
@@ -152,6 +152,7 @@ public partial class Formula1 : ICategory
         var argument = message[0]?.ToString() ?? string.Empty;
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
+
         var parsedFlag = callable.Invoke(message[1]);
         if (null == parsedFlag)
             return;
@@ -269,10 +270,10 @@ public partial class Formula1 : ICategory
         _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
 
     /// <summary>
-    /// 
+    /// Checks if the given flag from a race control message should be ignored.
     /// </summary>
-    /// <param name="flag"></param>
-    /// <returns></returns>
+    /// <param name="flag">The parsed flag from a race control message.</param>
+    /// <returns>If the flag should be ignored.</returns>
     private static bool IgnoreRaceControlFlag(Flag flag) =>
         _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
 

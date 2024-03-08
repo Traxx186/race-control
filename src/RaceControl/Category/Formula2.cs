@@ -1,15 +1,28 @@
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using RaceControl.SignalR;
 using RaceControl.Track;
+using Serilog;
 
 namespace RaceControl.Category;
 
 public partial class Formula2 : ICategory
 {
     /// <summary>
+    /// Flags to be ignored by race control message parser.
+    /// </summary>
+    private static readonly Flag[] IgnorableFlags = [Flag.Clear];
+
+    /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
     /// </summary>
     [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
     private static partial Regex NotResumeRegex();
+
+    /// <summary>
+    /// The SignalR <see cref="Client"/> connection object.
+    /// </summary>
+    private Client? _signalR;
 
     /// <summary>
     /// The record of the latest parsed flag.
@@ -52,7 +65,17 @@ public partial class Formula2 : ICategory
     /// </summary>
     public void Start(string session)
     {
-        throw new NotImplementedException();
+        Log.Information("[Formula 2] Starting API connection");
+
+        _signalR = new Client(
+            _url,
+            "streaming",
+            ["RaceControlMessages", "TrackStatus"],
+            new(2, 1)
+        );
+
+        _signalR.AddHandler("streaming", "", HandleMessage);
+        _signalR?.Start("");
     }
 
     /// <summary>
@@ -84,4 +107,29 @@ public partial class Formula2 : ICategory
 
         _disposedValue = true;
     }
+
+    /// <summary>
+    /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
+    /// argument.
+    /// </summary>
+    /// <param name="message">Message received from Formula 2 API.</param>
+    private void HandleMessage(JsonArray message)
+    {
+        
+    }
+
+    /// <summary>
+    /// Checks if the conditions allow it to parse race control messages.
+    /// </summary>
+    /// <returns>Can parse to race control message.</returns>
+    private static bool ListenToRaceControlMessages => 
+        _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
+
+    /// <summary>
+    /// Checks if the given flag from a race control message should be ignored.
+    /// </summary>
+    /// <param name="flag">The parsed flag from a race control message.</param>
+    /// <returns>If the flag should be ignored.</returns>
+    private static bool IgnoreRaceControlFlag(Flag flag) =>
+        _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
 }
