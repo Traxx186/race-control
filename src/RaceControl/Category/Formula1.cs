@@ -203,13 +203,17 @@ public partial class Formula1 : ICategory
 
         Log.Information("[Formula 1] Parsing race control message");
 
-        // Extract the race control message object from the SignalR message.
-        var data = message["Messages"]?.ToJsonString().Split(':', 2)[1];
+        var data = message["Messages"]?.ToJsonString();
         if (null == data)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
             return null;
         }
+
+        // Extract the race control message object from the SignalR message.
+        data = data.StartsWith('[')
+            ? data.TrimStart('[').TrimEnd(']')
+            : data.Split(':', 2)[1];
 
         // Parse the extracted message to the RaceControlMessage record
         var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data.Remove(data.Length - 1));

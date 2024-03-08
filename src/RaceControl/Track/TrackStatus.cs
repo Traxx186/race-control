@@ -24,7 +24,7 @@ public sealed class TrackStatus
     /// <summary>
     /// Flags that override the other race flags.
     /// </summary>
-    private static readonly Flag[] OverrideFlags = { Flag.Clear, Flag.Chequered };
+    private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
     
 
     /// <summary>
