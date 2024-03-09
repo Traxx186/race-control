@@ -98,7 +98,8 @@ public partial class Formula2 : ICategory
 
         if (disposing)
         {
-            // TODO: add API connection to be disposed
+            _signalR?.Stop();
+            _signalR = null;
         }
 
         _disposedValue = true;
