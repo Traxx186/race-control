@@ -50,11 +50,6 @@ public partial class Formula1 : ICategory
     private Client? _signalR;
 
     /// <summary>
-    /// The record of the latest parsed flag.
-    /// </summary>
-    private static FlagData? _parsedFlag = new() { Flag = Flag.Chequered };
-
-    /// <summary>
     /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
     /// needs to be closed.
     /// </summary>
@@ -157,12 +152,11 @@ public partial class Formula1 : ICategory
         if (null == parsedFlag)
             return;
 
-        _parsedFlag = parsedFlag;
         if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
             OnSessionFinished?.Invoke();
 
-        Log.Information($"[Formula 1] New flag {_parsedFlag.Flag}");
-        OnFlagParsed?.Invoke(_parsedFlag);
+        Log.Information($"[Formula 1] New flag {parsedFlag.Flag}");
+        OnFlagParsed?.Invoke(parsedFlag);
     }
 
     /// <summary>
@@ -199,9 +193,6 @@ public partial class Formula1 : ICategory
     /// <returns>Parsed flag.</returns>
     private static FlagData? ParseRaceControlMessage(JsonNode message)
     {
-        if (!ListenToRaceControlMessages)
-            return null;
-
         Log.Information("[Formula 1] Parsing race control message");
 
         var data = message["Messages"]?.ToJsonString();
@@ -246,13 +237,9 @@ public partial class Formula1 : ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag) || IgnoreRaceControlFlag(flag))
+        if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag))
         {
-            if (flag == Flag.None)
-                Log.Warning($"[Formula 1] Could not parse flag '{raceControlMessage.Flag}'");
-            else 
-                Log.Information("[Formula 1] Parsed flag ignored");
-            
+            Log.Warning($"[Formula 1] Could not parse flag '{raceControlMessage.Flag}'");
             return null;
         }
 
@@ -261,21 +248,6 @@ public partial class Formula1 : ICategory
         
         return new FlagData { Flag = flag, Driver = driver };
     }
-
-    /// <summary>
-    /// Checks if the conditions allow it to parse race control messages.
-    /// </summary>
-    /// <returns>Can parse to race control message.</returns>
-    private static bool ListenToRaceControlMessages => 
-        _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
-
-    /// <summary>
-    /// Checks if the given flag from a race control message should be ignored.
-    /// </summary>
-    /// <param name="flag">The parsed flag from a race control message.</param>
-    /// <returns>If the flag should be ignored.</returns>
-    private static bool IgnoreRaceControlFlag(Flag flag) =>
-        _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
 
     /// <summary>
     /// Structure of a track status message.
