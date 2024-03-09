@@ -30,12 +30,6 @@ public partial class Formula2 : ICategory
     private static FlagData? _parsedFlag = new() { Flag = Flag.Chequered };
 
     /// <summary>
-    /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
-    /// needs to be closed.
-    /// </summary>
-    private int _numberOfChequered;
-
-    /// <summary>
     /// To detect redundant calls.
     /// </summary>
     private bool _disposedValue;
@@ -66,16 +60,18 @@ public partial class Formula2 : ICategory
     public void Start(string session)
     {
         Log.Information("[Formula 2] Starting API connection");
+        var feeds = new string[] {"trackfeed", "timefeed"};
 
         _signalR = new Client(
             _url,
             "streaming",
-            ["RaceControlMessages", "TrackStatus"],
-            new(2, 1)
+            ["F2", feeds],
+            new(2, 1),
+            "/streaming"
         );
 
-        _signalR.AddHandler("streaming", "", HandleMessage);
-        _signalR?.Start("");
+        _signalR.AddHandler(string.Empty, string.Empty, HandleMessage);
+        _signalR?.Start("GetData2");
     }
 
     /// <summary>

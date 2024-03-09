@@ -107,7 +107,7 @@ public partial class Formula1 : ICategory
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
 
         _numberOfChequered = numOfChequered;
-        _signalR?.Start("Streaming");
+        _signalR?.Start("Subscribe");
     }
 
     /// <summary>

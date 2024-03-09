@@ -18,7 +18,7 @@ public sealed class Client
     /// <summary>
     /// Subscription arguments.
     /// </summary>
-    private readonly string[] _args;
+    private readonly object[] _args;
 
     /// <summary>
     /// The hub name.
@@ -30,6 +30,16 @@ public sealed class Client
     /// </summary>
     private readonly Version? _version;
     
+    /// <summary>
+    /// Custom endpoint if API doens't use /signalr.
+    /// </summary>
+    private readonly string _customEndpoint;
+
+    /// <summary>
+    /// If the connection uses the default endpoint.
+    /// </summary>
+    private readonly bool _useDefaultEndpoint = true;
+
     /// <summary>
     /// The connection object.
     /// </summary>
@@ -45,17 +55,24 @@ public sealed class Client
     /// </summary>
     public bool Running { private set; get; }
     
-    public Client(string url, string hub, string[] args)
+    public Client(string url, string hub, object[] args)
     {
         _url = url;
         _hub = hub;
         _args = args;
     }
 
-    public Client(string url, string hub, string[] args, Version version)
+    public Client(string url, string hub, object[] args, Version version)
         : this(url, hub, args)
     {
           _version = version;
+    }
+
+    public Client(string url, string hub, object[] args, Version version, string customEndpoint)
+        : this(url, hub, args, version)
+    {
+        _customEndpoint = customEndpoint;
+        _useDefaultEndpoint = false;
     }
 
     /// <summary>
@@ -63,10 +80,14 @@ public sealed class Client
     /// </summary>
     public async void Start(string method)
     {
+        var url = (!_useDefaultEndpoint)
+            ? _url + _customEndpoint
+            : _url;
+        
         Running = true;
         while (Running)
         { 
-            using var connection = new HubConnection(_url);
+            using var connection = new HubConnection(url, useDefaultUrl: _useDefaultEndpoint);
 //#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
@@ -81,13 +102,17 @@ public sealed class Client
             if (null != _version)
                 connection.Protocol = _version;
 
-            var f1Timing = connection.CreateHubProxy(_hub);
+            var hubProxy = connection.CreateHubProxy(_hub);
             _connection = connection;
 
             Log.Information($"[SignalR] Connecting to {_url}");
             await connection.Start();
-            await f1Timing.Invoke(method, _args.ToList());
-
+            
+            if (_url.Contains("formula1"))
+                await hubProxy.Invoke(method, _args.ToList());
+            else
+                await hubProxy.Invoke(method, _args);
+            
             Console.Read();   
         }
     }
