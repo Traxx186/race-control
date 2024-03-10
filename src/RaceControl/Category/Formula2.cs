@@ -1,5 +1,5 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using RaceControl.SignalR;
 using RaceControl.Track;
 using Serilog;
@@ -9,25 +9,9 @@ namespace RaceControl.Category;
 public partial class Formula2 : ICategory
 {
     /// <summary>
-    /// Flags to be ignored by race control message parser.
-    /// </summary>
-    private static readonly Flag[] IgnorableFlags = [Flag.Clear];
-
-    /// <summary>
-    /// Regex for checking if a race control message contains the message that the race/session will not resume.
-    /// </summary>
-    [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
-    private static partial Regex NotResumeRegex();
-
-    /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
     private Client? _signalR;
-
-    /// <summary>
-    /// The record of the latest parsed flag.
-    /// </summary>
-    private static FlagData? _parsedFlag = new() { Flag = Flag.Chequered };
 
     /// <summary>
     /// To detect redundant calls.
@@ -70,7 +54,8 @@ public partial class Formula2 : ICategory
             "/streaming"
         );
 
-        _signalR.AddHandler(string.Empty, string.Empty, HandleMessage);
+        _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
+        _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR?.Start("GetData2");
     }
 
@@ -79,7 +64,8 @@ public partial class Formula2 : ICategory
     /// </summary>
     public void Stop()
     {
-        throw new NotImplementedException();
+        Log.Information("[Formula 2] Closing API connection");
+        Dispose();
     }
 
     /// <summary>
@@ -106,27 +92,56 @@ public partial class Formula2 : ICategory
     }
 
     /// <summary>
-    /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
-    /// argument.
+    /// Parses the incomming Timing Feed message to check if the session is finished.
     /// </summary>
-    /// <param name="message">Message received from Formula 2 API.</param>
-    private void HandleMessage(JsonArray message)
+    /// <param name="data">Message argument data received from Formula 2 API.</param>
+    private void HandleTimefeedMessage(JsonArray message)
     {
-        
+        Log.Information("[Formula 2] Parsing time feed message");
+
+        var sessionActive = message[1]?.Deserialize<bool>();
+        if (sessionActive == null)
+        {
+            Log.Error("[Formula 2] Invalid time feed message recieved");
+            return;
+        }
+
+        if ((bool)!sessionActive)
+            OnSessionFinished?.Invoke();
     }
 
     /// <summary>
-    /// Checks if the conditions allow it to parse race control messages.
+    /// Parses the incomming Tack Feed message to get the current flag of the session.
     /// </summary>
-    /// <returns>Can parse to race control message.</returns>
-    private static bool ListenToRaceControlMessages => 
-        _parsedFlag is { Flag: Flag.Chequered or Flag.Clear or Flag.Yellow };
+    /// <param name="message">Message argument data received from Formula 2 API.</param>
+    private void HandleTrackFeedMessage(JsonArray message)
+    {
+        Log.Information("[Formula 2] Parsing track feed message");
+
+        var data = message[1]?.Deserialize<TrackStatusMessage>();
+        if (data == null || !short.TryParse(data.Value, out var status))
+        {
+            Log.Error("[Formula 2] Invalid track status message recieved");
+            return;
+        }
+
+        var flag = status switch 
+        {
+            2 => Flag.Yellow,
+            4 => Flag.SafetyCar,
+            5 => Flag.Red,
+            6 => Flag.Vsc,
+            _ => Flag.Clear
+        };
+
+        OnFlagParsed?.Invoke(new FlagData{ Flag = flag });
+    }
 
     /// <summary>
-    /// Checks if the given flag from a race control message should be ignored.
+    /// Structure of a track status message.
     /// </summary>
-    /// <param name="flag">The parsed flag from a race control message.</param>
-    /// <returns>If the flag should be ignored.</returns>
-    private static bool IgnoreRaceControlFlag(Flag flag) =>
-        _parsedFlag is not { Flag: Flag.Chequered } && IgnorableFlags.Contains(flag);
+    private sealed record class TrackStatusMessage(
+        string Value,
+        string Message
+    );
 }
