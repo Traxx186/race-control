@@ -19,6 +19,11 @@ public partial class Formula2 : ICategory
     private bool _disposedValue;
 
     /// <summary>
+    /// If the session has actually started.
+    /// </summary>
+    private bool _hasStarted = false;
+
+    /// <summary>
     /// The URL to the live timing API.
     /// </summary>
     private readonly string _url;
@@ -106,7 +111,8 @@ public partial class Formula2 : ICategory
             return;
         }
 
-        if ((bool)!sessionActive)
+        // Send session finished event if the session has started and the finish signal is send.
+        if (_hasStarted && (bool)!sessionActive)
             OnSessionFinished?.Invoke();
     }
 
@@ -133,6 +139,9 @@ public partial class Formula2 : ICategory
             6 => Flag.Vsc,
             _ => Flag.Clear
         };
+
+        // needed for check if session has finished
+        _hasStarted = flag == Flag.Clear && !_hasStarted;
 
         OnFlagParsed?.Invoke(new FlagData{ Flag = flag });
     }
