@@ -105,7 +105,7 @@ public class CategoryService
                 c.priority as category_priority
             FROM session s
             INNER JOIN category c
-                ON c.id = s.category_id
+                ON c.key = s.category_key
             WHERE s.time = @p1
             ORDER BY category_priority ASC
             LIMIT 1
