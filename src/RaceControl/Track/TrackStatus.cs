@@ -54,8 +54,8 @@ public sealed class TrackStatus
         }
 
         // If given flag is the same as the active flag, or the active flag is
-        // checkered. Do not try to set the given flag.
-        if (data.Flag == ActiveFlag.Flag)
+        // None. Do not try to set the given flag.
+        if (data.Flag == ActiveFlag.Flag || data.Flag == Flag.None)
             return;
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);

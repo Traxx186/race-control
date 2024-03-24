@@ -176,11 +176,12 @@ public partial class Formula1 : ICategory
 
         var flag = status switch
         {
+            1 => Flag.Clear,
             2 => Flag.Yellow,
             4 => Flag.SafetyCar,
             5 => Flag.Red,
             6 => Flag.Vsc,
-            _ => Flag.Clear
+            _ => Flag.None
         };
 
         return new FlagData { Flag = flag };
@@ -229,8 +230,8 @@ public partial class Formula1 : ICategory
             return new FlagData { Flag = Flag.Chequered };
         }
 
-        // If the message category is not 'Flag', the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" })
+        // If the message category is not 'Flag', or recieved clear message, the message can be ignored.
+        if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
