@@ -8,12 +8,7 @@ using Serilog;
 namespace RaceControl.Category;
 
 public partial class Formula1 : ICategory
-{
-    /// <summary>
-    /// Flags to be ignored by race control message parser.
-    /// </summary>
-    private static readonly Flag[] IgnorableFlags = [Flag.Clear];
-    
+{   
     /// <summary>
     /// Data streams to listen to and the related method to be called.
     /// </summary>

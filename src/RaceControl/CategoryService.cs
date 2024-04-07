@@ -134,7 +134,7 @@ public class CategoryService
 
     private async void StopActiveCategory()
     {
-        await Task.Delay(new TimeSpan(0, 5, 0));
+        await Task.Delay(new TimeSpan(0, 1, 0));
 
         Log.Information("[CategoryService] Closing the active category");
         _activeCategory?.Dispose();
