@@ -49,7 +49,7 @@ public partial class Formula2 : ICategory
     public void Start(string session)
     {
         Log.Information("[Formula 2] Starting API connection");
-        var feeds = new string[] {"trackfeed", "timefeed"};
+        var feeds = new string[] {"status", "time"};
 
         _signalR = new Client(
             _url,
@@ -61,7 +61,7 @@ public partial class Formula2 : ICategory
 
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
-        _signalR?.Start("GetData2");
+        _signalR?.Start("JoinFeeds");
     }
 
     /// <summary>
