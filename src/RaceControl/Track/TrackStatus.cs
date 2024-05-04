@@ -7,7 +7,7 @@ public sealed class TrackStatus
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
     /// </summary>
-    private static readonly Dictionary<Flag, short> FlagPriority = new()
+    public static readonly Dictionary<Flag, short> FlagPriority = new()
     {
         { Flag.BlackWhite, 0 },
         { Flag.Blue, 0 },
@@ -25,7 +25,6 @@ public sealed class TrackStatus
     /// Flags that override the other race flags.
     /// </summary>
     private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
-    
 
     /// <summary>
     /// Event that gets called when the flag of the active session changes.
@@ -55,8 +54,8 @@ public sealed class TrackStatus
         }
 
         // If given flag is the same as the active flag, or the active flag is
-        // checkered. Do not try to set the given flag.
-        if (data.Flag == ActiveFlag.Flag)
+        // None. Do not try to set the given flag.
+        if (data.Flag == ActiveFlag.Flag || data.Flag == Flag.None)
             return;
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);

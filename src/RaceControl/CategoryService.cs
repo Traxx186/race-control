@@ -14,7 +14,8 @@ public class CategoryService
     /// </summary>
     private static readonly Dictionary<string, ICategory> Categories = new()
     {
-        { "f1", new Formula1("https://livetiming.formula1.com") }
+        { "f1", new Formula1("https://livetiming.formula1.com") },
+        { "f2", new Formula2("https://ltss.fiaformula2.com") }
     };
 
     /// <summary>
@@ -104,7 +105,7 @@ public class CategoryService
                 c.priority as category_priority
             FROM session s
             INNER JOIN category c
-                ON c.id = s.category_id
+                ON c.key = s.category_key
             WHERE s.time = @p1
             ORDER BY category_priority ASC
             LIMIT 1
@@ -133,7 +134,7 @@ public class CategoryService
 
     private async void StopActiveCategory()
     {
-        await Task.Delay(new TimeSpan(0, 5, 0));
+        await Task.Delay(new TimeSpan(0, 1, 0));
 
         Log.Information("[CategoryService] Closing the active category");
         _activeCategory?.Dispose();
