@@ -105,14 +105,14 @@ public partial class Formula2 : ICategory
         Log.Information("[Formula 2] Parsing time feed message");
 
         var sessionActive = message[1]?.Deserialize<bool>();
-        if (sessionActive == null)
+        if (!sessionActive.HasValue)
         {
             Log.Error("[Formula 2] Invalid time feed message recieved");
             return;
         }
 
         // Send session finished event if the session has started and the finish signal is send.
-        if (_hasStarted && (bool)!sessionActive)
+        if (_hasStarted && !sessionActive.Value)
             OnSessionFinished?.Invoke();
     }
 

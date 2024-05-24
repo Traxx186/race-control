@@ -198,13 +198,20 @@ public partial class Formula1 : ICategory
             return null;
         }
 
-        // Extract the race control message object from the SignalR message.
-        data = data.StartsWith('[')
-            ? data.TrimStart('[').TrimEnd(']')
-            : data.Split(':', 2)[1];
+        // Extract the race control message object from the SignalR message. If it is the first message
+        // of the session, different extraction is needed.
+        if (data.StartsWith('['))
+        {
+            data = data.TrimStart('[').TrimEnd(']');
+        }
+        else
+        {
+            data = data.Split(':', 2)[1];
+            data = data.Remove(data.Length - 1);
+        } 
 
         // Parse the extracted message to the RaceControlMessage record
-        var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data.Remove(data.Length - 1));
+        var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data);
         if (null == raceControlMessage)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
