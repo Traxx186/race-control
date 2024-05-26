@@ -2,22 +2,27 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Quartz;
+using dotenv.net;
 using RaceControl;
-using RaceControl.Database;
-using RaceControl.Jobs;
 using RaceControl.Track;
 using Serilog;
-using Serilog.Settings.Configuration;
+using Serilog.Sinks.SystemConsole.Themes;
+
+DotEnv.Load();
+SetupLogging();
+
+var cancellationToken = SetupGracefulShutdown();
+var connections = new List<WebSocket>();
+
+var trackStatus = new TrackStatus();
+trackStatus.OnTrackFlagChange += flagData => Broadcast(connections, flagData, cancellationToken).Wait();
+
+var categoryService = new CategoryService();
+categoryService.OnCategoryFlagChange += trackStatus.SetActiveFlag;
 
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();
 app.UseWebSockets();
-
-var trackStatus = app.Services.GetRequiredService<TrackStatus>();
-trackStatus.OnTrackFlagChange += flagData => Broadcast(flagData, CancellationToken.None).Wait();
-
 app.Map("/", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -28,111 +33,79 @@ app.Map("/", async context =>
 
     var buffer = new byte[4096];
     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-    Connections.Add(webSocket);
+    connections.Add(webSocket);
 
     Log.Information("[Race Control] New user connected, sending current active flag");
-    await SendFlag(webSocket, trackStatus.ActiveFlag, context.RequestAborted);
+    await SendFlag(webSocket, trackStatus.ActiveFlag, cancellationToken);
 
-    while (!context.RequestAborted.IsCancellationRequested && webSocket.State == WebSocketState.Open)
-    {
-        var result = await webSocket.ReceiveAsync(buffer, context.RequestAborted);
+    while (!cancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
+    { 
+        var result = await webSocket.ReceiveAsync(buffer, cancellationToken);
         if (result.MessageType != WebSocketMessageType.Close)
             continue;
 
         Log.Information("[Race Control] User disconnected, removing from open connection list");
-        Connections.Remove(webSocket);
+        connections.Remove(webSocket);
     }
 });
 
-Log.Information("[Race Control] Starting Application");
-await app.RunAsync();
+Log.Information("[Race Control] Starting category service & WebSocket server");
+Task.WaitAll(
+    Task.Run(categoryService.Start),
+    Task.Run(app.Run)
+);
 
-public partial class Program
+// Setup Serilog
+static void SetupLogging()
 {
-    /// <summary>
-    /// All the connected web socket clients.
-    /// </summary>
-    private static readonly List<WebSocket> Connections = [];
+    var executingDir = Path.GetDirectoryName(AppContext.BaseDirectory);
+    var logPath = Path.Combine(executingDir ?? string.Empty, "logs", "verbose.log");
 
-    /// <summary>
-    /// Create the main web application with the required configuration and linked services
-    /// </summary>
-    /// <param name="args">Application arguments.</param>
-    /// <returns>The web application.</returns>
-    private static WebApplication SetupWebApplication(string[] args)
-    {
-        var builder = WebApplication.CreateSlimBuilder(args);
-        builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
-        builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-        builder.Configuration.AddEnvironmentVariables();
+    Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Information()
+        .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
+        .WriteTo.Console(
+            theme: AnsiConsoleTheme.Literate,
+            outputTemplate: "{Timestamp:HH:mm:ss} [{Level:u3}] {Message} {NewLine}{Exception}"
+        )
+        .CreateLogger();
+}
 
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(
-                builder.Configuration,
-                new ConfigurationReaderOptions(ConfigurationAssemblySource.AlwaysScanDllFiles)
-            )
-            .CreateLogger();
+// Creates a CancellationTokenSource to allow for a graceful shutdow
+static CancellationToken SetupGracefulShutdown()
+{
+    var tokenSource = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, _) => tokenSource.Cancel();
+    AppDomain.CurrentDomain.ProcessExit += (_, _) => tokenSource.Cancel();
 
-        builder.Services.AddSerilog();
-        builder.Services.AddSingleton<TrackStatus>();
-        builder.Services.AddSingleton<CategoryService>();
+    return tokenSource.Token;
+}
 
-        // Create DB Context pool.
-        builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
-            .UseNpgsql(builder.Configuration["DATABASE_URL"])
-            .UseSnakeCaseNamingConvention()
-        );
+static WebApplication SetupWebApplication(string[] args)
+{
+    var builder = WebApplication.CreateSlimBuilder(args);
 
-        // Add Quartz to services
-        builder.Services.AddQuartz(quartz =>
-        {
-            var syncJobKey = new JobKey("SyncSessionsJob");
-            quartz.AddJob<SyncSessionsJob>(opts => opts.WithIdentity(syncJobKey));
-            quartz.AddTrigger(opts => opts
-                    .ForJob(syncJobKey)
-                    .WithIdentity("SyncSessionsJob-trigger")
-                    .WithCronSchedule("0 0 8 ? * THU")
-                //.WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 8, 0))
-            );
+    return builder.Build();
+}
 
-            var fetchSessionJobKey = new JobKey("FetchActiveSessionJob");
-            quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(fetchSessionJobKey));
-            quartz.AddTrigger(opts => opts
-                .ForJob(fetchSessionJobKey)
-                .WithIdentity("FetchActiveSessionJob-trigger")
-                .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT")
-            );
-        });
+// Sends a message to all connected clients.
+static async Task Broadcast(List<WebSocket> connections, FlagData flagData, CancellationToken cancellationToken)
+{
+    flagData = (FlagData)flagData.Clone();
+    if (null == flagData)
+        return;
 
-        builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+    Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
+    var openSockets = connections.Where(x => x.State == WebSocketState.Open);
+    foreach (var websocket in openSockets)
+        await SendFlag(websocket, flagData, cancellationToken);
+}
 
-        return builder.Build();
-    }
+// Send the parsed FlagData to the client.
+static async Task SendFlag(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
+{
+    var json = JsonSerializer.Serialize(flagData);
+    var data = Encoding.UTF8.GetBytes(json);
 
-    /// <summary>
-    /// Sends a websocket response to all the connected client.
-    /// </summary>
-    /// <param name="flagData">Flag data to send.</param>
-    /// <param name="token">If the response needs to be cancelled.</param>
-    private static async Task Broadcast(FlagData flagData, CancellationToken token)
-    {
-        Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
-        var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
-        foreach (var websocket in openSockets)
-            await SendFlag(websocket, flagData, token);
-    }
-
-    /// <summary>
-    /// Send a websocket message with flag data
-    /// </summary>
-    /// <param name="websocket">The websocket client.</param>
-    /// <param name="flagData">Flag data to send.</param>
-    /// <param name="cancellationToken">If the response needs to be cancelled.</param>
-    private static async Task SendFlag(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
-    {
-        var json = JsonSerializer.Serialize(flagData);
-        var data = Encoding.UTF8.GetBytes(json);
-
-        await websocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
-    }
+    await websocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
 }

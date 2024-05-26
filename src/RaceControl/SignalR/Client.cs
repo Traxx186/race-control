@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNet.SignalR.Client;
@@ -32,7 +31,7 @@ public sealed class Client
     private readonly Version? _version;
     
     /// <summary>
-    /// Custom endpoint if API doesn't use /signalr.
+    /// Custom endpoint if API doens't use /signalr.
     /// </summary>
     private readonly string _customEndpoint;
 
@@ -54,7 +53,7 @@ public sealed class Client
     /// <summary>
     /// If the SignalR service is active.
     /// </summary>
-    private bool Running { set; get; }
+    public bool Running { private set; get; }
     
     public Client(string url, string hub, object[] args)
     {
@@ -89,11 +88,11 @@ public sealed class Client
         while (Running)
         { 
             using var connection = new HubConnection(url, useDefaultUrl: _useDefaultEndpoint);
-#if DEBUG
+//#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
-#endif
-            connection.CookieContainer = new CookieContainer();
+//#endif
+            connection.CookieContainer = new();
             connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
@@ -133,12 +132,12 @@ public sealed class Client
     private void HandleMessage(string message)
     {
         var data = JsonSerializer.Deserialize<Message>(message);
-        if (data?.A == null)
+        if (null == data || null == data.A)
             return;
 
         Log.Information($"[SignalR] New message received");
-        var handlers = _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M);
-        foreach (var handler in handlers)
+        var handelers = _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M);
+        foreach (var handler in handelers)
             handler.Item3.Invoke(data.A);
     }
 
