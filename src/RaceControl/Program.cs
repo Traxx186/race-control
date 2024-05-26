@@ -95,14 +95,10 @@ static async Task Broadcast(List<WebSocket> connections, FlagData flagData, Canc
     if (null == flagData)
         return;
 
-    await Task.Delay(25_000, cancellationToken);
     Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
-
-    foreach (var websocket in connections)
-    {
-        if (websocket.State == WebSocketState.Open)
-            await SendFlag(websocket, flagData, cancellationToken);
-    }
+    var openSockets = connections.Where(x => x.State == WebSocketState.Open);
+    foreach (var websocket in openSockets)
+        await SendFlag(websocket, flagData, cancellationToken);
 }
 
 // Send the parsed FlagData to the client.

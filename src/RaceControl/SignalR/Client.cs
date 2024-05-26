@@ -97,7 +97,6 @@ public sealed class Client
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
-            connection.DeadlockErrorTimeout  = TimeSpan.FromSeconds(60);
 
             if (null != _version)
                 connection.Protocol = _version;
@@ -137,9 +136,9 @@ public sealed class Client
             return;
 
         Log.Information($"[SignalR] New message received");
-        _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M)
-            .ToList()
-            .ForEach(x => x.Item3.Invoke(data.A));
+        var handelers = _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M);
+        foreach (var handler in handelers)
+            handler.Item3.Invoke(data.A);
     }
 
     /// <summary>
