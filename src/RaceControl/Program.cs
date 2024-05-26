@@ -2,13 +2,11 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using dotenv.net;
 using RaceControl;
 using RaceControl.Track;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
-DotEnv.Load();
 SetupLogging();
 
 var cancellationToken = SetupGracefulShutdown();
@@ -101,7 +99,7 @@ static async Task Broadcast(List<WebSocket> connections, FlagData flagData, Canc
         await SendFlag(websocket, flagData, cancellationToken);
 }
 
-// Send the parsed FlagData to the client.
+// Serialize the flag data to json and send the json to the client.
 static async Task SendFlag(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
 {
     var json = JsonSerializer.Serialize(flagData);
