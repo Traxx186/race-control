@@ -21,7 +21,7 @@ public partial class Formula2 : ICategory
     /// <summary>
     /// If the session has actually started.
     /// </summary>
-    private bool _hasStarted = false;
+    private bool _hasStarted;
 
     /// <summary>
     /// The URL to the live timing API.
@@ -61,6 +61,7 @@ public partial class Formula2 : ICategory
 
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
+        _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
         _signalR?.Start("JoinFeeds");
     }
 
@@ -113,7 +114,13 @@ public partial class Formula2 : ICategory
 
         // Send session finished event if the session has started and the finish signal is send.
         if (_hasStarted && !sessionActive.Value)
+        {   
+            Log.Information("[Formula 2] Session finalised, closing API connection");
+
+            _hasStarted = false;
+            OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Chequered });
             OnSessionFinished?.Invoke();
+        }
     }
 
     /// <summary>
@@ -140,10 +147,46 @@ public partial class Formula2 : ICategory
             _ => Flag.Clear
         };
 
-        // needed for check if session has finished
-        _hasStarted = flag == Flag.Clear && !_hasStarted;
-
         OnFlagParsed?.Invoke(new FlagData{ Flag = flag });
+    }
+
+    /// <summary>
+    /// Parses the incomming Session Feed message to check if the session is finished.
+    /// </summary>
+    /// <param name="message">Message argument data received from Formula 2 API.</param>
+
+    private void HandleSessionFeedMessage(JsonArray message)
+    {
+        Log.Information("[Formula 2] Parsing session feed message");
+        var data = message[1]?.Deserialize<SessionFeedMessage>();
+        if (data == null) {
+            Log.Error("[Formula 2] Invalid session feed message recieved");
+            return;
+        }
+
+        switch (data.Value.ToLower())
+        {
+            case "started":
+                Log.Information("[Formula 2] Session started");
+                OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Clear });
+                _hasStarted = true;
+
+                break;
+            case "finalised":
+                if (!_hasStarted)
+                    break;
+
+                Log.Information("[Formula 2] Session finalised, closing API connection");
+
+                _hasStarted = false;
+                OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Chequered });
+                OnSessionFinished?.Invoke();
+
+                break;
+            default:
+                Log.Information("[Formula 2] Session feed message ignored");
+                break;
+        }       
     }
 
     /// <summary>
@@ -152,5 +195,12 @@ public partial class Formula2 : ICategory
     private sealed record class TrackStatusMessage(
         string Value,
         string Message
+    );
+
+    /// <summary>
+    /// Structure of a session feed message.
+    /// </summary>
+    private sealed record class SessionFeedMessage (
+        string Value
     );
 }
