@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using RaceControl.SignalR;
@@ -105,15 +106,17 @@ public partial class Formula2 : ICategory
     {
         Log.Information("[Formula 2] Parsing time feed message");
 
-        var sessionActive = message[1]?.Deserialize<bool>();
-        if (!sessionActive.HasValue)
+        var sessionTimeData = message[2]?.Deserialize<string>();
+        if (string.IsNullOrWhiteSpace(sessionTimeData))
         {
-            Log.Error("[Formula 2] Invalid time feed message recieved");
+            Log.Error("[Formula 2] Invalid session time received.");
             return;
         }
 
+        var sessionTimeLeft = TimeSpan.ParseExact(sessionTimeData, "c", CultureInfo.InvariantCulture);
+
         // Send session finished event if the session has started and the finish signal is send.
-        if (_hasStarted && !sessionActive.Value)
+        if (_hasStarted && sessionTimeLeft == TimeSpan.Zero)
         {   
             Log.Information("[Formula 2] Session finalised, closing API connection");
 
@@ -143,7 +146,7 @@ public partial class Formula2 : ICategory
             2 => Flag.Yellow,
             4 => Flag.SafetyCar,
             5 => Flag.Red,
-            6 => Flag.Vsc,
+            6 or 7 => Flag.Vsc,
             _ => Flag.Clear
         };
 
@@ -172,6 +175,7 @@ public partial class Formula2 : ICategory
                 _hasStarted = true;
 
                 break;
+            case "finished":
             case "finalised":
                 if (!_hasStarted)
                     break;
