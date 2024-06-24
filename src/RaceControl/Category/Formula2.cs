@@ -99,7 +99,7 @@ public partial class Formula2 : ICategory
     }
 
     /// <summary>
-    /// Parses the incomming Timing Feed message to check if the session is finished.
+    /// Parses the incoming Timing Feed message to check if the session is finished.
     /// </summary>
     /// <param name="data">Message argument data received from Formula 2 API.</param>
     private void HandleTimefeedMessage(JsonArray message)
@@ -127,7 +127,7 @@ public partial class Formula2 : ICategory
     }
 
     /// <summary>
-    /// Parses the incomming Tack Feed message to get the current flag of the session.
+    /// Parses the incoming Tack Feed message to get the current flag of the session.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     private void HandleTrackFeedMessage(JsonArray message)
@@ -137,7 +137,7 @@ public partial class Formula2 : ICategory
         var data = message[1]?.Deserialize<TrackStatusMessage>();
         if (data == null || !short.TryParse(data.Value, out var status))
         {
-            Log.Error("[Formula 2] Invalid track status message recieved");
+            Log.Error("[Formula 2] Invalid track status message received");
             return;
         }
 
@@ -154,7 +154,7 @@ public partial class Formula2 : ICategory
     }
 
     /// <summary>
-    /// Parses the incomming Session Feed message to check if the session is finished.
+    /// Parses the incoming Session Feed message to check if the session is finished.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
 
@@ -163,7 +163,7 @@ public partial class Formula2 : ICategory
         Log.Information("[Formula 2] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
         if (data == null) {
-            Log.Error("[Formula 2] Invalid session feed message recieved");
+            Log.Error("[Formula 2] Invalid session feed message received");
             return;
         }
 

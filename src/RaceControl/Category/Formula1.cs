@@ -19,7 +19,7 @@ public partial class Formula1 : ICategory
     };
 
     /// <summary>
-    /// How many times a <see cref="Flag.Chequered"/> needs to be recieved until the API 
+    /// How many times a <see cref="Flag.Chequered"/> needs to be received until the API 
     /// connections needs to be broken.
     /// </summary>
     private static readonly Dictionary<string, int> SessionChequered = new()
@@ -45,7 +45,7 @@ public partial class Formula1 : ICategory
     private Client? _signalR;
 
     /// <summary>
-    /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
+    /// How many <see cref="Flag.Chequered"/> are shown in the current session before the API connection
     /// needs to be closed.
     /// </summary>
     private int _numberOfChequered;
@@ -165,7 +165,7 @@ public partial class Formula1 : ICategory
         var data = message.Deserialize<TrackStatusMessage>();
         if (data == null || !short.TryParse(data.Status, out var status))
         {
-            Log.Error("[Formula 1] Invalid track status message recieved");
+            Log.Error("[Formula 1] Invalid track status message received");
             return null;
         }
 
@@ -232,7 +232,7 @@ public partial class Formula1 : ICategory
             return new FlagData { Flag = Flag.Chequered };
         }
 
-        // If the message category is not 'Flag', or recieved clear message, the message can be ignored.
+        // If the message category is not 'Flag', or received clear message, the message can be ignored.
         if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");
