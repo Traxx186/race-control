@@ -5,9 +5,9 @@ using RaceControl.SignalR;
 using RaceControl.Track;
 using Serilog;
 
-namespace RaceControl.Categories;
+namespace RaceControl.Category;
 
-public partial class Formula1(string url) : ICategory
+public partial class Formula1 : ICategory
 {   
     /// <summary>
     /// Data streams to listen to and the related method to be called.
@@ -51,19 +51,29 @@ public partial class Formula1(string url) : ICategory
     private int _numberOfChequered;
 
     /// <summary>
-    /// If the object has already been disposed.
+    /// To detect redundant calls.
     /// </summary>
-    private bool _disposed;
+    private bool _disposedValue;
+
+    /// <summary>
+    /// The URL to the live timing API.
+    /// </summary>
+    private readonly string _url;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+    public event Action<FlagData>? OnFlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler? SessionFinished;
+    public event Action? OnSessionFinished;
+
+    public Formula1(string url)
+    {
+        _url = url;
+    }
 
     /// <summary>
     /// <inheritdoc/>
@@ -78,24 +88,27 @@ public partial class Formula1(string url) : ICategory
         }
 
         _signalR = new Client(
-            url,
+            _url,
             "Streaming",
             ["RaceControlMessages", "TrackStatus"],
-            new Version(1, 5)
+            new(1, 5)
         );
 
-        _numberOfChequered = numOfChequered;
-
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
+
+        _numberOfChequered = numOfChequered;
         _signalR?.Start("Subscribe");
     }
 
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
     public void Stop()
     {
         Log.Information("[Formula 1] Closing API connection");
         Dispose();
     }
-    
+
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -104,54 +117,21 @@ public partial class Formula1(string url) : ICategory
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-    
+
     protected virtual void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (_disposedValue)
             return;
 
         if (disposing)
         {
             _signalR?.Stop();
             _signalR = null;
-
-            if (null == FlagParsed)
-                return;
-
-            // Remove all the linked invocations of the FlagParsed event handler
-            foreach (var del in FlagParsed.GetInvocationList())
-                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-            if (null == SessionFinished)
-                return;
-
-            // Remove all the linked invocations of the SessionFinished event handler
-            foreach (var del in SessionFinished.GetInvocationList())
-                SessionFinished -= (EventHandler)del;
         }
 
-        _disposed = true;
+        _disposedValue = true;
     }
-
-    /// <summary>
-    /// Invokes the FlagPares event with the required arguments
-    /// </summary>
-    /// <param name="flagData">The parsed flag.</param>
-    protected virtual void OnFlagParsed(FlagData flagData)
-    {
-        var args = new FlagDataEventArgs() { FlagData = flagData };
-
-        FlagParsed?.Invoke(this, args);
-    }
-
-    /// <summary>
-    /// Invokes he SessionFinished event.
-    /// </summary>
-    protected virtual void OnSessionFinished()
-    {
-        SessionFinished?.Invoke(this, EventArgs.Empty);
-    }
-
+    
     /// <summary>
     /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
     /// argument.
@@ -163,15 +143,15 @@ public partial class Formula1(string url) : ICategory
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
 
-        var parsedFlag = callable(message[1]);
+        var parsedFlag = callable.Invoke(message[1]);
         if (null == parsedFlag)
             return;
 
         if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
-            OnSessionFinished();
+            OnSessionFinished?.Invoke();
 
         Log.Information($"[Formula 1] New flag {parsedFlag.Flag}");
-        OnFlagParsed(parsedFlag);
+        OnFlagParsed?.Invoke(parsedFlag);
     }
 
     /// <summary>
@@ -253,7 +233,7 @@ public partial class Formula1(string url) : ICategory
         }
 
         // If the message category is not 'Flag', or received clear message, the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
+        if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
