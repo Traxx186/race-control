@@ -19,7 +19,7 @@ public partial class Formula1 : ICategory
     };
 
     /// <summary>
-    /// How many times a <see cref="Flag.Chequered"/> needs to be recieved until the API 
+    /// How many times a <see cref="Flag.Chequered"/> needs to be received until the API 
     /// connections needs to be broken.
     /// </summary>
     private static readonly Dictionary<string, int> SessionChequered = new()
@@ -45,7 +45,7 @@ public partial class Formula1 : ICategory
     private Client? _signalR;
 
     /// <summary>
-    /// How many <see cref="Flag.Chequered"/> are shown in the current sessnion before the API connection
+    /// How many <see cref="Flag.Chequered"/> are shown in the current session before the API connection
     /// needs to be closed.
     /// </summary>
     private int _numberOfChequered;
@@ -165,7 +165,7 @@ public partial class Formula1 : ICategory
         var data = message.Deserialize<TrackStatusMessage>();
         if (data == null || !short.TryParse(data.Status, out var status))
         {
-            Log.Error("[Formula 1] Invalid track status message recieved");
+            Log.Error("[Formula 1] Invalid track status message received");
             return null;
         }
 
@@ -198,13 +198,20 @@ public partial class Formula1 : ICategory
             return null;
         }
 
-        // Extract the race control message object from the SignalR message.
-        data = data.StartsWith('[')
-            ? data.TrimStart('[').TrimEnd(']')
-            : data.Split(':', 2)[1];
+        // Extract the race control message object from the SignalR message. If it is the first message
+        // of the session, different extraction is needed.
+        if (data.StartsWith('['))
+        {
+            data = data.TrimStart('[').TrimEnd(']');
+        }
+        else
+        {
+            data = data.Split(':', 2)[1];
+            data = data.Remove(data.Length - 1);
+        } 
 
         // Parse the extracted message to the RaceControlMessage record
-        var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data.Remove(data.Length - 1));
+        var raceControlMessage = JsonSerializer.Deserialize<RaceControlMessage>(data);
         if (null == raceControlMessage)
         {
             Log.Warning("[Formula 1] Race control message could not be parsed");
@@ -225,7 +232,7 @@ public partial class Formula1 : ICategory
             return new FlagData { Flag = Flag.Chequered };
         }
 
-        // If the message category is not 'Flag', or recieved clear message, the message can be ignored.
+        // If the message category is not 'Flag', or received clear message, the message can be ignored.
         if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");

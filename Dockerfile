@@ -28,6 +28,26 @@ COPY --from=base /App/out ./
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
 
+# create appuser
+ENV USER=race-control
+ENV UID=32767
+
+# Create new non-root user
+RUN adduser \
+   --disabled-password \
+   --gecos "" \
+   --shell "/sbin/nologin" \
+   --no-create-home \
+   --uid "${UID}" \
+   "${USER}"
+
+# Set file permissions
+RUN chmod +rw *
+RUN chown -R ${USER}:${USER} *
+
+# Use an unprivileged user
+USER ${USER}
+
 EXPOSE 8080
 
 ENTRYPOINT ["./RaceControl"]

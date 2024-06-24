@@ -16,6 +16,7 @@ public class FlagData : ICloneable
     /// <summary>
     /// The driver number that related to the flag
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int Driver { get; set; }
 
     /// <summary>
