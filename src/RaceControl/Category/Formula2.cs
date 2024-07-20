@@ -7,7 +7,7 @@ using Serilog;
 
 namespace RaceControl.Category;
 
-public partial class Formula2 : ICategory
+public partial class Formula2(string url) : ICategory
 {
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
@@ -15,19 +15,9 @@ public partial class Formula2 : ICategory
     private Client? _signalR;
 
     /// <summary>
-    /// To detect redundant calls.
-    /// </summary>
-    private bool _disposedValue;
-
-    /// <summary>
     /// If the session has actually started.
     /// </summary>
     private bool _hasStarted;
-
-    /// <summary>
-    /// The URL to the live timing API.
-    /// </summary>
-    private readonly string _url;
 
     /// <summary>
     /// <inheritdoc/>
@@ -38,11 +28,6 @@ public partial class Formula2 : ICategory
     /// <inheritdoc/>
     /// </summary>
     public event Action OnSessionFinished;
-    
-    public Formula2(string url)
-    {
-        _url = url;
-    }
 
     /// <summary>
     /// <inheritdoc/>
@@ -53,7 +38,7 @@ public partial class Formula2 : ICategory
         var feeds = new string[] {"status", "time"};
 
         _signalR = new Client(
-            _url,
+            url,
             "streaming",
             ["F2", feeds],
             new(2, 1),
@@ -72,30 +57,9 @@ public partial class Formula2 : ICategory
     public void Stop()
     {
         Log.Information("[Formula 2] Closing API connection");
-        Dispose();
-    }
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposedValue)
-            return;
-
-        if (disposing)
-        {
-            _signalR?.Stop();
-            _signalR = null;
-        }
-
-        _disposedValue = true;
+        _signalR?.Stop();
+        _signalR = null;
     }
 
     /// <summary>
@@ -143,11 +107,12 @@ public partial class Formula2 : ICategory
 
         var flag = status switch 
         {
+            1 => Flag.Clear,
             2 => Flag.Yellow,
             4 => Flag.SafetyCar,
             5 => Flag.Red,
-            6 or 7 => Flag.Vsc,
-            _ => Flag.Clear
+            6 => Flag.Vsc,
+            _ => Flag.None
         };
 
         OnFlagParsed?.Invoke(new FlagData{ Flag = flag });
