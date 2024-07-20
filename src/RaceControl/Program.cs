@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks.Dataflow;
 using RaceControl;
 using RaceControl.Track;
 using Serilog;
@@ -9,11 +10,8 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 SetupLogging();
 
-var cancellationToken = SetupGracefulShutdown();
-var connections = new List<WebSocket>();
-
 var trackStatus = new TrackStatus();
-trackStatus.OnTrackFlagChange += flagData => Broadcast(connections, flagData, cancellationToken).Wait();
+trackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
 
 var categoryService = new CategoryService();
 categoryService.OnCategoryFlagChange += trackStatus.SetActiveFlag;
@@ -31,19 +29,19 @@ app.Map("/", async context =>
 
     var buffer = new byte[4096];
     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-    connections.Add(webSocket);
+    Connections.Add(webSocket);
 
     Log.Information("[Race Control] New user connected, sending current active flag");
-    await SendFlag(webSocket, trackStatus.ActiveFlag, cancellationToken);
+    await SendFlag(webSocket, trackStatus.ActiveFlag);
 
-    while (!cancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
+    while (!CancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
     { 
-        var result = await webSocket.ReceiveAsync(buffer, cancellationToken);
+        var result = await webSocket.ReceiveAsync(buffer, CancellationToken);
         if (result.MessageType != WebSocketMessageType.Close)
             continue;
 
         Log.Information("[Race Control] User disconnected, removing from open connection list");
-        connections.Remove(webSocket);
+        Connections.Remove(webSocket);
     }
 });
 
@@ -69,41 +67,57 @@ static void SetupLogging()
         .CreateLogger();
 }
 
-// Creates a CancellationTokenSource to allow for a graceful shutdow
-static CancellationToken SetupGracefulShutdown()
-{
-    var tokenSource = new CancellationTokenSource();
-    Console.CancelKeyPress += (_, _) => tokenSource.Cancel();
-    AppDomain.CurrentDomain.ProcessExit += (_, _) => tokenSource.Cancel();
-
-    return tokenSource.Token;
-}
-
 static WebApplication SetupWebApplication(string[] args)
 {
     var builder = WebApplication.CreateSlimBuilder(args);
-
+    
     return builder.Build();
 }
 
 // Sends a message to all connected clients.
-static async Task Broadcast(List<WebSocket> connections, FlagData flagData, CancellationToken cancellationToken)
+static async Task Broadcast(FlagData flagData)
 {
     flagData = (FlagData)flagData.Clone();
     if (null == flagData)
         return;
 
     Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
-    var openSockets = connections.Where(x => x.State == WebSocketState.Open);
+    var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
     foreach (var websocket in openSockets)
-        await SendFlag(websocket, flagData, cancellationToken);
+        await SendFlag(websocket, flagData);
 }
 
 // Serialize the flag data to json and send the json to the client.
-static async Task SendFlag(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
+static async Task SendFlag(WebSocket websocket, FlagData flagData)
 {
     var json = JsonSerializer.Serialize(flagData);
     var data = Encoding.UTF8.GetBytes(json);
 
-    await websocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
+    await websocket.SendAsync(data, WebSocketMessageType.Text, true, CancellationToken);
+}
+
+public partial class Program 
+{
+    /// <summary>
+    /// All the connected web socket clients.
+    /// </summary>
+    private static readonly List<WebSocket> Connections = [];
+
+    /// <summary>
+    /// Cancellation token for graceful shutdown
+    /// </summary>
+    private static CancellationToken CancellationToken { get; } = SetupGracefulShutdown();
+
+    /// <summary>
+    /// Creates a new <see cref="CancellationToken"/> object for a graceful shutdown.
+    /// </summary>
+    /// <returns>A <see cref="CancellationToken"/> object.</returns>
+    private static CancellationToken SetupGracefulShutdown()
+    {
+        var tokenSource = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, _) => tokenSource.Cancel();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => tokenSource.Cancel();
+
+        return tokenSource.Token;
+    }
 }

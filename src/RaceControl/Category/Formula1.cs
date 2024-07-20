@@ -7,7 +7,7 @@ using Serilog;
 
 namespace RaceControl.Category;
 
-public partial class Formula1 : ICategory
+public partial class Formula1(string url) : ICategory
 {   
     /// <summary>
     /// Data streams to listen to and the related method to be called.
@@ -51,16 +51,6 @@ public partial class Formula1 : ICategory
     private int _numberOfChequered;
 
     /// <summary>
-    /// To detect redundant calls.
-    /// </summary>
-    private bool _disposedValue;
-
-    /// <summary>
-    /// The URL to the live timing API.
-    /// </summary>
-    private readonly string _url;
-
-    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event Action<FlagData>? OnFlagParsed;
@@ -69,11 +59,6 @@ public partial class Formula1 : ICategory
     /// <inheritdoc/>
     /// </summary>
     public event Action? OnSessionFinished;
-
-    public Formula1(string url)
-    {
-        _url = url;
-    }
 
     /// <summary>
     /// <inheritdoc/>
@@ -88,7 +73,7 @@ public partial class Formula1 : ICategory
         }
 
         _signalR = new Client(
-            _url,
+            url,
             "Streaming",
             ["RaceControlMessages", "TrackStatus"],
             new(1, 5)
@@ -106,32 +91,11 @@ public partial class Formula1 : ICategory
     public void Stop()
     {
         Log.Information("[Formula 1] Closing API connection");
-        Dispose();
+        
+        _signalR?.Stop();
+        _signalR = null;
     }
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposedValue)
-            return;
-
-        if (disposing)
-        {
-            _signalR?.Stop();
-            _signalR = null;
-        }
-
-        _disposedValue = true;
-    }
-    
     /// <summary>
     /// Deconstructs the incoming message into an argument and payload. Calls the relating parsing method based on the
     /// argument.
