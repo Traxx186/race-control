@@ -140,6 +140,14 @@ public class CategoryService
         _activeCategory?.Stop();
         _activeCategory = null;
         _timer.Enabled = true;
+
+        if (null == OnCategoryFlagChange)
+            return;
+        
+        // Remove all the linked invocations
+        foreach (var del in OnCategoryFlagChange.GetInvocationList())
+            OnCategoryFlagChange -= (Action<FlagData>)del;
+
     }
 
     /// <summary>

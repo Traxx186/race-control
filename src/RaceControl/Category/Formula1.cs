@@ -94,6 +94,14 @@ public partial class Formula1(string url) : ICategory
         
         _signalR?.Stop();
         _signalR = null;
+
+        if (null == OnFlagParsed)
+            return;
+        
+        // Remove all the linked invocations
+        foreach (var del in OnFlagParsed.GetInvocationList())
+            OnFlagParsed -= (Action<FlagData>)del;
+    
     }
 
     /// <summary>
