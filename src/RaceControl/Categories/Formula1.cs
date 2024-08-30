@@ -80,7 +80,7 @@ public partial class Formula1(string url) : ICategory
         );
 
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
-
+        Console.WriteLine(OnFlagParsed.GetInvocationList().Length);
         _numberOfChequered = numOfChequered;
         _signalR?.Start("Subscribe");
     }
@@ -101,7 +101,6 @@ public partial class Formula1(string url) : ICategory
         // Remove all the linked invocations
         foreach (var del in OnFlagParsed.GetInvocationList())
             OnFlagParsed -= (Action<FlagData>)del;
-    
     }
 
     /// <summary>

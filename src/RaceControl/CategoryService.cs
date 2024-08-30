@@ -12,11 +12,11 @@ public class CategoryService
     /// <summary>
     /// Available racing categories that have a race control parser implemented.
     /// </summary>
-    private static readonly Dictionary<string, ICategory> Categories = new()
-    {
-        { "f1", new Formula1("https://livetiming.formula1.com") },
-        { "f2", new Formula2("https://ltss.fiaformula2.com") }
-    };
+    //private static readonly Dictionary<string, ICategory> Categories = new()
+    //{
+    //    { "f1", new Formula1("https://livetiming.formula1.com") },
+    //    { "f2", new Formula2("https://ltss.fiaformula2.com") }
+    //};
 
     /// <summary>
     /// The currently active category.
@@ -62,12 +62,18 @@ public class CategoryService
         var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
         var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
         var calendarItem = await GetCategory(signalTime);
-        if (!calendarItem.HasValue || !Categories.TryGetValue(calendarItem.Value.CategoryKey, out var category)) return;
+        if (!calendarItem.HasValue) 
+            return;
+
+        var category = GetCategory(calendarItem.Value.CategoryKey);
+        if (category == null)
+            return;
 
         Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
         _activeCategory = category;
         _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
         _activeCategory.OnSessionFinished += StopActiveCategory;
+
         _activeCategory.Start(calendarItem.Value.Key);
 
         _timer.Enabled = false;
@@ -148,6 +154,16 @@ public class CategoryService
         foreach (var del in OnCategoryFlagChange.GetInvocationList())
             OnCategoryFlagChange -= (Action<FlagData>)del;
 
+    }
+
+    private ICategory? GetCategory(string key)
+    {
+        return key switch
+        {
+            "f1" => new Formula1("https://livetiming.formula1.com"),
+            "f2" => new Formula2("https://ltss.fiaformula2.com"),
+            _ => null,
+        };
     }
 
     /// <summary>

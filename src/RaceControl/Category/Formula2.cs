@@ -45,6 +45,8 @@ public partial class Formula2(string url) : ICategory
             "/streaming"
         );
 
+        Console.WriteLine(OnFlagParsed.GetInvocationList().Length);
+
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
