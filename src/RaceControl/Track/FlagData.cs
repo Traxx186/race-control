@@ -33,3 +33,8 @@ public class FlagData : ICloneable
         return flagData;
     }
 }
+
+public class FlagDataEventArgs : EventArgs
+{
+    public required FlagData FlagData { get; set; }
+}

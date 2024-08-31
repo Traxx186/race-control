@@ -14,7 +14,7 @@ var trackStatus = new TrackStatus();
 trackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
 
 var categoryService = new CategoryService();
-categoryService.OnCategoryFlagChange += trackStatus.SetActiveFlag;
+categoryService.CategoryFlagChange += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
 
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();

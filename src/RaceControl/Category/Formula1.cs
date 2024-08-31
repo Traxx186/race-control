@@ -53,12 +53,12 @@ public partial class Formula1(string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event Action<FlagData>? OnFlagParsed;
+    public event EventHandler<FlagDataEventArgs>? FlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event Action? OnSessionFinished;
+    public event EventHandler? SessionFinished;
 
     /// <summary>
     /// <inheritdoc/>
@@ -79,9 +79,9 @@ public partial class Formula1(string url) : ICategory
             new(1, 5)
         );
 
-        _signalR.AddHandler("Streaming", "feed", HandleMessage);
-        Console.WriteLine(OnFlagParsed.GetInvocationList().Length);
         _numberOfChequered = numOfChequered;
+
+        _signalR.AddHandler("Streaming", "feed", HandleMessage);
         _signalR?.Start("Subscribe");
     }
 
@@ -95,12 +95,24 @@ public partial class Formula1(string url) : ICategory
         _signalR?.Stop();
         _signalR = null;
 
-        if (null == OnFlagParsed)
-            return;
+        // if (null == OnFlagParsed)
+        //     return;
         
-        // Remove all the linked invocations
-        foreach (var del in OnFlagParsed.GetInvocationList())
-            OnFlagParsed -= (Action<FlagData>)del;
+        // // Remove all the linked invocations
+        // foreach (var del in OnFlagParsed.GetInvocationList())
+        //     OnFlagParsed -= (Action<FlagData>)del;
+    }
+
+    protected virtual void OnFlagParsed(FlagData flagData)
+    {
+        var args = new FlagDataEventArgs() { FlagData = flagData };
+
+        FlagParsed?.Invoke(this, args);
+    }
+
+    protected virtual void OnSessionFinished()
+    {
+        SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -114,15 +126,15 @@ public partial class Formula1(string url) : ICategory
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
 
-        var parsedFlag = callable.Invoke(message[1]);
+        var parsedFlag = callable(message[1]);
         if (null == parsedFlag)
             return;
 
         if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
-            OnSessionFinished?.Invoke();
+            OnSessionFinished();
 
         Log.Information($"[Formula 1] New flag {parsedFlag.Flag}");
-        OnFlagParsed?.Invoke(parsedFlag);
+        OnFlagParsed(parsedFlag);
     }
 
     /// <summary>

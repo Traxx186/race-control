@@ -10,15 +10,6 @@ namespace RaceControl;
 public class CategoryService
 {
     /// <summary>
-    /// Available racing categories that have a race control parser implemented.
-    /// </summary>
-    //private static readonly Dictionary<string, ICategory> Categories = new()
-    //{
-    //    { "f1", new Formula1("https://livetiming.formula1.com") },
-    //    { "f2", new Formula2("https://ltss.fiaformula2.com") }
-    //};
-
-    /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
@@ -36,7 +27,7 @@ public class CategoryService
     /// <summary>
     /// Event that will be triggered when a category parser has parsed a flag. 
     /// </summary>
-    public event Action<FlagData>? OnCategoryFlagChange;
+    public event EventHandler<FlagDataEventArgs>? CategoryFlagChange;
 
     public CategoryService()
     {
@@ -71,12 +62,18 @@ public class CategoryService
 
         Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
         _activeCategory = category;
-        _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
-        _activeCategory.OnSessionFinished += StopActiveCategory;
-
+        _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
+        _activeCategory.SessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Value.Key);
 
         _timer.Enabled = false;
+    }
+
+    protected virtual void OnCategoryFlagChange(FlagData flagData)
+    {
+        var args = new FlagDataEventArgs() { FlagData = flagData };
+
+        CategoryFlagChange?.Invoke(this, args);
     }
 
     /// <summary>
@@ -138,7 +135,7 @@ public class CategoryService
         return null;
     }
 
-    private async void StopActiveCategory()
+    private async void StopActiveCategory(object? sender, EventArgs e)
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
@@ -146,14 +143,6 @@ public class CategoryService
         _activeCategory?.Stop();
         _activeCategory = null;
         _timer.Enabled = true;
-
-        if (null == OnCategoryFlagChange)
-            return;
-        
-        // Remove all the linked invocations
-        foreach (var del in OnCategoryFlagChange.GetInvocationList())
-            OnCategoryFlagChange -= (Action<FlagData>)del;
-
     }
 
     private ICategory? GetCategory(string key)

@@ -4,6 +4,7 @@ namespace RaceControl.Track;
 /// Possible flags that can be displayed on the flag panels. Note, flags that are cannot bet fetched from APIs are not
 /// present.
 /// </summary>
+[Flags]
 public enum Flag
 {
     BlackWhite,
