@@ -103,6 +103,10 @@ public partial class Formula1(string url) : ICategory
         //     OnFlagParsed -= (Action<FlagData>)del;
     }
 
+    /// <summary>
+    /// Invokes the FlagPares event with the required arguments
+    /// </summary>
+    /// <param name="flagData">The parsed flag.</param>
     protected virtual void OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs() { FlagData = flagData };
@@ -110,6 +114,9 @@ public partial class Formula1(string url) : ICategory
         FlagParsed?.Invoke(this, args);
     }
 
+    /// <summary>
+    /// Invokes he SessionFinished event.
+    /// </summary>
     protected virtual void OnSessionFinished()
     {
         SessionFinished?.Invoke(this, EventArgs.Empty);

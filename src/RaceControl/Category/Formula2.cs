@@ -62,6 +62,10 @@ public partial class Formula2(string url) : ICategory
         _signalR = null;
     }
 
+    /// <summary>
+    /// Invokes the FlagPares event with the required arguments
+    /// </summary>
+    /// <param name="flagData">The parsed flag.</param>
     protected virtual void OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs() { FlagData = flagData };
@@ -69,6 +73,9 @@ public partial class Formula2(string url) : ICategory
         FlagParsed?.Invoke(this, args);
     }
 
+    /// <summary>
+    /// Invokes he SessionFinished event.
+    /// </summary>
     protected virtual void OnSessionFinished()
     {
         SessionFinished?.Invoke(this, EventArgs.Empty);
