@@ -95,12 +95,19 @@ public partial class Formula1(string url) : ICategory
         _signalR?.Stop();
         _signalR = null;
 
-        // if (null == OnFlagParsed)
-        //     return;
-        
-        // // Remove all the linked invocations
-        // foreach (var del in OnFlagParsed.GetInvocationList())
-        //     OnFlagParsed -= (Action<FlagData>)del;
+        if (null == FlagParsed)
+            return;
+
+        // Remove all the linked invocations of the FlagParsed event handler
+        foreach (var del in FlagParsed.GetInvocationList())
+            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+        if (null == SessionFinished)
+            return;
+
+        // Remove all the linked invocations of the SessionFinished event handler
+        foreach (var del in SessionFinished.GetInvocationList())
+            SessionFinished -= (EventHandler)del;
     }
 
     /// <summary>
