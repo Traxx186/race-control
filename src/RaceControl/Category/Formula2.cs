@@ -60,6 +60,20 @@ public partial class Formula2(string url) : ICategory
 
         _signalR?.Stop();
         _signalR = null;
+
+        if (null == FlagParsed)
+            return;
+
+        // Remove all the linked invocations of the FlagParsed event handler
+        foreach (var del in FlagParsed.GetInvocationList())
+            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+        if (null == SessionFinished)
+            return;
+
+        // Remove all the linked invocations of the SessionFinished event handler
+        foreach (var del in SessionFinished.GetInvocationList())
+            SessionFinished -= (EventHandler)del;
     }
 
     /// <summary>
@@ -101,7 +115,7 @@ public partial class Formula2(string url) : ICategory
         // Send session finished event if the session has started and the finish signal is send.
         if (_hasStarted && sessionTimeLeft == TimeSpan.Zero)
         {   
-            Log.Information("[Formula 2] Session finalised, closing API connection");
+            Log.Information("[Formula 2] Session finalized, closing API connection");
 
             _hasStarted = false;
             OnFlagParsed(new FlagData { Flag = Flag.Chequered });
@@ -164,7 +178,7 @@ public partial class Formula2(string url) : ICategory
                 if (!_hasStarted)
                     break;
 
-                Log.Information("[Formula 2] Session finalised, closing API connection");
+                Log.Information("[Formula 2] Session finalized, closing API connection");
 
                 _hasStarted = false;
                 OnFlagParsed(new FlagData { Flag = Flag.Chequered });
