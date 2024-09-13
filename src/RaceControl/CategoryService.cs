@@ -15,7 +15,7 @@ public class CategoryService
     private ICategory? _activeCategory;
 
     /// <summary>
-    /// The timer used for checkin if there is an active category.
+    /// The timer used for checking if there is an active category.
     /// </summary>
     private readonly Timer _timer;
 
@@ -77,7 +77,7 @@ public class CategoryService
     }
 
     /// <summary>
-    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for quering the database.
+    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for querying the database.
     /// </summary>
     /// <returns>A <see cref="NpgsqlConnection"/> object.</returns>
     private static NpgsqlDataSource CreatePgsqlConnection()

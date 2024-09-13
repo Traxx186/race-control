@@ -31,7 +31,7 @@ public sealed class Client
     private readonly Version? _version;
     
     /// <summary>
-    /// Custom endpoint if API doens't use /signalr.
+    /// Custom endpoint if API doesn't use /signalr.
     /// </summary>
     private readonly string _customEndpoint;
 

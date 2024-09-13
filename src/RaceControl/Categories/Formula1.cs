@@ -51,6 +51,11 @@ public partial class Formula1(string url) : ICategory
     private int _numberOfChequered;
 
     /// <summary>
+    /// If the object has already been disposed.
+    /// </summary>
+    private bool _disposed;
+
+    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler<FlagDataEventArgs>? FlagParsed;
@@ -85,29 +90,47 @@ public partial class Formula1(string url) : ICategory
         _signalR?.Start("Subscribe");
     }
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
     public void Stop()
     {
         Log.Information("[Formula 1] Closing API connection");
-        
-        _signalR?.Stop();
-        _signalR = null;
+        Dispose();
+    }
 
-        if (null == FlagParsed)
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
             return;
 
-        // Remove all the linked invocations of the FlagParsed event handler
-        foreach (var del in FlagParsed.GetInvocationList())
-            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+        if (disposing)
+        {
+            _signalR?.Stop();
+            _signalR = null;
 
-        if (null == SessionFinished)
-            return;
+            if (null == FlagParsed)
+                return;
 
-        // Remove all the linked invocations of the SessionFinished event handler
-        foreach (var del in SessionFinished.GetInvocationList())
-            SessionFinished -= (EventHandler)del;
+            // Remove all the linked invocations of the FlagParsed event handler
+            foreach (var del in FlagParsed.GetInvocationList())
+                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+            if (null == SessionFinished)
+                return;
+
+            // Remove all the linked invocations of the SessionFinished event handler
+            foreach (var del in SessionFinished.GetInvocationList())
+                SessionFinished -= (EventHandler)del;
+        }
+
+        _disposed = true;
     }
 
     /// <summary>
