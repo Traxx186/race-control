@@ -20,14 +20,19 @@ public partial class Formula2(string url) : ICategory
     private bool _hasStarted;
 
     /// <summary>
-    /// <inheritdoc/>
+    /// If the object has already been disposed.
     /// </summary>
-    public event Action<FlagData> OnFlagParsed;
+    private bool _disposed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event Action OnSessionFinished;
+    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public event EventHandler? SessionFinished;
 
     /// <summary>
     /// <inheritdoc/>
@@ -51,22 +56,76 @@ public partial class Formula2(string url) : ICategory
         _signalR?.Start("JoinFeeds");
     }
 
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
     public void Stop()
     {
         Log.Information("[Formula 2] Closing API connection");
+        Dispose();
+    }
 
-        _signalR?.Stop();
-        _signalR = null;
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) 
+            return;
+
+        if (disposing)
+        {
+            _signalR?.Stop();
+            _signalR = null;
+
+            if (null == FlagParsed)
+                return;
+
+            // Remove all the linked invocations of the FlagParsed event handler
+            foreach (var del in FlagParsed.GetInvocationList())
+                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+            if (null == SessionFinished)
+                return;
+
+            // Remove all the linked invocations of the SessionFinished event handler
+            foreach (var del in SessionFinished.GetInvocationList())
+                SessionFinished -= (EventHandler)del;
+        }
+
+        _disposed = true;
+    }
+
+    /// <summary>
+    /// Invokes the FlagPares event with the required arguments
+    /// </summary>
+    /// <param name="flagData">The parsed flag.</param>
+    protected virtual void OnFlagParsed(FlagData flagData)
+    {
+        var args = new FlagDataEventArgs() { FlagData = flagData };
+
+        FlagParsed?.Invoke(this, args);
+    }
+
+    /// <summary>
+    /// Invokes he SessionFinished event.
+    /// </summary>
+    protected virtual void OnSessionFinished()
+    {
+        SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
     /// Parses the incoming Timing Feed message to check if the session is finished.
     /// </summary>
     /// <param name="data">Message argument data received from Formula 2 API.</param>
-    private void HandleTimefeedMessage(JsonArray message)
+    protected virtual void HandleTimefeedMessage(JsonArray message)
     {
         Log.Information("[Formula 2] Parsing time feed message");
 
@@ -82,11 +141,11 @@ public partial class Formula2(string url) : ICategory
         // Send session finished event if the session has started and the finish signal is send.
         if (_hasStarted && sessionTimeLeft == TimeSpan.Zero)
         {   
-            Log.Information("[Formula 2] Session finalised, closing API connection");
+            Log.Information("[Formula 2] Session finalized, closing API connection");
 
             _hasStarted = false;
-            OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Chequered });
-            OnSessionFinished?.Invoke();
+            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+            OnSessionFinished();
         }
     }
 
@@ -94,7 +153,7 @@ public partial class Formula2(string url) : ICategory
     /// Parses the incoming Tack Feed message to get the current flag of the session.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
-    private void HandleTrackFeedMessage(JsonArray message)
+    protected virtual void HandleTrackFeedMessage(JsonArray message)
     {
         Log.Information("[Formula 2] Parsing track feed message");
 
@@ -115,7 +174,7 @@ public partial class Formula2(string url) : ICategory
             _ => Flag.None
         };
 
-        OnFlagParsed?.Invoke(new FlagData{ Flag = flag });
+        OnFlagParsed(new FlagData{ Flag = flag });
     }
 
     /// <summary>
@@ -123,7 +182,7 @@ public partial class Formula2(string url) : ICategory
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
 
-    private void HandleSessionFeedMessage(JsonArray message)
+    protected virtual void HandleSessionFeedMessage(JsonArray message)
     {
         Log.Information("[Formula 2] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
@@ -136,7 +195,7 @@ public partial class Formula2(string url) : ICategory
         {
             case "started":
                 Log.Information("[Formula 2] Session started");
-                OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Clear });
+                OnFlagParsed(new FlagData { Flag = Flag.Clear });
                 _hasStarted = true;
 
                 break;
@@ -145,11 +204,11 @@ public partial class Formula2(string url) : ICategory
                 if (!_hasStarted)
                     break;
 
-                Log.Information("[Formula 2] Session finalised, closing API connection");
+                Log.Information("[Formula 2] Session finalized, closing API connection");
 
                 _hasStarted = false;
-                OnFlagParsed?.Invoke(new FlagData { Flag = Flag.Chequered });
-                OnSessionFinished?.Invoke();
+                OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+                OnSessionFinished();
 
                 break;
             default:

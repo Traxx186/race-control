@@ -51,14 +51,19 @@ public partial class Formula1(string url) : ICategory
     private int _numberOfChequered;
 
     /// <summary>
-    /// <inheritdoc/>
+    /// If the object has already been disposed.
     /// </summary>
-    public event Action<FlagData>? OnFlagParsed;
+    private bool _disposed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event Action? OnSessionFinished;
+    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public event EventHandler? SessionFinished;
 
     /// <summary>
     /// <inheritdoc/>
@@ -79,21 +84,72 @@ public partial class Formula1(string url) : ICategory
             new(1, 5)
         );
 
-        _signalR.AddHandler("Streaming", "feed", HandleMessage);
-
         _numberOfChequered = numOfChequered;
+
+        _signalR.AddHandler("Streaming", "feed", HandleMessage);
         _signalR?.Start("Subscribe");
+    }
+
+    public void Stop()
+    {
+        Log.Information("[Formula 1] Closing API connection");
+        Dispose();
     }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Stop()
+    public void Dispose()
     {
-        Log.Information("[Formula 1] Closing API connection");
-        
-        _signalR?.Stop();
-        _signalR = null;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            _signalR?.Stop();
+            _signalR = null;
+
+            if (null == FlagParsed)
+                return;
+
+            // Remove all the linked invocations of the FlagParsed event handler
+            foreach (var del in FlagParsed.GetInvocationList())
+                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+            if (null == SessionFinished)
+                return;
+
+            // Remove all the linked invocations of the SessionFinished event handler
+            foreach (var del in SessionFinished.GetInvocationList())
+                SessionFinished -= (EventHandler)del;
+        }
+
+        _disposed = true;
+    }
+
+    /// <summary>
+    /// Invokes the FlagPares event with the required arguments
+    /// </summary>
+    /// <param name="flagData">The parsed flag.</param>
+    protected virtual void OnFlagParsed(FlagData flagData)
+    {
+        var args = new FlagDataEventArgs() { FlagData = flagData };
+
+        FlagParsed?.Invoke(this, args);
+    }
+
+    /// <summary>
+    /// Invokes he SessionFinished event.
+    /// </summary>
+    protected virtual void OnSessionFinished()
+    {
+        SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -107,15 +163,15 @@ public partial class Formula1(string url) : ICategory
         if (!DataStreams.TryGetValue(argument, out var callable))
             return;
 
-        var parsedFlag = callable.Invoke(message[1]);
+        var parsedFlag = callable(message[1]);
         if (null == parsedFlag)
             return;
 
         if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
-            OnSessionFinished?.Invoke();
+            OnSessionFinished();
 
         Log.Information($"[Formula 1] New flag {parsedFlag.Flag}");
-        OnFlagParsed?.Invoke(parsedFlag);
+        OnFlagParsed(parsedFlag);
     }
 
     /// <summary>

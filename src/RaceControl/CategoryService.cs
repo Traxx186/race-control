@@ -10,21 +10,12 @@ namespace RaceControl;
 public class CategoryService
 {
     /// <summary>
-    /// Available racing categories that have a race control parser implemented.
-    /// </summary>
-    private static readonly Dictionary<string, ICategory> Categories = new()
-    {
-        { "f1", new Formula1("https://livetiming.formula1.com") },
-        { "f2", new Formula2("https://ltss.fiaformula2.com") }
-    };
-
-    /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
 
     /// <summary>
-    /// The timer used for checkin if there is an active category.
+    /// The timer used for checking if there is an active category.
     /// </summary>
     private readonly Timer _timer;
 
@@ -36,7 +27,7 @@ public class CategoryService
     /// <summary>
     /// Event that will be triggered when a category parser has parsed a flag. 
     /// </summary>
-    public event Action<FlagData>? OnCategoryFlagChange;
+    public event EventHandler<FlagDataEventArgs>? CategoryFlagChange;
 
     public CategoryService()
     {
@@ -62,19 +53,31 @@ public class CategoryService
         var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
         var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
         var calendarItem = await GetCategory(signalTime);
-        if (!calendarItem.HasValue || !Categories.TryGetValue(calendarItem.Value.CategoryKey, out var category)) return;
+        if (!calendarItem.HasValue) 
+            return;
+
+        var category = GetCategory(calendarItem.Value.CategoryKey);
+        if (category == null)
+            return;
 
         Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
         _activeCategory = category;
-        _activeCategory.OnFlagParsed += data => OnCategoryFlagChange?.Invoke(data);
-        _activeCategory.OnSessionFinished += StopActiveCategory;
+        _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
+        _activeCategory.SessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Value.Key);
 
         _timer.Enabled = false;
     }
 
+    protected virtual void OnCategoryFlagChange(FlagData flagData)
+    {
+        var args = new FlagDataEventArgs() { FlagData = flagData };
+
+        CategoryFlagChange?.Invoke(this, args);
+    }
+
     /// <summary>
-    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for quering the database.
+    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for querying the database.
     /// </summary>
     /// <returns>A <see cref="NpgsqlConnection"/> object.</returns>
     private static NpgsqlDataSource CreatePgsqlConnection()
@@ -132,7 +135,7 @@ public class CategoryService
         return null;
     }
 
-    private async void StopActiveCategory()
+    private async void StopActiveCategory(object? sender, EventArgs e)
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
@@ -140,6 +143,16 @@ public class CategoryService
         _activeCategory?.Stop();
         _activeCategory = null;
         _timer.Enabled = true;
+    }
+
+    private ICategory? GetCategory(string key)
+    {
+        return key switch
+        {
+            "f1" => new Formula1("https://livetiming.formula1.com"),
+            "f2" => new Formula2("https://ltss.fiaformula2.com"),
+            _ => null,
+        };
     }
 
     /// <summary>
