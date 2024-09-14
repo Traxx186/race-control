@@ -1,10 +1,10 @@
 const panel = new Panel('flag-panel');
-const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+const socket = new WebSocket('ws://localhost:8080');
 
 socket.addEventListener('message', event => {
     setTimeout(() => {
         handleMessage(event.data)
-    }, 22_000);
+    }, 20_000);
 });
 
 const handleMessage = (message) => {
@@ -41,9 +41,6 @@ const handleMessage = (message) => {
             break;
         case 'Chequered':
             panel.chequeredFlag();
-            break;
-        case 'Surface':
-            panel.slipperySurfaceFlag();
             break;
         default:
             console.warn(`Flag ${flag} not supported`);
