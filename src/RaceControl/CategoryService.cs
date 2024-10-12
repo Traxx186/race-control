@@ -1,23 +1,15 @@
-using System.Timers;
 using Npgsql;
 using RaceControl.Category;
 using RaceControl.Track;
-using Serilog;
-using Timer = System.Timers.Timer;
 
 namespace RaceControl;
 
-public class CategoryService
+public class CategoryService : BackgroundService
 {
     /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
-
-    /// <summary>
-    /// The timer used for checking if there is an active category.
-    /// </summary>
-    private readonly Timer _timer;
 
     /// <summary>
     /// The MongoDB client connection to the category calendar database.
@@ -29,30 +21,50 @@ public class CategoryService
     /// </summary>
     public event EventHandler<FlagDataEventArgs>? CategoryFlagChange;
 
-    public CategoryService()
+    /// <summary>
+    /// If there is a current session active.
+    /// </summary>
+    private bool _sessionActive;
+
+    /// <summary>
+    /// The category service logger.
+    /// </summary>
+    private readonly ILogger<CategoryService> _logger;
+
+    public CategoryService(ILogger<CategoryService> logger)
     {
         _pgsqlClient = CreatePgsqlConnection();
-
-        _timer = new Timer(TimeSpan.FromMinutes(1));
-        _timer.Elapsed += GetActiveCategory;
+        _logger = logger;
     }
 
-    public void Start()
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _timer.Enabled = true;
+        _logger.LogInformation("[CategoryService] Category service started");
+        GetActiveCategory();
+
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        while(await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            // Wait for the next loop if there is an session active.
+            if(_sessionActive)
+                continue;
+
+            _logger.LogInformation("[CategoryService] Search for an active category");
+            GetActiveCategory();
+        }
     }
 
     /// <summary>
     /// Gets the key of the next active session and sets the correct connector to listen to the
     /// live timing data.
     /// </summary>
-    /// <param name="source">The timer source.</param>
-    /// <param name="e">Args of the timer event.</param>
-    private async void GetActiveCategory(object? source, ElapsedEventArgs e)
+    private async void GetActiveCategory()
     {
-        var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
-        var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
-        var calendarItem = await GetCategory(signalTime);
+        var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
+        var calendarItem = await GetCategory(new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0));
         if (!calendarItem.HasValue) 
             return;
 
@@ -60,15 +72,18 @@ public class CategoryService
         if (category == null)
             return;
 
-        Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
+        _logger.LogInformation($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
         _activeCategory = category;
         _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
         _activeCategory.SessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Value.Key);
-
-        _timer.Enabled = false;
+        _sessionActive = true;
     }
 
+    /// <summary>
+    /// Invokes the Category Flag Change event.
+    /// </summary>
+    /// <param name="flagData">The flag data send in the event.</param>
     protected virtual void OnCategoryFlagChange(FlagData flagData)
     {
         var args = new FlagDataEventArgs() { FlagData = flagData };
@@ -80,12 +95,12 @@ public class CategoryService
     /// Creates a async <see cref="NpgsqlConnection"/> to be used later for querying the database.
     /// </summary>
     /// <returns>A <see cref="NpgsqlConnection"/> object.</returns>
-    private static NpgsqlDataSource CreatePgsqlConnection()
+    private NpgsqlDataSource CreatePgsqlConnection()
     {
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
         if (null == databaseUrl)
         {
-            Log.Fatal("[CategoryService] 'DATABASE_URL' env variable must be set");
+            _logger.LogCritical("[CategoryService] 'DATABASE_URL' env variable must be set");
             Environment.Exit(0);
         }
 
@@ -135,16 +150,26 @@ public class CategoryService
         return null;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void StopActiveCategory(object? sender, EventArgs e)
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
-        Log.Information("[CategoryService] Closing the active category");
+        _logger.LogInformation("[CategoryService] Closing the active category");
         _activeCategory?.Stop();
         _activeCategory = null;
-        _timer.Enabled = true;
+        _sessionActive = false;
     }
 
+    /// <summary>
+    /// Creates a new category object based on the given key.
+    /// </summary>
+    /// <param name="key">Key of the category.</param>
+    /// <returns>A instance of the category.</returns>
     private ICategory? GetCategory(string key)
     {
         return key switch

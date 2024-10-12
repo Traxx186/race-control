@@ -315,6 +315,9 @@ class Panel {
         const rows = Math.ceil(height / squareSize);
         const cols = Math.ceil(width / squareSize);
 
+        this.ctx.reset();
+        clearInterval(this.#interval);
+
         this.#interval = setInterval(() => {
             this.ctx.reset();
     
