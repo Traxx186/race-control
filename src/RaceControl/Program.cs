@@ -10,11 +10,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 SetupLogging();
 
-var trackStatus = new TrackStatus();
-trackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
-
-var categoryService = new CategoryService();
-categoryService.CategoryFlagChange += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
+TrackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
 
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();
@@ -32,7 +28,7 @@ app.Map("/", async context =>
     Connections.Add(webSocket);
 
     Log.Information("[Race Control] New user connected, sending current active flag");
-    await SendFlag(webSocket, trackStatus.ActiveFlag);
+    await SendFlag(webSocket, TrackStatus.ActiveFlag);
 
     while (!CancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
     { 
@@ -46,15 +42,12 @@ app.Map("/", async context =>
 });
 
 Log.Information("[Race Control] Starting category service & WebSocket server");
-Task.WaitAll(
-    Task.Run(categoryService.Start),
-    Task.Run(app.Run)
-);
+await app.RunAsync();
 
 // Setup Serilog
 static void SetupLogging()
 {
-    var executingDir = Path.GetDirectoryName(AppContext.BaseDirectory);
+    var executingDir = Path.GetDirectoryName(Environment.CurrentDirectory);
     var logPath = Path.Combine(executingDir ?? string.Empty, "logs", "verbose.log");
 
     Log.Logger = new LoggerConfiguration()
@@ -70,7 +63,18 @@ static void SetupLogging()
 static WebApplication SetupWebApplication(string[] args)
 {
     var builder = WebApplication.CreateSlimBuilder(args);
-    
+    builder.Services.AddSerilog();
+
+    // Add category service to application services.
+    builder.Services.AddHostedService(ctx => 
+    {
+        var logger = ctx.GetRequiredService<ILogger<CategoryService>>();
+        var categoryService = new CategoryService(logger);
+        categoryService.CategoryFlagChange += (_, args) => TrackStatus.SetActiveFlag(args.FlagData);
+
+        return categoryService;
+    });
+
     return builder.Build();
 }
 
@@ -104,9 +108,14 @@ public partial class Program
     private static readonly List<WebSocket> Connections = [];
 
     /// <summary>
-    /// Cancellation token for graceful shutdown
+    /// Cancellation token for graceful shutdown.
     /// </summary>
     private static CancellationToken CancellationToken { get; } = SetupGracefulShutdown();
+
+    /// <summary>
+    /// Global instance of the TrackStatus.
+    /// </summary>
+    private static TrackStatus TrackStatus { get; } = new TrackStatus();
 
     /// <summary>
     /// Creates a new <see cref="CancellationToken"/> object for a graceful shutdown.

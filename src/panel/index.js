@@ -1,10 +1,10 @@
 const panel = new Panel('flag-panel');
-const socket = new WebSocket('ws://localhost:8080');
+const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
 
 socket.addEventListener('message', event => {
     setTimeout(() => {
         handleMessage(event.data)
-    }, 20_000);
+    }, 22_000);
 });
 
 const handleMessage = (message) => {
