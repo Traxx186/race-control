@@ -5,8 +5,8 @@ namespace RaceControl.Database;
 
 public class RaceControlContext(DbContextOptions<RaceControlContext> options) : DbContext(options)
 {
-    public DbSet<Category> Categories { get; init; }
-    public DbSet<Session> Sessions { get; init; }
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Session> Sessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
