@@ -1,6 +1,6 @@
 using RaceControl.Track;
 
-namespace RaceControl.Category;
+namespace RaceControl.Categories;
 
 public interface ICategory
 {

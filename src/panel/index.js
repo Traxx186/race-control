@@ -1,5 +1,6 @@
 const panel = new Panel('flag-panel');
-const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+// const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+const socket = new WebSocket('ws://localhost:8080');
 
 socket.addEventListener('message', event => {
     setTimeout(() => {

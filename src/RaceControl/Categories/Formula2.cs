@@ -5,7 +5,7 @@ using RaceControl.SignalR;
 using RaceControl.Track;
 using Serilog;
 
-namespace RaceControl.Category;
+namespace RaceControl.Categories;
 
 public partial class Formula2(string url) : ICategory
 {

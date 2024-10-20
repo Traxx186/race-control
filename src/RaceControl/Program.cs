@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks.Dataflow;
+using Microsoft.EntityFrameworkCore;
 using RaceControl;
+using RaceControl.Database;
 using RaceControl.Track;
 using Serilog;
+using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 
 SetupLogging();
@@ -52,6 +54,7 @@ static void SetupLogging()
 
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
         .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
         .WriteTo.Console(
             theme: AnsiConsoleTheme.Literate,
@@ -62,14 +65,30 @@ static void SetupLogging()
 
 static WebApplication SetupWebApplication(string[] args)
 {
+    // Read database Environment variable.
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (null == databaseUrl)
+    {
+        Log.Fatal("[CategoryService] 'DATABASE_URL' env variable must be set");
+        Environment.Exit(0);
+    }
+
     var builder = WebApplication.CreateSlimBuilder(args);
     builder.Services.AddSerilog();
+
+    // Create DB Context pool.
+    builder.Services.AddDbContextPool<RaceControlContext>(options =>
+        options
+            .UseNpgsql(databaseUrl)
+            .UseSnakeCaseNamingConvention()
+    );
 
     // Add category service to application services.
     builder.Services.AddHostedService(ctx => 
     {
         var logger = ctx.GetRequiredService<ILogger<CategoryService>>();
-        var categoryService = new CategoryService(logger);
+        var dbContext = ctx.GetRequiredService<RaceControlContext>();
+        var categoryService = new CategoryService(logger, dbContext);
         categoryService.CategoryFlagChange += (_, args) => TrackStatus.SetActiveFlag(args.FlagData);
 
         return categoryService;
