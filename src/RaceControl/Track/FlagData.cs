@@ -11,20 +11,20 @@ public class FlagData : ICloneable
     /// The <see cref="Flag"/>
     /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public Flag Flag { get; set; }
+    public Flag Flag { get; init; }
 
     /// <summary>
     /// The driver number that related to the flag
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public int Driver { get; set; }
+    public int Driver { get; init; }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public object Clone()
     {
-        var flagData = new FlagData()
+        var flagData = new FlagData
         {
             Flag = Flag,
             Driver = Driver
@@ -36,5 +36,5 @@ public class FlagData : ICloneable
 
 public class FlagDataEventArgs : EventArgs
 {
-    public required FlagData FlagData { get; set; }
+    public required FlagData FlagData { get; init; }
 }

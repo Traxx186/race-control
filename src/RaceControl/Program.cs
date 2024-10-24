@@ -19,6 +19,7 @@ TrackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();
 app.UseWebSockets();
+
 app.Map("/", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -57,7 +58,7 @@ static void SetupLogging()
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-        //.MinimumLevel.Override("Quartz", LogEventLevel.Warning)
+        .MinimumLevel.Override("Quartz", LogEventLevel.Warning)
         .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
         .WriteTo.Console(
             theme: AnsiConsoleTheme.Literate,
@@ -94,7 +95,7 @@ static WebApplication SetupWebApplication(string[] args)
         quartz.AddTrigger(opts => opts
             .ForJob(syncJobKey)
             .WithIdentity("SyncSessionsJob-trigger")
-            .WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 17, 0))
+            .WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 8, 0))
         );
     });
 
@@ -151,7 +152,7 @@ public partial class Program
     /// <summary>
     /// Global instance of the TrackStatus.
     /// </summary>
-    private static TrackStatus TrackStatus { get; } = new TrackStatus();
+    private static TrackStatus TrackStatus { get; } = new();
 
     /// <summary>
     /// Creates a new <see cref="CancellationToken"/> object for a graceful shutdown.

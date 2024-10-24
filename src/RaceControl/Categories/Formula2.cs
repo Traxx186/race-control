@@ -46,7 +46,7 @@ public partial class Formula2(string url) : ICategory
             url,
             "streaming",
             ["F2", feeds],
-            new(2, 1),
+            new Version(2, 1),
             "/streaming"
         );
 
@@ -61,7 +61,7 @@ public partial class Formula2(string url) : ICategory
         Log.Information("[Formula 2] Closing API connection");
         Dispose();
     }
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -70,10 +70,7 @@ public partial class Formula2(string url) : ICategory
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
+    
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed) 
@@ -108,7 +105,7 @@ public partial class Formula2(string url) : ICategory
     /// <param name="flagData">The parsed flag.</param>
     protected virtual void OnFlagParsed(FlagData flagData)
     {
-        var args = new FlagDataEventArgs() { FlagData = flagData };
+        var args = new FlagDataEventArgs { FlagData = flagData };
 
         FlagParsed?.Invoke(this, args);
     }
@@ -124,7 +121,7 @@ public partial class Formula2(string url) : ICategory
     /// <summary>
     /// Parses the incoming Timing Feed message to check if the session is finished.
     /// </summary>
-    /// <param name="data">Message argument data received from Formula 2 API.</param>
+    /// <param name="message">Message argument data received from Formula 2 API.</param>
     protected virtual void HandleTimefeedMessage(JsonArray message)
     {
         Log.Information("[Formula 2] Parsing time feed message");
@@ -137,16 +134,14 @@ public partial class Formula2(string url) : ICategory
         }
 
         var sessionTimeLeft = TimeSpan.ParseExact(sessionTimeData, "c", CultureInfo.InvariantCulture);
-
-        // Send session finished event if the session has started and the finish signal is send.
-        if (_hasStarted && sessionTimeLeft == TimeSpan.Zero)
-        {   
-            Log.Information("[Formula 2] Session finalized, closing API connection");
-
-            _hasStarted = false;
-            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-            OnSessionFinished();
-        }
+        
+        // If the session has not jed finalized, stop the execution of the method.
+        if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero) return;
+        
+        Log.Information("[Formula 2] Session finalized, closing API connection");
+        _hasStarted = false;
+        OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+        OnSessionFinished();
     }
 
     /// <summary>
@@ -220,7 +215,7 @@ public partial class Formula2(string url) : ICategory
     /// <summary>
     /// Structure of a track status message.
     /// </summary>
-    private sealed record class TrackStatusMessage(
+    private sealed record TrackStatusMessage(
         string Value,
         string Message
     );
@@ -228,7 +223,7 @@ public partial class Formula2(string url) : ICategory
     /// <summary>
     /// Structure of a session feed message.
     /// </summary>
-    private sealed record class SessionFeedMessage (
+    private sealed record SessionFeedMessage (
         string Value
     );
 }

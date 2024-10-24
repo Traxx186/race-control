@@ -81,7 +81,7 @@ public partial class Formula1(string url) : ICategory
             url,
             "Streaming",
             ["RaceControlMessages", "TrackStatus"],
-            new(1, 5)
+            new Version(1, 5)
         );
 
         _numberOfChequered = numOfChequered;
@@ -95,7 +95,7 @@ public partial class Formula1(string url) : ICategory
         Log.Information("[Formula 1] Closing API connection");
         Dispose();
     }
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -104,7 +104,7 @@ public partial class Formula1(string url) : ICategory
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
+    
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
