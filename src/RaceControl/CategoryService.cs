@@ -5,7 +5,7 @@ using RaceControl.Track;
 
 namespace RaceControl;
 
-public class CategoryService : BackgroundService
+public class CategoryService(ILogger<CategoryService> _logger, RaceControlContext _dbContext) : BackgroundService
 {
     /// <summary>
     /// The currently active category.
@@ -21,22 +21,6 @@ public class CategoryService : BackgroundService
     /// If there is a current session active.
     /// </summary>
     private bool _sessionActive;
-
-    /// <summary>
-    /// The database context pool.
-    /// </summary>
-    private RaceControlContext _dbContext;
-
-    /// <summary>
-    /// The category service logger.
-    /// </summary>
-    private readonly ILogger<CategoryService> _logger;
-
-    public CategoryService(ILogger<CategoryService> logger, RaceControlContext dbContext)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
 
     /// <summary>
     /// <inheritdoc/>

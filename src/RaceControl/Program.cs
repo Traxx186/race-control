@@ -3,8 +3,10 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using RaceControl;
 using RaceControl.Database;
+using RaceControl.Jobs;
 using RaceControl.Track;
 using Serilog;
 using Serilog.Events;
@@ -43,7 +45,7 @@ app.Map("/", async context =>
     }
 });
 
-Log.Information("[Race Control] Starting category service & WebSocket server");
+Log.Information("[Race Control] Starting Application");
 await app.RunAsync();
 
 // Setup Serilog
@@ -55,6 +57,7 @@ static void SetupLogging()
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Information()
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        //.MinimumLevel.Override("Quartz", LogEventLevel.Warning)
         .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
         .WriteTo.Console(
             theme: AnsiConsoleTheme.Literate,
@@ -82,6 +85,20 @@ static WebApplication SetupWebApplication(string[] args)
             .UseNpgsql(databaseUrl)
             .UseSnakeCaseNamingConvention()
     );
+
+    // Add Quartz to services
+    builder.Services.AddQuartz(quartz => 
+    {
+        var syncJobKey = new JobKey("SyncSessionsJob");
+        quartz.AddJob<SyncSessionsJob>(opts => opts.WithIdentity(syncJobKey));
+        quartz.AddTrigger(opts => opts
+            .ForJob(syncJobKey)
+            .WithIdentity("SyncSessionsJob-trigger")
+            .WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 17, 0))
+        );
+    });
+
+    builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
     // Add category service to application services.
     builder.Services.AddHostedService(ctx => 
