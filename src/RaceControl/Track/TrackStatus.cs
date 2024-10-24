@@ -7,7 +7,7 @@ public sealed class TrackStatus
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
     /// </summary>
-    public static readonly Dictionary<Flag, short> FlagPriority = new()
+    private static readonly Dictionary<Flag, short> FlagPriority = new()
     {
         { Flag.BlackWhite, 0 },
         { Flag.Blue, 0 },

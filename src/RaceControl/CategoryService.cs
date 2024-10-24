@@ -5,7 +5,7 @@ using RaceControl.Track;
 
 namespace RaceControl;
 
-public class CategoryService(ILogger<CategoryService> _logger, RaceControlContext _dbContext) : BackgroundService
+public class CategoryService(ILogger<CategoryService> logger, RaceControlContext dbContext) : BackgroundService
 {
     /// <summary>
     /// The currently active category.
@@ -27,17 +27,17 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("[CategoryService] Category service started");
+        logger.LogInformation("[CategoryService] Category service started");
         GetActiveCategory();
 
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
         while(await timer.WaitForNextTickAsync(stoppingToken))
         {
-            // Wait for the next loop if there is an session active.
+            // Wait for the next loop if there is a session active.
             if(_sessionActive)
                 continue;
 
-            _logger.LogInformation("[CategoryService] Search for an active category");
+            logger.LogInformation("[CategoryService] Search for an active category");
             GetActiveCategory();
         }
     }
@@ -57,7 +57,7 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
         if (category == null)
             return;
 
-        _logger.LogInformation("[CategoryService] Found active session with key {key}", calendarItem.CategoryKey);
+        logger.LogInformation("[CategoryService] Found active session with key {key}", calendarItem.CategoryKey);
         _activeCategory = category;
         _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
         _activeCategory.SessionFinished += StopActiveCategory;
@@ -71,7 +71,7 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
     /// <param name="flagData">The flag data send in the event.</param>
     protected virtual void OnCategoryFlagChange(FlagData flagData)
     {
-        var args = new FlagDataEventArgs() { FlagData = flagData };
+        var args = new FlagDataEventArgs { FlagData = flagData };
 
         CategoryFlagChange?.Invoke(this, args);
     }
@@ -83,9 +83,8 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
     /// <returns>If there is an active session, else null.</returns>
     private Session? GetCategory(DateTime currentTime)
     {
-        return _dbContext.Sessions
-            .Where(s => s.Time == currentTime)
-            .FirstOrDefault();
+        return dbContext.Sessions
+            .SingleOrDefault(s => s.Time == currentTime);
     }
 
     /// <summary>
@@ -97,7 +96,7 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
-        _logger.LogInformation("[CategoryService] Closing the active category");
+        logger.LogInformation("[CategoryService] Closing the active category");
         _activeCategory?.Stop();
         _activeCategory = null;
         _sessionActive = false;
@@ -114,7 +113,7 @@ public class CategoryService(ILogger<CategoryService> _logger, RaceControlContex
         {
             "f1" => new Formula1("https://livetiming.formula1.com"),
             "f2" => new Formula2("https://ltss.fiaformula2.com"),
-            _ => null,
+            _ => null
         };
     }
 }

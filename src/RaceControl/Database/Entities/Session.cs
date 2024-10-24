@@ -7,11 +7,11 @@ namespace RaceControl.Database.Entities;
 public class Session 
 {
     [Key]
-    public Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required string Key { get; set; }
+    public Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required string Key { get; init; }
     public DateTime Time { get; set; }
 
-    public required string CategoryKey { get; set; }
-    public required Category Category { get; set; }
+    public required string CategoryKey { get; init; }
+    public required Category Category { get; init; }
 }
