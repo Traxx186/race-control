@@ -60,6 +60,7 @@ static WebApplication SetupWebApplication(string[] args)
         .CreateLogger();
     
     builder.Services.AddSerilog();
+    
     // Create DB Context pool.
     builder.Services.AddDbContextPool<RaceControlContext>(options =>
         options

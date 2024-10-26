@@ -36,6 +36,11 @@ public class CategoryService(ILogger<CategoryService> logger, RaceControlContext
             // Wait for the next loop if there is a session active.
             if(_sessionActive)
                 continue;
+            
+            // If the current day of week is not between thursday and sunday, do nothing
+            // to reduce checks.
+            if(DateTime.Now.DayOfWeek < DayOfWeek.Thursday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday)
+                continue;
 
             logger.LogInformation("[CategoryService] Search for an active category");
             GetActiveCategory();
