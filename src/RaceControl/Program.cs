@@ -9,17 +9,13 @@ using RaceControl.Database;
 using RaceControl.Jobs;
 using RaceControl.Track;
 using Serilog;
-using Serilog.Events;
-using Serilog.Sinks.SystemConsole.Themes;
-
-SetupLogging();
+using Serilog.Settings.Configuration;
 
 TrackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
 
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();
 app.UseWebSockets();
-
 app.Map("/", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -49,41 +45,25 @@ app.Map("/", async context =>
 Log.Information("[Race Control] Starting Application");
 await app.RunAsync();
 
-// Setup Serilog
-static void SetupLogging()
-{
-    var executingDir = Path.GetDirectoryName(Environment.CurrentDirectory);
-    var logPath = Path.Combine(executingDir ?? string.Empty, "logs", "verbose.log");
-
-    Log.Logger = new LoggerConfiguration()
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-        .MinimumLevel.Override("Quartz", LogEventLevel.Warning)
-        .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10)
-        .WriteTo.Console(
-            theme: AnsiConsoleTheme.Literate,
-            outputTemplate: "{Timestamp:HH:mm:ss} [{Level:u3}] {Message} {NewLine}{Exception}"
-        )
-        .CreateLogger();
-}
-
 static WebApplication SetupWebApplication(string[] args)
 {
-    // Read database Environment variable.
-    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (null == databaseUrl)
-    {
-        Log.Fatal("[CategoryService] 'DATABASE_URL' env variable must be set");
-        Environment.Exit(0);
-    }
-
     var builder = WebApplication.CreateSlimBuilder(args);
+    builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
+    builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+    builder.Configuration.AddEnvironmentVariables();
+    
+    Log.Logger = new LoggerConfiguration()
+        .ReadFrom.Configuration(
+            builder.Configuration,
+            new ConfigurationReaderOptions(ConfigurationAssemblySource.AlwaysScanDllFiles)
+        )
+        .CreateLogger();
+    
     builder.Services.AddSerilog();
-
     // Create DB Context pool.
     builder.Services.AddDbContextPool<RaceControlContext>(options =>
         options
-            .UseNpgsql(databaseUrl)
+            .UseNpgsql(builder.Configuration["DATABASE_URL"])
             .UseSnakeCaseNamingConvention()
     );
 
@@ -111,7 +91,7 @@ static WebApplication SetupWebApplication(string[] args)
 
         return categoryService;
     });
-
+    
     return builder.Build();
 }
 
