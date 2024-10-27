@@ -58,7 +58,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger)
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
         var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag.Flag); 
-        if (ActiveFlag.Flag == Flag.Clear && newFlagPrio == 0)
+        if (ActiveFlag.Flag == Flag.Clear && ActiveFlag.Flag != Flag.Chequered && newFlagPrio == 0)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
             OnTrackFlagChange?.Invoke(data);
