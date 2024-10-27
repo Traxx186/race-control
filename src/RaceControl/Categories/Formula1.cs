@@ -253,7 +253,7 @@ public partial class Formula1(string url) : ICategory
         }
 
         // If the message category is not 'Flag', or received clear message, the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
+        if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
