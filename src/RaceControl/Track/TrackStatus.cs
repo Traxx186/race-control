@@ -1,8 +1,6 @@
-using Serilog;
-
 namespace RaceControl.Track;
 
-public sealed class TrackStatus
+public sealed class TrackStatus(ILogger<TrackStatus> logger)
 {
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
@@ -34,7 +32,7 @@ public sealed class TrackStatus
     /// <summary>
     /// The current active flag of the session.
     /// </summary>
-    public FlagData ActiveFlag { get; private set; } = new FlagData() { Flag = Flag.Clear };
+    public FlagData ActiveFlag { get; private set; } = new FlagData { Flag = Flag.Clear };
 
     /// <summary>
     /// Sets the current active flag. If the priority of the given flag equals 1, the OnFlagChange event will be called
@@ -43,10 +41,10 @@ public sealed class TrackStatus
     /// <param name="data">Flag data to be processed.</param>
     public void SetActiveFlag(FlagData data)
     {
-        Log.Information("[Track Status] New flag received");
+        logger.LogInformation("[Track Status] New flag received");
         if (OverrideFlags.Contains(data.Flag))
         {
-            Log.Information($"[Track Status] Received override flag {data.Flag}, sending flag and updating track status");
+            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
             ActiveFlag = data;
             OnTrackFlagChange?.Invoke(ActiveFlag);
             
@@ -62,19 +60,19 @@ public sealed class TrackStatus
         var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag.Flag); 
         if (ActiveFlag.Flag == Flag.Clear && newFlagPrio == 0)
         {
-            Log.Information("[Track Status] Received information flag, sending flag data but not updating track status");
+            logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
             OnTrackFlagChange?.Invoke(data);
             return;
         }
 
-        Log.Information("[Track Status] Received status flag");
+        logger.LogInformation("[Track Status] Received status flag");
         if (newFlagPrio < currentFlagPrio)
         {
-            Log.Information("[Track Status] New received status flag has lower priority, ignoring flag");
+            logger.LogInformation("[Track Status] New received status flag has lower priority, ignoring flag");
             return;
         }
 
-        Log.Information("[Track Status] New received status flag with higher priority, updating track status");
+        logger.LogInformation("[Track Status] New received status flag with higher priority, updating track status");
         ActiveFlag = data;
         OnTrackFlagChange?.Invoke(ActiveFlag);
     }
