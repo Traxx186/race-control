@@ -5,17 +5,13 @@ using RaceControl.Track;
 
 namespace RaceControl;
 
-public class CategoryService(ILogger<CategoryService> logger, RaceControlContext dbContext) : BackgroundService
+public class CategoryService(ILogger<CategoryService> logger, RaceControlContext dbContext, TrackStatus trackStatus)
+    : BackgroundService
 {
     /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
-
-    /// <summary>
-    /// Event that will be triggered when a category parser has parsed a flag. 
-    /// </summary>
-    public event EventHandler<FlagDataEventArgs>? CategoryFlagChange;
 
     /// <summary>
     /// If there is a current session active.
@@ -31,15 +27,15 @@ public class CategoryService(ILogger<CategoryService> logger, RaceControlContext
         GetActiveCategory();
 
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
-        while(await timer.WaitForNextTickAsync(stoppingToken))
+        while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             // Wait for the next loop if there is a session active.
-            if(_sessionActive)
+            if (_sessionActive)
                 continue;
-            
+
             // If the current day of week is not between thursday and sunday, do nothing
             // to reduce checks.
-            if(DateTime.Now.DayOfWeek < DayOfWeek.Thursday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday)
+            if (DateTime.Now.DayOfWeek < DayOfWeek.Thursday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday)
                 continue;
 
             logger.LogInformation("[CategoryService] Search for an active category");
@@ -54,8 +50,9 @@ public class CategoryService(ILogger<CategoryService> logger, RaceControlContext
     private void GetActiveCategory()
     {
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
-        var calendarItem = GetCategory(new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0));
-        if (null == calendarItem) 
+        var calendarItem = GetCategory(new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour,
+            signalTime.Minute, 0));
+        if (null == calendarItem)
             return;
 
         var category = GetCategory(calendarItem.CategoryKey);
@@ -64,21 +61,10 @@ public class CategoryService(ILogger<CategoryService> logger, RaceControlContext
 
         logger.LogInformation("[CategoryService] Found active session with key {key}", calendarItem.CategoryKey);
         _activeCategory = category;
-        _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
+        _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
         _activeCategory.SessionFinished += StopActiveCategory;
         _activeCategory.Start(calendarItem.Key);
         _sessionActive = true;
-    }
-
-    /// <summary>
-    /// Invokes the Category Flag Change event.
-    /// </summary>
-    /// <param name="flagData">The flag data send in the event.</param>
-    protected virtual void OnCategoryFlagChange(FlagData flagData)
-    {
-        var args = new FlagDataEventArgs { FlagData = flagData };
-
-        CategoryFlagChange?.Invoke(this, args);
     }
 
     /// <summary>

@@ -11,11 +11,13 @@ using RaceControl.Track;
 using Serilog;
 using Serilog.Settings.Configuration;
 
-TrackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
-
 var app = SetupWebApplication(args);
 app.UseForwardedHeaders();
 app.UseWebSockets();
+
+var trackStatus = app.Services.GetRequiredService<TrackStatus>();
+trackStatus.OnTrackFlagChange += flagData => Broadcast(flagData).Wait();
+
 app.Map("/", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -29,7 +31,7 @@ app.Map("/", async context =>
     Connections.Add(webSocket);
 
     Log.Information("[Race Control] New user connected, sending current active flag");
-    await SendFlag(webSocket, TrackStatus.ActiveFlag);
+    await SendFlag(webSocket, trackStatus.ActiveFlag);
 
     while (!CancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
     { 
@@ -60,6 +62,7 @@ static WebApplication SetupWebApplication(string[] args)
         .CreateLogger();
     
     builder.Services.AddSerilog();
+    builder.Services.AddSingleton<TrackStatus>();
     
     // Create DB Context pool.
     builder.Services.AddDbContextPool<RaceControlContext>(options =>
@@ -78,20 +81,18 @@ static WebApplication SetupWebApplication(string[] args)
             .WithIdentity("SyncSessionsJob-trigger")
             .WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 8, 0))
         );
+        
+        var fetchSessionJobKey = new JobKey("FetchActiveSessionJob");
+        quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(fetchSessionJobKey));
+        quartz.AddTrigger(opts => opts
+            .ForJob(fetchSessionJobKey)
+            .WithIdentity("FetchActiveSessionJob-trigger")
+            .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT")
+        );
     });
 
     builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
-
-    // Add category service to application services.
-    builder.Services.AddHostedService(ctx => 
-    {
-        var logger = ctx.GetRequiredService<ILogger<CategoryService>>();
-        var dbContext = ctx.GetRequiredService<RaceControlContext>();
-        var categoryService = new CategoryService(logger, dbContext);
-        categoryService.CategoryFlagChange += (_, args) => TrackStatus.SetActiveFlag(args.FlagData);
-
-        return categoryService;
-    });
+    builder.Services.AddHostedService<CategoryService>();
     
     return builder.Build();
 }
@@ -99,10 +100,6 @@ static WebApplication SetupWebApplication(string[] args)
 // Sends a message to all connected clients.
 static async Task Broadcast(FlagData flagData)
 {
-    flagData = (FlagData)flagData.Clone();
-    if (null == flagData)
-        return;
-
     Log.Information($"[Race Control] Sending flag '{flagData.Flag}' to all connected clients");
     var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
     foreach (var websocket in openSockets)
@@ -129,12 +126,7 @@ public partial class Program
     /// Cancellation token for graceful shutdown.
     /// </summary>
     private static CancellationToken CancellationToken { get; } = SetupGracefulShutdown();
-
-    /// <summary>
-    /// Global instance of the TrackStatus.
-    /// </summary>
-    private static TrackStatus TrackStatus { get; } = new();
-
+    
     /// <summary>
     /// Creates a new <see cref="CancellationToken"/> object for a graceful shutdown.
     /// </summary>

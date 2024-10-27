@@ -5,7 +5,7 @@ namespace RaceControl.Track;
 /// <summary>
 /// Object that contains a flag and the related driver.
 /// </summary>
-public class FlagData : ICloneable
+public class FlagData
 {
     /// <summary>
     /// The <see cref="Flag"/>
@@ -18,20 +18,6 @@ public class FlagData : ICloneable
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int Driver { get; init; }
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public object Clone()
-    {
-        var flagData = new FlagData
-        {
-            Flag = Flag,
-            Driver = Driver
-        };
-
-        return flagData;
-    }
 }
 
 public class FlagDataEventArgs : EventArgs
