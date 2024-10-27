@@ -63,6 +63,7 @@ static WebApplication SetupWebApplication(string[] args)
     
     builder.Services.AddSerilog();
     builder.Services.AddSingleton<TrackStatus>();
+    builder.Services.AddSingleton<CategoryService>();
     
     // Create DB Context pool.
     builder.Services.AddDbContextPool<RaceControlContext>(options =>
@@ -92,7 +93,6 @@ static WebApplication SetupWebApplication(string[] args)
     });
 
     builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
-    builder.Services.AddHostedService<CategoryService>();
     
     return builder.Build();
 }

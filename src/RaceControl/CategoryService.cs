@@ -1,81 +1,42 @@
 using RaceControl.Categories;
-using RaceControl.Database;
 using RaceControl.Database.Entities;
 using RaceControl.Track;
 
 namespace RaceControl;
 
-public class CategoryService(ILogger<CategoryService> logger, RaceControlContext dbContext, TrackStatus trackStatus)
-    : BackgroundService
+public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackStatus)
 {
     /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
+    
+    /// <summary>
+    /// The currently active session.
+    /// </summary>
+    private Session? _activeSession;
+    
+    /// <summary>
+    /// If there is already a session active.
+    /// </summary>
+    public bool HasSessionActive => _activeSession != null;
 
     /// <summary>
-    /// If there is a current session active.
+    /// Starts the API connection of the category based on the given session.
     /// </summary>
-    private bool _sessionActive;
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    /// <param name="session">The session of the category to start.</param>
+    public void StartCategory(Session session)
     {
-        logger.LogInformation("[CategoryService] Category service started");
-        GetActiveCategory();
-
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
-        while (await timer.WaitForNextTickAsync(stoppingToken))
-        {
-            // Wait for the next loop if there is a session active.
-            if (_sessionActive)
-                continue;
-
-            // If the current day of week is not between thursday and sunday, do nothing
-            // to reduce checks.
-            if (DateTime.Now.DayOfWeek < DayOfWeek.Thursday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday)
-                continue;
-
-            logger.LogInformation("[CategoryService] Search for an active category");
-            GetActiveCategory();
-        }
-    }
-
-    /// <summary>
-    /// Gets the key of the next active session and sets the correct connector to listen to the
-    /// live timing data.
-    /// </summary>
-    private void GetActiveCategory()
-    {
-        var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
-        var calendarItem = GetCategory(new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour,
-            signalTime.Minute, 0));
-        if (null == calendarItem)
+        _activeSession ??= session;
+        
+        if (!TryGetCategory(_activeSession.CategoryKey, out var category))
             return;
-
-        var category = GetCategory(calendarItem.CategoryKey);
-        if (category == null)
-            return;
-
-        logger.LogInformation("[CategoryService] Found active session with key {key}", calendarItem.CategoryKey);
-        _activeCategory = category;
+        
+        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
+        _activeCategory = category!;
         _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
         _activeCategory.SessionFinished += StopActiveCategory;
-        _activeCategory.Start(calendarItem.Key);
-        _sessionActive = true;
-    }
-
-    /// <summary>
-    /// Queries the database to find of there is a session that will start at the given time (UTC). 
-    /// </summary>
-    /// <param name="currentTime">The current time (UTC).</param>
-    /// <returns>If there is an active session, else null.</returns>
-    private Session? GetCategory(DateTime currentTime)
-    {
-        return dbContext.Sessions
-            .SingleOrDefault(s => s.Time == currentTime);
+        _activeCategory.Start(_activeSession.Key);
     }
 
     /// <summary>
@@ -87,24 +48,27 @@ public class CategoryService(ILogger<CategoryService> logger, RaceControlContext
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
-        logger.LogInformation("[CategoryService] Closing the active category");
+        logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory?.Stop();
         _activeCategory = null;
-        _sessionActive = false;
+        _activeSession = null;
     }
 
     /// <summary>
     /// Creates a new category object based on the given key.
     /// </summary>
     /// <param name="key">Key of the category.</param>
-    /// <returns>A instance of the category.</returns>
-    private static ICategory? GetCategory(string key)
+    /// <param name="category">The category object related to the give key.</param>
+    /// <returns>If a category object has been found with the given key.</returns>
+    private static bool TryGetCategory(string key, out ICategory? category)
     {
-        return key switch
+        category = key switch
         {
             "f1" => new Formula1("https://livetiming.formula1.com"),
             "f2" => new Formula2("https://ltss.fiaformula2.com"),
             _ => null
         };
+        
+        return category != null;
     }
 }
