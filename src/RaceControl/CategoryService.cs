@@ -1,180 +1,74 @@
-using System.Timers;
-using Npgsql;
-using RaceControl.Category;
+using RaceControl.Categories;
+using RaceControl.Database.Entities;
 using RaceControl.Track;
-using Serilog;
-using Timer = System.Timers.Timer;
 
 namespace RaceControl;
 
-public class CategoryService
+public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackStatus)
 {
     /// <summary>
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
+    
+    /// <summary>
+    /// The currently active session.
+    /// </summary>
+    private Session? _activeSession;
+    
+    /// <summary>
+    /// If there is already a session active.
+    /// </summary>
+    public bool HasSessionActive => _activeSession != null;
 
     /// <summary>
-    /// The timer used for checking if there is an active category.
+    /// Starts the API connection of the category based on the given session.
     /// </summary>
-    private readonly Timer _timer;
-
-    /// <summary>
-    /// The MongoDB client connection to the category calendar database.
-    /// </summary>
-    private readonly NpgsqlDataSource _pgsqlClient;
-
-    /// <summary>
-    /// Event that will be triggered when a category parser has parsed a flag. 
-    /// </summary>
-    public event EventHandler<FlagDataEventArgs>? CategoryFlagChange;
-
-    public CategoryService()
+    /// <param name="session">The session of the category to start.</param>
+    public void StartCategory(Session session)
     {
-        _pgsqlClient = CreatePgsqlConnection();
-
-        _timer = new Timer(TimeSpan.FromMinutes(1));
-        _timer.Elapsed += GetActiveCategory;
-    }
-
-    public void Start()
-    {
-        _timer.Enabled = true;
-    }
-
-    /// <summary>
-    /// Gets the key of the next active session and sets the correct connector to listen to the
-    /// live timing data.
-    /// </summary>
-    /// <param name="source">The timer source.</param>
-    /// <param name="e">Args of the timer event.</param>
-    private async void GetActiveCategory(object? source, ElapsedEventArgs e)
-    {
-        var appendedTime = new TimeSpan(e.SignalTime.Hour, e.SignalTime.Minute + 5, 0);
-        var signalTime = (e.SignalTime.Date + appendedTime).ToUniversalTime();
-        var calendarItem = await GetCategory(signalTime);
-        if (!calendarItem.HasValue) 
+        _activeSession ??= session;
+        
+        if (!TryGetCategory(_activeSession.CategoryKey, out var category))
             return;
-
-        var category = GetCategory(calendarItem.Value.CategoryKey);
-        if (category == null)
-            return;
-
-        Log.Information($"[CategoryService] Found active session with key {calendarItem.Value.CategoryKey}");
-        _activeCategory = category;
-        _activeCategory.FlagParsed += (_, args) => OnCategoryFlagChange(args.FlagData);
+        
+        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
+        _activeCategory = category!;
+        _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
         _activeCategory.SessionFinished += StopActiveCategory;
-        _activeCategory.Start(calendarItem.Value.Key);
-
-        _timer.Enabled = false;
-    }
-
-    protected virtual void OnCategoryFlagChange(FlagData flagData)
-    {
-        var args = new FlagDataEventArgs() { FlagData = flagData };
-
-        CategoryFlagChange?.Invoke(this, args);
+        _activeCategory.Start(_activeSession.Key);
     }
 
     /// <summary>
-    /// Creates a async <see cref="NpgsqlConnection"/> to be used later for querying the database.
+    /// Closes the API connection of the active category.
     /// </summary>
-    /// <returns>A <see cref="NpgsqlConnection"/> object.</returns>
-    private static NpgsqlDataSource CreatePgsqlConnection()
-    {
-        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-        if (null == databaseUrl)
-        {
-            Log.Fatal("[CategoryService] 'DATABASE_URL' env variable must be set");
-            Environment.Exit(0);
-        }
-
-        var dataSource = NpgsqlDataSource.Create(databaseUrl);
-        return dataSource;
-    }
-
-    /// <summary>
-    /// Queries the database to find of there is a session that will start at the given
-    /// time (UTC). 
-    /// </summary>
-    /// <param name="currentTime">The current time (UTC).</param>
-    /// <returns>If there is an active session, else null.</returns>
-    private async Task<RaceSession?> GetCategory(DateTime currentTime)
-    {
-        var query = @$"
-            SELECT s.name as session_name, 
-                s.key as session_key, 
-                c.key as category_key, 
-                c.priority as category_priority
-            FROM session s
-            INNER JOIN category c
-                ON c.key = s.category_key
-            WHERE s.time = @p1
-            ORDER BY category_priority ASC
-            LIMIT 1
-        ";
-
-        await using var connection = await _pgsqlClient.OpenConnectionAsync();
-        await using var command = new NpgsqlCommand(query, connection)
-        {
-            Parameters = { new("p1", currentTime) }
-        };
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            return new RaceSession()
-            {
-                CategoryKey = (string)reader["category_key"],
-                Priority = (short)reader["category_priority"],
-                Name = (string)reader["session_name"],
-                Key = (string)reader["session_key"]
-            };
-        }
-
-        return null;
-    }
-
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void StopActiveCategory(object? sender, EventArgs e)
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
-        Log.Information("[CategoryService] Closing the active category");
+        logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory?.Stop();
         _activeCategory = null;
-        _timer.Enabled = true;
-    }
-
-    private ICategory? GetCategory(string key)
-    {
-        return key switch
-        {
-            "f1" => new Formula1("https://livetiming.formula1.com"),
-            "f2" => new Formula2("https://ltss.fiaformula2.com"),
-            _ => null,
-        };
+        _activeSession = null;
     }
 
     /// <summary>
-    /// Structure for a session entry in the database
+    /// Creates a new category object based on the given key.
     /// </summary>
-    private struct RaceSession
+    /// <param name="key">Key of the category.</param>
+    /// <param name="category">The category object related to the give key.</param>
+    /// <returns>If a category object has been found with the given key.</returns>
+    private static bool TryGetCategory(string key, out ICategory? category)
     {
-        /// <summary>
-        /// A identification key for the race category e.g. f1, f2.
-        /// </summary>
-        public string CategoryKey;
-        /// <summary>
-        /// The priority of the race category
-        /// </summary>
-        public short Priority;
-        /// <summary>
-        /// The name of the active race weekend.
-        /// </summary>
-        public string Name;
-        /// <summary>
-        /// The key of the active session  e.g. fp1, gp.
-        /// </summary>
-        public string Key;
+        category = key switch
+        {
+            "f1" => new Formula1("https://livetiming.formula1.com"),
+            "f2" => new Formula2("https://ltss.fiaformula2.com"),
+            _ => null
+        };
+        
+        return category != null;
     }
 }

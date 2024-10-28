@@ -1,8 +1,8 @@
 using RaceControl.Track;
 
-namespace RaceControl.Category;
+namespace RaceControl.Categories;
 
-public interface ICategory
+public interface ICategory : IDisposable
 {
     /// <summary>
     /// Event that gets invoked when the active flag of the category has changed.

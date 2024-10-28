@@ -5,7 +5,7 @@ using RaceControl.SignalR;
 using RaceControl.Track;
 using Serilog;
 
-namespace RaceControl.Category;
+namespace RaceControl.Categories;
 
 public partial class Formula1(string url) : ICategory
 {   
@@ -81,7 +81,7 @@ public partial class Formula1(string url) : ICategory
             url,
             "Streaming",
             ["RaceControlMessages", "TrackStatus"],
-            new(1, 5)
+            new Version(1, 5)
         );
 
         _numberOfChequered = numOfChequered;
@@ -95,7 +95,7 @@ public partial class Formula1(string url) : ICategory
         Log.Information("[Formula 1] Closing API connection");
         Dispose();
     }
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -104,7 +104,7 @@ public partial class Formula1(string url) : ICategory
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
+    
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
@@ -253,7 +253,7 @@ public partial class Formula1(string url) : ICategory
         }
 
         // If the message category is not 'Flag', or received clear message, the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" } || raceControlMessage is { Flag: "CLEAR" })
+        if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
         {
             Log.Information("[Formula 1] Race control message ignored");
             return null;
