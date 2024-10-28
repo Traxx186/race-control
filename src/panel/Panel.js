@@ -347,6 +347,31 @@ class Panel {
     }
 
     slipperySurfaceFlag() {
-        
+        const { width, height } = this.canvas;
+        const stripeWidth = width / 4;
+        const spacing = stripeWidth * 0.128;
+
+        this.ctx.reset();
+        clearInterval(this.#interval);
+
+        this.ctx.fillStyle = '#ff0000';
+        this.ctx.fillRect(0, 0, stripeWidth - spacing, height);
+
+        this.ctx.fillStyle = '#fedd00';
+        this.ctx.fillRect(stripeWidth, 0, stripeWidth - spacing, height);
+
+        this.ctx.fillStyle = '#ff0000';
+        this.ctx.fillRect(stripeWidth * 2, 0, stripeWidth - spacing, height);
+
+        this.ctx.fillStyle = '#fedd00';
+        this.ctx.fillRect(stripeWidth * 3, 0, stripeWidth - spacing, height);
+
+        setTimeout(() => {
+            if (this.#currentFlag !== "Clear")
+                return;
+
+            this.ctx.reset();
+            clearInterval(this.#interval);
+        }, 10_000);
     }
 }
