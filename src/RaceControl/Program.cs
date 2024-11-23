@@ -62,7 +62,7 @@ public partial class Program
     private static WebApplication SetupWebApplication(string[] args)
     {
         var builder = WebApplication.CreateSlimBuilder(args);
-        builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
+        builder.Configuration.SetBasePath(Environment.CurrentDirectory);
         builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
         builder.Configuration.AddEnvironmentVariables();
 
@@ -92,7 +92,6 @@ public partial class Program
                     .ForJob(syncJobKey)
                     .WithIdentity("SyncSessionsJob-trigger")
                     .WithCronSchedule("0 0 8 ? * THU")
-                //.WithSchedule(CronScheduleBuilder.WeeklyOnDayAndHourAndMinute(DayOfWeek.Thursday, 8, 0))
             );
 
             var fetchSessionJobKey = new JobKey("FetchActiveSessionJob");
