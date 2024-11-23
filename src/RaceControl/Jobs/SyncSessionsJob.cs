@@ -1,4 +1,5 @@
 using Quartz;
+using Microsoft.EntityFrameworkCore;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
@@ -15,6 +16,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
         var categories = dbContext.Categories.ToArray();
+        
         foreach (var category in categories)
         {
             // Fetch the calendar data of the current category, if no data is found go to the next
