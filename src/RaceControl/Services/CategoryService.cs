@@ -2,7 +2,7 @@ using RaceControl.Categories;
 using RaceControl.Database.Entities;
 using RaceControl.Track;
 
-namespace RaceControl;
+namespace RaceControl.Services;
 
 public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackStatus)
 {
@@ -34,7 +34,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
         _activeCategory = category!;
-        _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData);
+        _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData).Wait();
         _activeCategory.SessionFinished += StopActiveCategory;
         _activeCategory.Start(_activeSession.Key);
     }
@@ -60,12 +60,12 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// <param name="key">Key of the category.</param>
     /// <param name="category">The category object related to the give key.</param>
     /// <returns>If a category object has been found with the given key.</returns>
-    private static bool TryGetCategory(string key, out ICategory? category)
+    private bool TryGetCategory(string key, out ICategory? category)
     {
         category = key switch
         {
-            "f1" => new Formula1("https://livetiming.formula1.com"),
-            "f2" => new Formula2("https://ltss.fiaformula2.com"),
+            "f1" => new Formula1(logger, "https://livetiming.formula1.com"),
+            "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
             _ => null
         };
         
