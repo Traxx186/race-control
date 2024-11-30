@@ -1,5 +1,6 @@
 using Quartz;
 using RaceControl.Database;
+using RaceControl.Services;
 
 namespace RaceControl.Jobs;
 

@@ -1,6 +1,8 @@
+using RaceControl.Services;
+
 namespace RaceControl.Track;
 
-public sealed class TrackStatus(ILogger<TrackStatus> logger)
+public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService websocketService)
 {
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
@@ -25,11 +27,6 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger)
     private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
 
     /// <summary>
-    /// Event that gets called when the flag of the active session changes.
-    /// </summary>
-    public event Action<FlagData>? OnTrackFlagChange;
-
-    /// <summary>
     /// The current active flag of the session.
     /// </summary>
     public FlagData ActiveFlag { get; private set; } = new FlagData { Flag = Flag.Clear };
@@ -39,14 +36,14 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger)
     /// but the flag data will not be saved.
     /// </summary>
     /// <param name="data">Flag data to be processed.</param>
-    public void SetActiveFlag(FlagData data)
+    public async Task SetActiveFlag(FlagData data)
     {
         logger.LogInformation("[Track Status] New flag received");
         if (OverrideFlags.Contains(data.Flag))
         {
             logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
             ActiveFlag = data;
-            OnTrackFlagChange?.Invoke(ActiveFlag);
+            await websocketService.Broadcast(ActiveFlag, CancellationToken.None);
             
             return;
         }
@@ -61,7 +58,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger)
         if (ActiveFlag.Flag == Flag.Clear && ActiveFlag.Flag != Flag.Chequered && newFlagPrio == 0)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            OnTrackFlagChange?.Invoke(data);
+            await websocketService.Broadcast(data, CancellationToken.None);
             return;
         }
 
@@ -74,7 +71,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger)
 
         logger.LogInformation("[Track Status] New received status flag with higher priority, updating track status");
         ActiveFlag = data;
-        OnTrackFlagChange?.Invoke(ActiveFlag);
+        await websocketService.Broadcast(ActiveFlag, CancellationToken.None);
     }
 
     /// <summary>

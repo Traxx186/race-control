@@ -3,11 +3,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using RaceControl.SignalR;
 using RaceControl.Track;
-using Serilog;
 
 namespace RaceControl.Categories;
 
-public partial class Formula2(string url) : ICategory
+public class Formula2(ILogger logger, string url) : ICategory
 {
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
@@ -39,7 +38,7 @@ public partial class Formula2(string url) : ICategory
     /// </summary>
     public void Start(string session)
     {
-        Log.Information("[Formula 2] Starting API connection");
+        logger.LogInformation("[Formula 2] Starting API connection");
         var feeds = new string[] {"status", "time"};
 
         _signalR = new Client(
@@ -58,7 +57,7 @@ public partial class Formula2(string url) : ICategory
 
     public void Stop()
     {
-        Log.Information("[Formula 2] Closing API connection");
+        logger.LogInformation("[Formula 2] Closing API connection");
         Dispose();
     }
     
@@ -124,12 +123,12 @@ public partial class Formula2(string url) : ICategory
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     protected virtual void HandleTimefeedMessage(JsonArray message)
     {
-        Log.Information("[Formula 2] Parsing time feed message");
+        logger.LogInformation("[Formula 2] Parsing time feed message");
 
         var sessionTimeData = message[2]?.Deserialize<string>();
         if (string.IsNullOrWhiteSpace(sessionTimeData))
         {
-            Log.Error("[Formula 2] Invalid session time received.");
+            logger.LogInformation("[Formula 2] Invalid session time received.");
             return;
         }
 
@@ -138,7 +137,7 @@ public partial class Formula2(string url) : ICategory
         // If the session has not jed finalized, stop the execution of the method.
         if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero) return;
         
-        Log.Information("[Formula 2] Session finalized, closing API connection");
+        logger.LogInformation("[Formula 2] Session finalized, closing API connection");
         _hasStarted = false;
         OnFlagParsed(new FlagData { Flag = Flag.Chequered });
         OnSessionFinished();
@@ -150,12 +149,12 @@ public partial class Formula2(string url) : ICategory
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     protected virtual void HandleTrackFeedMessage(JsonArray message)
     {
-        Log.Information("[Formula 2] Parsing track feed message");
+        logger.LogInformation("[Formula 2] Parsing track feed message");
 
         var data = message[1]?.Deserialize<TrackStatusMessage>();
         if (data == null || !short.TryParse(data.Value, out var status))
         {
-            Log.Error("[Formula 2] Invalid track status message received");
+            logger.LogError("[Formula 2] Invalid track status message received");
             return;
         }
 
@@ -179,17 +178,17 @@ public partial class Formula2(string url) : ICategory
 
     protected virtual void HandleSessionFeedMessage(JsonArray message)
     {
-        Log.Information("[Formula 2] Parsing session feed message");
+        logger.LogInformation("[Formula 2] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
         if (data == null) {
-            Log.Error("[Formula 2] Invalid session feed message received");
+            logger.LogError("[Formula 2] Invalid session feed message received");
             return;
         }
 
         switch (data.Value.ToLower())
         {
             case "started":
-                Log.Information("[Formula 2] Session started");
+                logger.LogInformation("[Formula 2] Session started");
                 OnFlagParsed(new FlagData { Flag = Flag.Clear });
                 _hasStarted = true;
 
@@ -199,7 +198,7 @@ public partial class Formula2(string url) : ICategory
                 if (!_hasStarted)
                     break;
 
-                Log.Information("[Formula 2] Session finalized, closing API connection");
+                logger.LogInformation("[Formula 2] Session finalized, closing API connection");
 
                 _hasStarted = false;
                 OnFlagParsed(new FlagData { Flag = Flag.Chequered });
@@ -207,7 +206,7 @@ public partial class Formula2(string url) : ICategory
 
                 break;
             default:
-                Log.Information("[Formula 2] Session feed message ignored");
+                logger.LogInformation("[Formula 2] Session feed message ignored");
                 break;
         }       
     }
