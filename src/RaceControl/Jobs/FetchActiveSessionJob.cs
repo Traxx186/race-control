@@ -6,6 +6,8 @@ namespace RaceControl.Jobs;
 
 public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger, CategoryService categoryService) : IJob
 {
+    public static readonly JobKey JobKey = new("FetchActiveSessionJob");
+    
     public Task Execute(IJobExecutionContext context)
     {
         if (categoryService.HasSessionActive)

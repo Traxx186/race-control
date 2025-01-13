@@ -8,6 +8,8 @@ namespace RaceControl.Jobs;
 public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger) : IJob
 {
     private static readonly HttpClient HttpClient = new();
+    
+    public static readonly JobKey JobKey = new("SyncSessionsJob");
 
     /// <summary>
     /// <inheritdoc/>

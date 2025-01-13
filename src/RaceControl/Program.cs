@@ -38,18 +38,16 @@ builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
 // Add all the Quartz jobs with their job trigger to the Quartz service.
 builder.Services.AddQuartz(quartz =>
 {
-    var syncJobKey = new JobKey("SyncSessionsJob");
-    quartz.AddJob<SyncSessionsJob>(opts => opts.WithIdentity(syncJobKey));
+    quartz.AddJob<SyncSessionsJob>(opts => opts.WithIdentity(SyncSessionsJob.JobKey));
     quartz.AddTrigger(opts => opts
-        .ForJob(syncJobKey)
+        .ForJob(SyncSessionsJob.JobKey)
         .WithIdentity("SyncSessionsJob-trigger")
         .WithCronSchedule("0 0 8 ? * THU")
     );
 
-    var fetchSessionJobKey = new JobKey("FetchActiveSessionJob");
-    quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(fetchSessionJobKey));
+    quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(FetchActiveSessionJob.JobKey));
     quartz.AddTrigger(opts => opts
-        .ForJob(fetchSessionJobKey)
+        .ForJob(FetchActiveSessionJob.JobKey)
         .WithIdentity("FetchActiveSessionJob-trigger")
         .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT")
     );

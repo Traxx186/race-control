@@ -26,7 +26,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
     /// </summary>
-    [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex NotResumeRegex();
     
     /// <summary>
