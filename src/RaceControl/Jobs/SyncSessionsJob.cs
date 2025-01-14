@@ -1,4 +1,5 @@
 using Quartz;
+using Microsoft.EntityFrameworkCore;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
@@ -7,6 +8,8 @@ namespace RaceControl.Jobs;
 public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger) : IJob
 {
     private static readonly HttpClient HttpClient = new();
+    
+    public static readonly JobKey JobKey = new("SyncSessionsJob");
 
     /// <summary>
     /// <inheritdoc/>
@@ -15,6 +18,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
         var categories = dbContext.Categories.ToArray();
+
         foreach (var category in categories)
         {
             // Fetch the calendar data of the current category, if no data is found go to the next
@@ -34,13 +38,13 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
                 Key = s.Key,
                 Time = s.Value
             }));
-            
+
             logger.LogInformation("[Session Sync] Update database sessions for {key}", category.Key);
             foreach (var race in races)
             {
-                // Query for a session with the given category, time and name
+                // Query for a session with the given category and session key
                 var existingSession = dbContext.Sessions
-                    .SingleOrDefault(s => s.CategoryKey == category.Key && s.Time == race.Time && s.Name == race.Name);
+                    .SingleOrDefault(s => s.CategoryKey == category.Key && s.Key == race.Key && s.Name == race.Name);
 
                 // If no session is found in the database, add the new session. Otherwise, the old session
                 // will be updated with the session time.
@@ -65,7 +69,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     private async Task<Calendar?> FetchCalendar(string category, int year)
     {
         logger.LogInformation("[Session Sync] Fetching calendar data for {key}", category);
-        
+
         var url = $"https://raw.githubusercontent.com/sportstimes/f1/main/_db/{category}/{year}.json";
         return await HttpClient.GetFromJsonAsync<Calendar>(url);
     }

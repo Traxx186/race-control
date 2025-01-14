@@ -1,10 +1,13 @@
 using Quartz;
 using RaceControl.Database;
+using RaceControl.Services;
 
 namespace RaceControl.Jobs;
 
 public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger, CategoryService categoryService) : IJob
 {
+    public static readonly JobKey JobKey = new("FetchActiveSessionJob");
+    
     public Task Execute(IJobExecutionContext context)
     {
         if (categoryService.HasSessionActive)
@@ -20,7 +23,7 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         // If no session has been found, stop the job.
         if (null == session)
             return Task.CompletedTask;
-
+        
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
         categoryService.StartCategory(session);
         
