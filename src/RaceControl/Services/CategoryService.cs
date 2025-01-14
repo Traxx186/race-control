@@ -34,17 +34,39 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
         _activeCategory = category!;
-        _activeCategory.FlagParsed += (_, args) => trackStatus.SetActiveFlag(args.FlagData).Wait();
-        _activeCategory.SessionFinished += StopActiveCategory;
+        _activeCategory.FlagParsed += async (_, args) =>
+        {
+            try
+            {
+                await trackStatus.SetActiveFlag(args.FlagData);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        };
+        
+        _activeCategory.SessionFinished += async (_, _) =>
+        {
+            try
+            {
+                await StopActiveCategory();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        };
+        
         _activeCategory.Start(_activeSession.Key);
     }
 
     /// <summary>
     /// Closes the API connection of the active category.
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private async void StopActiveCategory(object? sender, EventArgs e)
+    private async Task StopActiveCategory()
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
