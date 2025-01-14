@@ -10,7 +10,7 @@ public interface ICategory : IDisposable
     event EventHandler<FlagDataEventArgs> FlagParsed;
 
     /// <summary>
-    /// Event that gets invoked when the a session of the category has finshed.
+    /// Event that gets invoked when a session of the category has finished.
     /// </summary>
     event EventHandler SessionFinished; 
 
