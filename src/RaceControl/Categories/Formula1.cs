@@ -129,13 +129,13 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     /// <param name="flagData">The parsed flag.</param>
     protected virtual void OnFlagParsed(FlagData flagData)
     {
-        var args = new FlagDataEventArgs() { FlagData = flagData };
+        var args = new FlagDataEventArgs { FlagData = flagData };
 
         FlagParsed?.Invoke(this, args);
     }
 
     /// <summary>
-    /// Invokes he SessionFinished event.
+    /// Invokes the SessionFinished event.
     /// </summary>
     protected virtual void OnSessionFinished()
     {
