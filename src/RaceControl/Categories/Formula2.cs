@@ -52,7 +52,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
-        _signalR?.Start("JoinFeeds");
+        _signalR?.StartAsync("JoinFeeds");
     }
 
     public void Stop()

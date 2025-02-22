@@ -79,9 +79,9 @@ public sealed class Client
     /// <summary>
     /// Sets up, connects and processes incoming messages to the given SignalR server.
     /// </summary>
-    public async Task Start(string method)
+    public async Task StartAsync(string method)
     {
-        var url = (!_useDefaultEndpoint)
+        var url = !_useDefaultEndpoint
             ? _url + _customEndpoint
             : _url;
         

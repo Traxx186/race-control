@@ -38,7 +38,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         {
             try
             {
-                await trackStatus.SetActiveFlag(args.FlagData);
+                await trackStatus.SetActiveFlagAsync(args.FlagData);
             }
             catch (Exception e)
             {
@@ -51,7 +51,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         {
             try
             {
-                await StopActiveCategory();
+                await StopActiveCategoryAsync();
             }
             catch (Exception e)
             {
@@ -66,7 +66,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// <summary>
     /// Closes the API connection of the active category.
     /// </summary>
-    private async Task StopActiveCategory()
+    private async Task StopActiveCategoryAsync()
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 

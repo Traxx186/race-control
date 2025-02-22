@@ -14,13 +14,13 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     /// </summary>
     /// <param name="flagData">Flag data to send.</param>
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    public async Task Broadcast(FlagData flagData, CancellationToken cancellationToken)
+    public async Task BroadcastAsync(FlagData flagData, CancellationToken cancellationToken)
     {
         logger.LogInformation("[Websocket Service] Sending flag '{flag}' to all connected clients", flagData.Flag);
         
         var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
         foreach (var websocket in openSockets)
-            await SendFlag(websocket, flagData, cancellationToken);
+            await SendFlagAsync(websocket, flagData, cancellationToken);
     }
     
     /// <summary>
@@ -29,7 +29,7 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     /// <param name="websocket">Client to send to.</param>
     /// <param name="flagData">Flag data to be serialized.</param>
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    public static async Task SendFlag(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
+    public static async Task SendFlagAsync(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(flagData);
         var data = Encoding.UTF8.GetBytes(json);

@@ -77,7 +77,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         _numberOfChequered = numOfChequered;
 
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
-        _signalR?.Start("Subscribe");
+        _signalR?.StartAsync("Subscribe");
     }
 
     public void Stop()
