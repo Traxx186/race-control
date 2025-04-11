@@ -38,7 +38,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         {
             try
             {
-                await trackStatus.SetActiveFlag(args.FlagData);
+                await trackStatus.SetActiveFlagAsync(args.FlagData);
             }
             catch (Exception e)
             {
@@ -51,7 +51,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         {
             try
             {
-                await StopActiveCategory();
+                await StopActiveCategoryAsync();
             }
             catch (Exception e)
             {
@@ -66,7 +66,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// <summary>
     /// Closes the API connection of the active category.
     /// </summary>
-    private async Task StopActiveCategory()
+    private async Task StopActiveCategoryAsync()
     {
         await Task.Delay(new TimeSpan(0, 1, 0));
 
@@ -88,6 +88,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         {
             "f1" => new Formula1(logger, "https://livetiming.formula1.com"),
             "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
+            "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
             _ => null
         };
         

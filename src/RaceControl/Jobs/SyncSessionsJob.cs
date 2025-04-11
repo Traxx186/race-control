@@ -23,7 +23,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
         {
             // Fetch the calendar data of the current category, if no data is found go to the next
             // category.
-            var calendar = await FetchCalendar(category.Key, DateTime.UtcNow.Year);
+            var calendar = await FetchCalendarAsync(category.Key, DateTime.UtcNow.Year);
             if (null == calendar)
             {
                 logger.LogWarning("[Session Sync] Could not find session data for {key}", category.Key);
@@ -66,7 +66,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     /// <param name="category">The category to fetch the data for.</param>
     /// <param name="year">The year of the season.</param>
     /// <returns>The fetched data.</returns>
-    private async Task<Calendar?> FetchCalendar(string category, int year)
+    private async Task<Calendar?> FetchCalendarAsync(string category, int year)
     {
         logger.LogInformation("[Session Sync] Fetching calendar data for {key}", category);
 

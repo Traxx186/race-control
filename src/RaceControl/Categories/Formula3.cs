@@ -6,13 +6,13 @@ using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public class Formula2(ILogger logger, string url) : ICategory
+public class Formula3(ILogger logger, string url) : ICategory
 {
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
     private Client? _signalR;
-
+    
     /// <summary>
     /// If the session has actually started.
     /// </summary>
@@ -22,42 +22,45 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// If the object has already been disposed.
     /// </summary>
     private bool _disposed;
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler<FlagDataEventArgs>? FlagParsed;
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler? SessionFinished;
-
+    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public void Start(string session)
     {
-        logger.LogInformation("[Formula 2] Starting API connection");
+        logger.LogInformation("[Formula 3] Starting API connection");
         var feeds = new[] {"status", "time"};
-
+        
         _signalR = new Client(
             url,
             "streaming",
-            ["F2", feeds],
+            ["F3", feeds],
             new Version(2, 1),
             "/streaming"
         );
-
+        
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
         _signalR?.StartAsync("JoinFeeds");
     }
 
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
     public void Stop()
     {
-        logger.LogInformation("[Formula 2] Closing API connection");
+        logger.LogInformation("[Formula 3] Closing API connection");
         Dispose();
     }
     
@@ -116,19 +119,19 @@ public class Formula2(ILogger logger, string url) : ICategory
     {
         SessionFinished?.Invoke(this, EventArgs.Empty);
     }
-
-    /// <summary>
+    
+        /// <summary>
     /// Parses the incoming Timing Feed message to check if the session is finished.
     /// </summary>
-    /// <param name="message">Message argument data received from Formula 2 API.</param>
+    /// <param name="message">Message argument data received from Formula 3 API.</param>
     protected virtual void HandleTimefeedMessage(JsonArray message)
     {
-        logger.LogInformation("[Formula 2] Parsing time feed message");
+        logger.LogInformation("[Formula 3] Parsing time feed message");
 
         var sessionTimeData = message[2]?.Deserialize<string>();
         if (string.IsNullOrWhiteSpace(sessionTimeData))
         {
-            logger.LogInformation("[Formula 2] Invalid session time received.");
+            logger.LogInformation("[Formula 3] Invalid session time received.");
             return;
         }
 
@@ -137,7 +140,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         // If the session has not jed finalized, stop the execution of the method.
         if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero) return;
         
-        logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+        logger.LogInformation("[Formula 3] Session finalized, closing API connection");
         _hasStarted = false;
         OnFlagParsed(new FlagData { Flag = Flag.Chequered });
         OnSessionFinished();
@@ -149,12 +152,12 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     protected virtual void HandleTrackFeedMessage(JsonArray message)
     {
-        logger.LogInformation("[Formula 2] Parsing track feed message");
+        logger.LogInformation("[Formula 3] Parsing track feed message");
 
         var data = message[1]?.Deserialize<TrackStatusMessage>();
         if (data == null || !short.TryParse(data.Value, out var status))
         {
-            logger.LogError("[Formula 2] Invalid track status message received");
+            logger.LogError("[Formula 3] Invalid track status message received");
             return;
         }
 
@@ -174,21 +177,21 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// Parses the incoming Session Feed message to check if the session is finished.
     /// </summary>
-    /// <param name="message">Message argument data received from Formula 2 API.</param>
+    /// <param name="message">Message argument data received from Formula 3 API.</param>
 
     protected virtual void HandleSessionFeedMessage(JsonArray message)
     {
-        logger.LogInformation("[Formula 2] Parsing session feed message");
+        logger.LogInformation("[Formula 3] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
         if (data == null) {
-            logger.LogError("[Formula 2] Invalid session feed message received");
+            logger.LogError("[Formula 3] Invalid session feed message received");
             return;
         }
 
         switch (data.Value.ToLower())
         {
             case "started":
-                logger.LogInformation("[Formula 2] Session started");
+                logger.LogInformation("[Formula 3] Session started");
                 OnFlagParsed(new FlagData { Flag = Flag.Clear });
                 _hasStarted = true;
 
@@ -198,7 +201,7 @@ public class Formula2(ILogger logger, string url) : ICategory
                 if (!_hasStarted)
                     break;
 
-                logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+                logger.LogInformation("[Formula 3] Session finalized, closing API connection");
 
                 _hasStarted = false;
                 OnFlagParsed(new FlagData { Flag = Flag.Chequered });
@@ -206,7 +209,7 @@ public class Formula2(ILogger logger, string url) : ICategory
 
                 break;
             default:
-                logger.LogInformation("[Formula 2] Session feed message ignored");
+                logger.LogInformation("[Formula 3] Session feed message ignored");
                 break;
         }       
     }
