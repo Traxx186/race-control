@@ -19,8 +19,8 @@
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
-    <PackageReference Include="Quartz" Version="3.13.1" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
+    <PackageReference Include="Quartz" Version="3.14.0" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.14.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Settings.AppSettings" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />

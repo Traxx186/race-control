@@ -48,6 +48,11 @@ public class Formula3(ILogger logger, string url) : ICategory
             new Version(2, 1),
             "/streaming"
         );
+        
+        _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
+        _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
+        _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
+        _signalR?.StartAsync("JoinFeeds");
     }
 
     /// <summary>

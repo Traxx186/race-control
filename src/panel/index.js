@@ -4,7 +4,7 @@ const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
 socket.addEventListener('message', event => {
     setTimeout(() => {
         handleMessage(event.data)
-    }, 27_000);
+    }, 40_000);
 });
 
 const handleMessage = (message) => {
