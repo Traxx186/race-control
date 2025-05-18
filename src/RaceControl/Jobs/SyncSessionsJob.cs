@@ -1,5 +1,4 @@
 using Quartz;
-using Microsoft.EntityFrameworkCore;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
@@ -42,9 +41,13 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
             logger.LogInformation("[Session Sync] Update database sessions for {key}", category.Key);
             foreach (var race in races)
             {
-                // Query for a session with the given category and session key
+                // Query for a session of the given category, session name, session key and session year
                 var existingSession = dbContext.Sessions
-                    .SingleOrDefault(s => s.CategoryKey == category.Key && s.Key == race.Key && s.Name == race.Name);
+                    .SingleOrDefault(s => 
+                        s.CategoryKey == category.Key && 
+                        s.Key == race.Key && 
+                        s.Name == race.Name &&
+                        s.Time.Year == race.Time.Year);
 
                 // If no session is found in the database, add the new session. Otherwise, the old session
                 // will be updated with the session time.
@@ -53,9 +56,10 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
                 else
                     existingSession.Time = race.Time;
             }
-
-            await dbContext.SaveChangesAsync();
         }
+
+        dbContext.ChangeTracker.DetectChanges();
+        await dbContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Session data synchronized");
     }

@@ -1,7 +1,7 @@
 #####################################################################
 ## Build project
 ####################################################################
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS base
 WORKDIR /App
 
 # Copy csproj and restore as distinct layers
@@ -21,7 +21,7 @@ RUN dotnet publish -c Release -o out  \
 #####################################################################
 ## Final image
 ####################################################################
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
 WORKDIR /App
 COPY --from=base /App/out ./
 
