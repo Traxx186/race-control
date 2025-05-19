@@ -138,7 +138,11 @@ public class Formula3(ILogger logger, string url) : ICategory
         var sessionTimeLeft = TimeSpan.ParseExact(sessionTimeData, "c", CultureInfo.InvariantCulture);
         
         // If the session has not jed finalized, stop the execution of the method.
-        if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero) return;
+        if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero)
+        {
+            logger.LogInformation("[Formula 3] Session still active, remaining time left {time}", sessionTimeLeft.ToString("hh:mm:ss"));
+            return;
+        }
         
         logger.LogInformation("[Formula 3] Session finalized, closing API connection");
         _hasStarted = false;
