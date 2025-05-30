@@ -1,0 +1,14 @@
+{
+  "healthchecks": {
+    "web": [
+      {
+        "type": "liveness",
+        "name": "healthcheck",
+        "description": "Checking if the app is responding to /health",
+        "path": "/health",
+        "port": 8080,
+        "attempts": 3
+      }
+    ]
+  }
+}

@@ -35,4 +35,11 @@ public class HomeController(ILogger<HomeController> logger, WebsocketService web
             websocketService.Connections.Remove(webSocket);
         }
     }
+
+    [Route("/health")]
+    public string Healthcheck()
+    {
+        logger.LogInformation("[Race Control] Healthcheck requested");
+        return "Ok";
+    }
 }
