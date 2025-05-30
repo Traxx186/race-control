@@ -21,13 +21,5 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
             .WithOne(e => e.Category)
             .HasForeignKey(e => e.CategoryKey)
             .IsRequired();
-
-        modelBuilder
-            .Entity<Session>()
-            .Property(e => e.Time)
-            .HasConversion(
-                src => src.Kind == DateTimeKind.Utc ? src : DateTime.SpecifyKind(src, DateTimeKind.Utc),
-                dest => dest.Kind == DateTimeKind.Utc ? dest : DateTime.SpecifyKind(dest, DateTimeKind.Utc)
-            );
     }
 }

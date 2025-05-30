@@ -1,3 +1,4 @@
+using NodaTime;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Services;
@@ -16,7 +17,7 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         logger.LogInformation("[Fetch Session] Searching in database for active session");
         
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
-        var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0);
+        var searchDate = new LocalDateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0);
         var session = dbContext.Sessions
             .SingleOrDefault(s => s.Time == searchDate);
         
