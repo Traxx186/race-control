@@ -31,8 +31,9 @@ builder.Services.AddSingleton<WebsocketService>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
-    .UseNpgsql(builder.Configuration["DATABASE_URL"])
-    .UseSnakeCaseNamingConvention()
+    .UseNpgsql(builder.Configuration["DATABASE_URL"], o =>
+        o.UseNodaTime()
+    ).UseSnakeCaseNamingConvention()
 );
 
 // Add all the Quartz jobs with their job trigger to the Quartz service.

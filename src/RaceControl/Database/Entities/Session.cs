@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using NodaTime;
 
 namespace RaceControl.Database.Entities;
 
@@ -15,7 +16,7 @@ public class Session
     [MaxLength(32)]
     public required string Key { get; init; }
     
-    public DateTime Time { get; set; }
+    public LocalDateTime Time { get; set; }
 
     [MaxLength(32)]
     public required string CategoryKey { get; init; }
