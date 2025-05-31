@@ -137,7 +137,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         // If the session has not jed finalized, stop the execution of the method.
         if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero)
         {
-            logger.LogInformation("[Formula 2] Session still active, remaining time left {time}", sessionTimeLeft.ToString("hh:mm:ss"));
+            logger.LogInformation("[Formula 2] Session still active, remaining time left {time}", sessionTimeLeft.ToString("c"));
             return;
         }
         
