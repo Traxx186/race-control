@@ -2,6 +2,7 @@
 ## Build project
 ####################################################################
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS base
+
 WORKDIR /App
 
 # Copy csproj and restore as distinct layers
@@ -22,8 +23,12 @@ RUN dotnet publish -c Release -o out  \
 ## Final image
 ####################################################################
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
+
 WORKDIR /App
+
+# Copy required files
 COPY --from=base /App/out ./
+COPY --from=base /App/app.json ./
 
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
@@ -49,5 +54,9 @@ RUN chown -R ${USER}:${USER} *
 USER ${USER}
 
 EXPOSE 8080
+
+# Add healthcheck to the container
+HEALTHCHECK --interval=5m --timeout=3s \
+    CMD curl -f  http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["./RaceControl"]
