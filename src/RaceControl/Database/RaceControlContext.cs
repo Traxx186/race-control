@@ -11,11 +11,6 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .Entity<Session>()
-            .Property(e => e.Id)
-            .HasDefaultValueSql("gen_random_uuid()");
-
-        modelBuilder
             .Entity<Category>()
             .HasMany(e => e.Sessions)
             .WithOne(e => e.Category)

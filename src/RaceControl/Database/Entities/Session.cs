@@ -8,7 +8,7 @@ namespace RaceControl.Database.Entities;
 public class Session 
 {
     [Key]
-    public Guid Id { get; init; }
+    public required string Id { get; init; }
     
     [MaxLength(64)]
     public required string Name { get; init; }

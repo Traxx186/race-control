@@ -18,12 +18,13 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
         var categories = dbContext.Categories.ToArray();
+        var currentYear = DateTime.UtcNow.Year;
 
         foreach (var category in categories)
         {
             // Fetch the calendar data of the current category, if no data is found go to the next
             // category.
-            var calendar = await FetchCalendarAsync(category.Key, DateTime.UtcNow.Year);
+            var calendar = await FetchCalendarAsync(category.Key, currentYear);
             if (null == calendar)
             {
                 logger.LogWarning("[Session Sync] Could not find session data for {key}", category.Key);
@@ -32,6 +33,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
 
             var races = calendar.Races.SelectMany(r => r.Sessions.Select(s => new Session
             {
+                Id = $"{category.Key}_{currentYear}_{r.Name.ToLower().Replace(" ", string.Empty)}_{s.Key}",
                 CategoryKey = category.Key,
                 Category = category,
                 Name = r.Name,
@@ -43,12 +45,9 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
             foreach (var race in races)
             {
                 // Query for a session of the given category, session name, session key and session year
+                var sessionId = $"{category.Key}_{currentYear}_{race.Name.ToLower().Replace(" ", string.Empty)}_{race.Key}";
                 var existingSession = dbContext.Sessions
-                    .SingleOrDefault(s => 
-                        s.CategoryKey == category.Key && 
-                        s.Key == race.Key && 
-                        s.Name == race.Name &&
-                        s.Time.Year == race.Time.Year);
+                    .SingleOrDefault(s => s.Id == sessionId);
 
                 // If no session is found in the database, add the new session. Otherwise, the old session
                 // will be updated with the session time.
