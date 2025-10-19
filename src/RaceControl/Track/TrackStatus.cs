@@ -43,7 +43,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
         {
             logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
             ActiveFlag = data;
-            await websocketService.BroadcastAsync(ActiveFlag, CancellationToken.None);
+            await websocketService.BroadcastFlagChangeAsync(ActiveFlag, CancellationToken.None);
             
             return;
         }
@@ -58,7 +58,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
         if (ActiveFlag.Flag == Flag.Clear && ActiveFlag.Flag != Flag.Chequered && newFlagPrio == 0)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await websocketService.BroadcastAsync(data, CancellationToken.None);
+            await websocketService.BroadcastFlagChangeAsync(data, CancellationToken.None);
             return;
         }
 
@@ -71,7 +71,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
 
         logger.LogInformation("[Track Status] New received status flag with higher priority, updating track status");
         ActiveFlag = data;
-        await websocketService.BroadcastAsync(ActiveFlag, CancellationToken.None);
+        await websocketService.BroadcastFlagChangeAsync(ActiveFlag, CancellationToken.None);
     }
 
     /// <summary>
@@ -90,8 +90,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
             "BLACK AND WHITE" => Flag.BlackWhite,
             "BLUE" => Flag.Blue,
             "CHEQUERED" => Flag.Chequered,
-            "CLEAR" => Flag.Clear,
-            "GREEN" => Flag.Clear,
+            "CLEAR" or "GREEN" => Flag.Clear,
             "CODE 60" => Flag.Code60,
             "DOUBLE YELLOW" => Flag.DoubleYellow,
             "FULL COURSE YELLOW" => Flag.Fyc,

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Quartz;
 using RaceControl.Database;
@@ -5,7 +6,7 @@ using RaceControl.Services;
 
 namespace RaceControl.Jobs;
 
-public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger, CategoryService categoryService) : IJob
+public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger, CategoryService categoryService, WebsocketService websocketService) : IJob
 {
     public static readonly JobKey JobKey = new("FetchActiveSessionJob");
     
@@ -18,7 +19,7 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
         var searchDate = new LocalDateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0);
-        var session = dbContext.Sessions
+        var session = dbContext.Sessions.Include(session => session.Category)
             .SingleOrDefault(s => s.Time == searchDate);
         
         // If no session has been found, stop the job.
@@ -26,6 +27,8 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
             return Task.CompletedTask;
         
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
+        
+        websocketService.BroadcastCategoryChangeAsync(session.Category, CancellationToken.None).Wait();
         categoryService.StartCategory(session);
         
         return Task.CompletedTask;
