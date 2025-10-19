@@ -21,6 +21,8 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// </summary>
     public bool HasSessionActive => _activeSession != null;
 
+    public Session? ActiveSession => _activeSession;
+    
     /// <summary>
     /// Starts the API connection of the category based on the given session.
     /// </summary>
