@@ -43,8 +43,7 @@ builder.Services.AddQuartz(quartz =>
     quartz.AddTrigger(opts => opts
         .ForJob(SyncSessionsJob.JobKey)
         .WithIdentity("SyncSessionsJob-trigger")
-        //.WithCronSchedule("0 0 8 ? * THU")
-        .WithCronSchedule("0 * * ? * *")
+        .WithCronSchedule("0 0 8 ? * THU")
     );
 
     quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(FetchActiveSessionJob.JobKey));
