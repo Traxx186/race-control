@@ -6,7 +6,7 @@
         "name": "web check",
         "description": "Checking if the app is responding to /health",
         "path": "/health",
-        "port": 8080,
+        "port": 5000,
         "attempts": 3
       }
     ]

@@ -53,7 +53,7 @@ RUN chown -R ${USER}:${USER} *
 # Use an unprivileged user
 USER ${USER}
 
-EXPOSE 8080
+EXPOSE 5000
 
 # Add healthcheck to the container
 HEALTHCHECK --interval=5m --timeout=3s \
