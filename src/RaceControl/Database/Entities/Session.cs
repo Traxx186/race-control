@@ -4,15 +4,15 @@ namespace RaceControl.Database.Entities;
 
 public class Session 
 {
-    public required string Id { get; init; }
+    public string Id { get; set; }
     
-    public required string Name { get; init; }
+    public string Name { get; set; }
     
-    public required string Key { get; init; }
+    public string Key { get; set; }
     
     public LocalDateTime Time { get; set; }
 
-    public required string CategoryKey { get; init; }
+    public string CategoryKey { get; set; }
     
-    public required Category Category { get; init; }
+    public Category Category { get; set; }
 }

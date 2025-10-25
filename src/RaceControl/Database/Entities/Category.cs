@@ -4,11 +4,11 @@ namespace RaceControl.Database.Entities;
 
 public class Category
 {
-    public required string Name { get; init; }
-    public short Priority { get; init; }
-    public required string Key { get; init; }
-    public required int Latency { get; init; }
+    public string Name { get; set; }
+    public short Priority { get; set; }
+    public string Key { get; set; }
+    public int Latency { get; set; }
     
     [JsonIgnore]
-    public required ICollection<Session> Sessions { get; init; } = new List<Session>();
+    public ICollection<Session> Sessions { get; set; } = new List<Session>();
 }
