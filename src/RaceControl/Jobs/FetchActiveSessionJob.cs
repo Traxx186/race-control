@@ -10,10 +10,10 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
 {
     public static readonly JobKey JobKey = new("FetchActiveSessionJob");
     
-    public Task Execute(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
         if (categoryService.HasSessionActive)
-            return Task.CompletedTask;
+            return;
         
         logger.LogInformation("[Fetch Session] Searching in database for active session");
         
@@ -24,13 +24,11 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         
         // If no session has been found, stop the job.
         if (null == session)
-            return Task.CompletedTask;
+            return;
         
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
         
-        websocketService.BroadcastCategoryChangeAsync(session.Category, CancellationToken.None).Wait();
-        categoryService.StartCategory(session);
-        
-        return Task.CompletedTask;
+        await websocketService.BroadcastCategoryChangeAsync(session.Category, CancellationToken.None);
+        await categoryService.StartCategoryAsync(session);
     }
 }

@@ -9,22 +9,22 @@ namespace RaceControl.SignalR;
 /// <summary>
 /// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.
 /// </summary>
-public sealed class Client
+public sealed class Client(string url, string hub, object[] args)
 {
     /// <summary>
     /// The url to connect to.
     /// </summary>
-    private readonly string _url;
+    private readonly string _url = url;
 
     /// <summary>
     /// Subscription arguments.
     /// </summary>
-    private readonly object[] _args;
+    private readonly object[] _args = args;
 
     /// <summary>
     /// The hub name.
     /// </summary>
-    private readonly string _hub;
+    private readonly string _hub = hub;
 
     /// <summary>
     /// The protocol version to be used
@@ -34,7 +34,7 @@ public sealed class Client
     /// <summary>
     /// Custom endpoint if API doesn't use /signalr.
     /// </summary>
-    private readonly string _customEndpoint;
+    private readonly string _customEndpoint = string.Empty;
 
     /// <summary>
     /// If the connection uses the default endpoint.
@@ -55,13 +55,6 @@ public sealed class Client
     /// If the SignalR service is active.
     /// </summary>
     private bool Running { set; get; }
-    
-    public Client(string url, string hub, object[] args)
-    {
-        _url = url;
-        _hub = hub;
-        _args = args;
-    }
 
     public Client(string url, string hub, object[] args, Version version)
         : this(url, hub, args)
@@ -81,20 +74,20 @@ public sealed class Client
     /// </summary>
     public async Task StartAsync(string method)
     {
-        var url = !_useDefaultEndpoint
-            ? _url + _customEndpoint
-            : _url;
+        var uriBuilder = new UriBuilder(_url);
+        if (!_useDefaultEndpoint)
+            uriBuilder.Path = _customEndpoint;
         
         Running = true;
         while (Running)
         { 
-            using var connection = new HubConnection(url, useDefaultUrl: _useDefaultEndpoint);
+            using var connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
 #if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
 #endif
             connection.CookieContainer = new CookieContainer();
-            connection.Error += e => Log.Error($"[SignalR] Error occured: {e.Message}");
+            connection.Error += e => Log.Error("[SignalR] Error occured: {error}", e.Message);
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");

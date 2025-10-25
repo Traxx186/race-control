@@ -27,7 +27,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// Starts the API connection of the category based on the given session.
     /// </summary>
     /// <param name="session">The session of the category to start.</param>
-    public void StartCategory(Session session)
+    public async Task StartCategoryAsync(Session session)
     {
         _activeSession ??= session;
         
@@ -35,34 +35,12 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
             return;
         
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
+        
         _activeCategory = category!;
-        _activeCategory.FlagParsed += async (_, args) =>
-        {
-            try
-            {
-                await trackStatus.SetActiveFlagAsync(args.FlagData);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        };
+        _activeCategory.FlagParsed += async (_, args) => await trackStatus.SetActiveFlagAsync(args.FlagData);
+        _activeCategory.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
         
-        _activeCategory.SessionFinished += async (_, _) =>
-        {
-            try
-            {
-                await StopActiveCategoryAsync();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        };
-        
-        _activeCategory.Start(_activeSession.Key);
+        await _activeCategory.StartAsync(_activeSession.Key);
     }
 
     /// <summary>
@@ -70,7 +48,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// </summary>
     private async Task StopActiveCategoryAsync()
     {
-        await Task.Delay(new TimeSpan(0, 1, 0));
+        await Task.Delay(new TimeSpan(0, 0, 30));
 
         logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory?.Stop();

@@ -18,7 +18,7 @@ public interface ICategory : IDisposable
     /// Sets up and starts the live timing service related to the category.
     /// </summary>
     /// <param name="session">The key of the started session.</param>
-    void Start(string session);
+    Task StartAsync(string session);
 
     /// <summary>
     /// Closes the connection to the live timing service related to the category.

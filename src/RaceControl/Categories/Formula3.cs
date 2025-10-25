@@ -36,7 +36,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Start(string session)
+    public async Task StartAsync(string session)
     {
         logger.LogInformation("[Formula 3] Starting API connection");
         var feeds = new[] {"status", "time"};
@@ -52,7 +52,7 @@ public class Formula3(ILogger logger, string url) : ICategory
         _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
-        _signalR?.StartAsync("JoinFeeds");
+        await _signalR.StartAsync("JoinFeeds");
     }
 
     /// <summary>

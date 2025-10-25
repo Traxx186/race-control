@@ -17,13 +17,13 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
     public async Task BroadcastFlagChangeAsync(FlagData flagData, CancellationToken cancellationToken)
     {
-        logger.LogInformation("[Websocket Service] Sending flag '{flag}' to all connected clients", flagData.Flag);
+        logger.LogInformation("[Websocket Service] Sending flag {flag} to all connected clients", flagData.Flag);
         
         var message = new Message<FlagData>("Flag", flagData);
         var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
         
         foreach (var websocket in openSockets)
-            await Broadcast(websocket, message, cancellationToken);
+            await BroadcastAsync(websocket, message, cancellationToken);
     }
     
     /// <summary>
@@ -33,13 +33,13 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
     public async Task BroadcastCategoryChangeAsync(Category category, CancellationToken cancellationToken)
     {
-        logger.LogInformation("[Websocket Service] Sending new active category '{flag}' to all connected clients", category.Name);
+        logger.LogInformation("[Websocket Service] Sending new active category {flag} to all connected clients", category.Name);
         
         var message = new Message<Category>("Category", category);
         var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
         
         foreach (var websocket in openSockets)
-            await Broadcast(websocket, message, cancellationToken);
+            await BroadcastAsync(websocket, message, cancellationToken);
     }
     
     /// <summary>
@@ -48,7 +48,7 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     /// <param name="websocket">Client to send to.</param>
     /// <param name="message">Message to be sent.</param>
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    private static async Task Broadcast<T>(WebSocket websocket, Message<T> message, CancellationToken cancellationToken)
+    private static async Task BroadcastAsync<T>(WebSocket websocket, Message<T> message, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(message);
         var data = Encoding.UTF8.GetBytes(json);
@@ -66,7 +66,7 @@ public class WebsocketService(ILogger<WebsocketService> logger)
     {
         var message = new Message<FlagData>("Flag", flagData);
 
-        await Broadcast(websocket, message, cancellationToken);
+        await BroadcastAsync(websocket, message, cancellationToken);
     }
 }
 

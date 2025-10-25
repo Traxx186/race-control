@@ -58,7 +58,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Start(string session)
+    public async Task StartAsync(string session)
     {
         logger.LogInformation("[Formula 1] Starting API connection");
         if (!SessionChequered.TryGetValue(session, out var numOfChequered))
@@ -77,7 +77,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         _numberOfChequered = numOfChequered;
 
         _signalR.AddHandler("Streaming", "feed", HandleMessage);
-        _signalR?.StartAsync("Subscribe");
+        await _signalR.StartAsync("Subscribe");
     }
 
     public void Stop()
@@ -152,8 +152,8 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         var argument = message[0]?.ToString() ?? string.Empty;
         var parsedFlag = argument switch
         {
-            "TrackStatus" => ParseTrackStatusMessage(message[1]),
-            "RaceControlMessages" => ParseRaceControlMessage(message[1]),
+            "TrackStatus" => ParseTrackStatusMessage(message[1]!),
+            "RaceControlMessages" => ParseRaceControlMessage(message[1]!),
             _ => null
         };
         
