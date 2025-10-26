@@ -5,7 +5,11 @@ using RaceControl.Services;
 
 namespace RaceControl.Controllers;
 
-public class SessionController(ILogger<HomeController> logger, CategoryService categoryService, RaceControlContext dbContext) 
+public class SessionController(
+    ILogger<HomeController> logger,
+    CategoryService categoryService,
+    RaceControlContext dbContext,
+    WebsocketService websocketService)
     : ControllerBase
 {
     [Route("/session")]
@@ -13,11 +17,11 @@ public class SessionController(ILogger<HomeController> logger, CategoryService c
     public IActionResult Index()
     {
         logger.LogInformation("[Session] Requesting active session and returning result");
-        
+
         var currentSession = categoryService.ActiveSession;
         if (currentSession == null)
             return NotFound("No active session");
-        
+
         return Ok(currentSession);
     }
 
@@ -30,12 +34,15 @@ public class SessionController(ILogger<HomeController> logger, CategoryService c
         var activeSession = categoryService.ActiveSession;
         if (activeSession == null)
             return NotFound("No active session to update");
-        
+
         var category = dbContext.Categories.Single(c => c.Key == activeSession.CategoryKey);
         category.Latency = sessionLatency.Latency;
-        
+
+        logger.LogInformation("[Session] Saving changes to database");
         dbContext.ChangeTracker.DetectChanges();
         await dbContext.SaveChangesAsync();
+        
+        await websocketService.BroadcastCategoryChangeAsync(category, CancellationToken.None);
         
         return Ok(category);
     }
