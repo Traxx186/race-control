@@ -37,9 +37,9 @@ public class HomeController(ILogger<HomeController> logger, WebsocketService web
     }
 
     [Route("/health")]
-    public string Healthcheck()
+    public IActionResult Healthcheck()
     {
         logger.LogInformation("[Race Control] Healthcheck requested");
-        return "Ok";
+        return Ok("Ok");
     }
 }

@@ -21,6 +21,9 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// </summary>
     public bool HasSessionActive => _activeSession != null;
 
+    /// <summary>
+    /// Returns the currently active session, if there is any.
+    /// </summary>
     public Session? ActiveSession => _activeSession;
     
     /// <summary>
