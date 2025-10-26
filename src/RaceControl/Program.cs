@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NodaTime.Serialization.SystemTextJson;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Jobs;
@@ -24,10 +25,15 @@ builder.Services.AddSerilog(configuration =>
 );
 
 // Add the services to the web application.
-builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();
 builder.Services.AddSingleton<CategoryService>();
 builder.Services.AddSingleton<WebsocketService>();
+
+// Load controllers and set json options
+builder.Services.AddControllers().AddJsonOptions(options => 
+{
+    options.JsonSerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());        
+});
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts

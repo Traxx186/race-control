@@ -16,3 +16,5 @@ public class Session
     
     public Category Category { get; set; }
 }
+
+public record PatchSessionLatency(int Latency);
