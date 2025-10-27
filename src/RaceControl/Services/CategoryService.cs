@@ -52,6 +52,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     private async Task StopActiveCategoryAsync()
     {
         await Task.Delay(new TimeSpan(0, 0, 30));
+        await trackStatus.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
 
         logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory?.Stop();
