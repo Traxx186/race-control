@@ -18,7 +18,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
         { Flag.Code60, 4 },
         { Flag.Fyc, 4 },
         { Flag.SafetyCar, 5 },
-        { Flag.Red, 6 },
+        { Flag.Red, 6 }
     };
 
     /// <summary>
@@ -54,8 +54,8 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
             return;
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag.Flag); 
-        if (ActiveFlag.Flag == Flag.Clear && ActiveFlag.Flag != Flag.Chequered && newFlagPrio == 0)
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag.Flag);
+        if (!OverrideFlags.Contains(ActiveFlag.Flag) && newFlagPrio == 0)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
             await websocketService.BroadcastEventAsync(MessageEvent.FlagChange, data, CancellationToken.None);
