@@ -232,10 +232,22 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         }
 
         // Checks if the slippery surface flag is shown.
-        if (raceControlMessage.Message.Contains("SLIPPERY"))
+        if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
             return new FlagData { Flag = Flag.Surface };
+        }
+        
+        // Checks if the session will be postponed.
+        if (raceControlMessage.Message.Contains("postponed", StringComparison.CurrentCultureIgnoreCase))
+        {
+            logger.LogInformation("[Formula 1] Session will be postponed, setting current flag to {flag}", Flag.Chequered);
+            
+            // Because a postponed session will be rescheduled, sub sessions like those in qualifying will not take
+            // place. Therefore, setting the numOfChequered to 0 is required in order to stop the API connection.
+            _numberOfChequered = 0;
+            
+            return new FlagData { Flag = Flag.Chequered };
         }
 
         // Checks if the session will not be resumed.
@@ -262,7 +274,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
             driver = 0;
         
-        return new FlagData { Flag = flag, Driver = driver };
+        return new FlagData { Flag = flag, Driver = driver == 0 ? null : driver };
     }
 
     /// <summary>
