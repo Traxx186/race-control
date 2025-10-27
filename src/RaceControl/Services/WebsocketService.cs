@@ -1,72 +1,44 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using RaceControl.Database.Entities;
-using RaceControl.Track;
+using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Options;
 
 namespace RaceControl.Services;
 
-public class WebsocketService(ILogger<WebsocketService> logger)
+public class WebsocketService(ILogger<WebsocketService> logger, IOptions<JsonOptions> jsonOptions)
 {
     public List<WebSocket> Connections { get; } = [];
 
     /// <summary>
-    /// Sends a flag change WebSocket message to all the connected clients.
+    /// Sends a WebSocket message to all the connected clients.
     /// </summary>
-    /// <param name="flagData">Flag data to send.</param>
+    /// <param name="messageEvent">The event of the message.</param>
+    /// <param name="data">The content of the message.</param>
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    public async Task BroadcastFlagChangeAsync(FlagData flagData, CancellationToken cancellationToken)
+    public async Task BroadcastEventAsync<T>(MessageEvent messageEvent, T data, CancellationToken cancellationToken)
     {
-        logger.LogInformation("[Websocket Service] Sending flag {flag} to all connected clients", flagData.Flag);
+        logger.LogInformation("[Websocket Service] Broadcast event {event} to all connected clients", messageEvent);
         
-        var message = new Message<FlagData>("Flag", flagData);
+        var message = new WebsocketMessage<T>(messageEvent, data);
         var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
         
         foreach (var websocket in openSockets)
-            await BroadcastAsync(websocket, message, cancellationToken);
+            await SendAsync(websocket, message, cancellationToken);
     }
     
     /// <summary>
-    /// Sends an active category change WebSocket message to all the connected clients.
-    /// </summary>
-    /// <param name="category">Category to send.</param>
-    /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    public async Task BroadcastCategoryChangeAsync(Category category, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("[Websocket Service] Sending new active category {flag} to all connected clients", category.Name);
-        
-        var message = new Message<Category>("Category", category);
-        var openSockets = Connections.Where(x => x.State == WebSocketState.Open);
-        
-        foreach (var websocket in openSockets)
-            await BroadcastAsync(websocket, message, cancellationToken);
-    }
-    
-    /// <summary>
-    /// Serializes <see cref="Message{T}"/> to a JSON and sends the data to the connected client.
+    /// Serializes <see cref="WebsocketMessage{T}"/> to a JSON and sends the data to given client.
     /// </summary>
     /// <param name="websocket">Client to send to.</param>
-    /// <param name="message">Message to be sent.</param>
+    /// <param name="websocketMessage">Message to be sent.</param>
     /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    private static async Task BroadcastAsync<T>(WebSocket websocket, Message<T> message, CancellationToken cancellationToken)
+    public async Task SendAsync<T>(WebSocket websocket, WebsocketMessage<T> websocketMessage, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(message);
+        var json = JsonSerializer.Serialize(websocketMessage, jsonOptions.Value.SerializerOptions);
         var data = Encoding.UTF8.GetBytes(json);
 
         await websocket.SendAsync(data, WebSocketMessageType.Text, true, cancellationToken);
-    }
-    
-    /// <summary>
-    /// Sends a WebSocket message with the current flag the connected client.
-    /// </summary>
-    /// <param name="websocket">Client to send to.</param>
-    /// <param name="flagData">Flag data to send.</param>
-    /// <param name="cancellationToken">The token that propagates the notification that the broadcasting should be cancelled.</param>
-    public static async Task SendFlagAsync(WebSocket websocket, FlagData flagData, CancellationToken cancellationToken)
-    {
-        var message = new Message<FlagData>("Flag", flagData);
-
-        await BroadcastAsync(websocket, message, cancellationToken);
     }
 }
 
@@ -74,7 +46,17 @@ public class WebsocketService(ILogger<WebsocketService> logger)
 /// Structure of the websocket body
 /// </summary>
 /// <typeparam name="T">Payload data type</typeparam>
-public record Message<T>(
-    string Type,
+public record WebsocketMessage<T>(
+    MessageEvent Event,
     T Data
 );
+
+/// <summary>
+/// The supported event types that can be sent.
+/// </summary>
+[Flags]
+public enum MessageEvent
+{
+    FlagChange,
+    SessionChange
+}

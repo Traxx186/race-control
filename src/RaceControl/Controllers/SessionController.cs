@@ -42,7 +42,8 @@ public class SessionController(
         dbContext.ChangeTracker.DetectChanges();
         await dbContext.SaveChangesAsync();
         
-        await websocketService.BroadcastCategoryChangeAsync(category, CancellationToken.None);
+        activeSession.Category = category;
+        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, activeSession, CancellationToken.None);
         
         return Ok(category);
     }
