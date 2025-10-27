@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using NodaTime.Serialization.SystemTextJson;
 using Quartz;
@@ -24,16 +26,20 @@ builder.Services.AddSerilog(configuration =>
         )
 );
 
-// Add the services to the web application.
+// Configure JSON serialization options
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<MessageEvent>());
+    options.SerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());
+});
+
+// Load controllers and add the services to the web application.
+builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();
 builder.Services.AddSingleton<CategoryService>();
 builder.Services.AddSingleton<WebsocketService>();
-
-// Load controllers and set json options
-builder.Services.AddControllers().AddJsonOptions(options => 
-{
-    options.JsonSerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());        
-});
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
@@ -56,7 +62,7 @@ builder.Services.AddQuartz(quartz =>
     quartz.AddTrigger(opts => opts
         .ForJob(FetchActiveSessionJob.JobKey)
         .WithIdentity("FetchActiveSessionJob-trigger")
-        .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT")
+        .WithCronSchedule("0 * * ? * SUN,MON,THU,FRI,SAT")
     );
 });
 

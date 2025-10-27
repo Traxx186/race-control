@@ -23,7 +23,8 @@ public class HomeController(ILogger<HomeController> logger, WebsocketService web
         websocketService.Connections.Add(webSocket);
 
         logger.LogInformation("[Race Control] New user connected, sending current active flag");
-        await WebsocketService.SendFlagAsync(webSocket, trackStatus.ActiveFlag, HttpContext.RequestAborted);
+        var message = new WebsocketMessage<FlagData>(MessageEvent.FlagChange, trackStatus.ActiveFlag);
+        await websocketService.SendAsync(webSocket, message, HttpContext.RequestAborted);
 
         while (!HttpContext.RequestAborted.IsCancellationRequested && webSocket.State == WebSocketState.Open)
         {

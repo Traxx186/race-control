@@ -91,14 +91,14 @@ public sealed class Client(string url, string hub, object[] args)
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
-
+            
             if (null != _version)
                 connection.Protocol = _version;
 
             var hubProxy = connection.CreateHubProxy(_hub);
             _connection = connection;
 
-            Log.Information($"[SignalR] Connecting to {_url}");
+            Log.Information("[SignalR] Connecting to {url}", _url);
             await connection.Start();
             
             if (_url.Contains("formula1"))
@@ -129,7 +129,7 @@ public sealed class Client(string url, string hub, object[] args)
         if (data?.A == null)
             return;
 
-        Log.Information($"[SignalR] New message received");
+        Log.Information("[SignalR] New message received");
         var handlers = _handlers.Where(x => x.Item1 == data.H && x.Item2 == data.M);
         foreach (var handler in handlers)
             handler.Item3.Invoke(data.A);
