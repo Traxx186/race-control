@@ -28,7 +28,7 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
         
-        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, session, CancellationToken.None);
+        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, session.Category, CancellationToken.None);
         await categoryService.StartCategoryAsync(session);
     }
 }

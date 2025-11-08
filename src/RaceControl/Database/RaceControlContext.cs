@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RaceControl.Database.Entities;
-using RaceControl.Database.Maps;
+using RaceControl.Database.Configurations;
 
 namespace RaceControl.Database;
 
@@ -11,7 +11,7 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfiguration(new CategoryMap());
-        modelBuilder.ApplyConfiguration(new SessionMap());
+        modelBuilder.ApplyConfiguration(new CategoryConfiguration());
+        modelBuilder.ApplyConfiguration(new SessionConfiguration());
     }
 }

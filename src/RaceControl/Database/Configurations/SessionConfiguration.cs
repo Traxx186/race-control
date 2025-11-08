@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Database.Maps;
+namespace RaceControl.Database.Configurations;
 
-public class SessionMap : IEntityTypeConfiguration<Session>
+public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
     {
