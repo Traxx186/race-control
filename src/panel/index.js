@@ -1,20 +1,28 @@
 const panel = new Panel('flag-panel');
-const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+//const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+const socket = new WebSocket('ws://localhost:5000');
+let latency = 0;
 
-socket.addEventListener('message', event => {
-    setTimeout(() => {
-        handleMessage(event.data)
-<<<<<<< Updated upstream
-    }, 35_000);
-=======
-    }, 36_000);
->>>>>>> Stashed changes
+socket.addEventListener('message', (message) => {
+    const { event, data } = JSON.parse(message.data);
+
+    switch (event.toLowerCase()) {
+        case 'sessionchange':
+            latency = data.latency * 1000;
+            console.log(latency);
+            break;
+        case 'flagchange':
+            console.log(latency);
+            setTimeout(() => {
+                handleFlagChangeMessage(data.flag)
+            }, latency);
+            break;
+        default:
+            console.error(`${event} not supported`);
+    }
 });
 
-const handleMessage = (message) => {
-    const data = JSON.parse(message);
-    const flag = data.Flag;
-
+const handleFlagChangeMessage = (flag) => {
     switch (flag) {
         case 'Clear':
             panel.greenFlag();
