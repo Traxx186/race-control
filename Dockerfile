@@ -58,6 +58,6 @@ EXPOSE 5000
 
 # Add healthcheck to the container
 HEALTHCHECK --interval=5m --timeout=3s \
-    CMD curl -f  http://localhost:8080/health || exit 1
+    CMD curl -f  http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["./RaceControl"]
