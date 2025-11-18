@@ -34,6 +34,9 @@ COPY --from=build /race-control/app.json ./
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
 
+# Install required dependencies
+RUN apk --no-cache add curl
+
 # create appuser
 ENV USER=race-control
 ENV UID=32767
