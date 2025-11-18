@@ -1,9 +1,9 @@
 #####################################################################
 ## Build project
 ####################################################################
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 
-WORKDIR /App
+WORKDIR /race-control
 
 # Copy csproj and restore as distinct layers
 COPY ./src/RaceControl/RaceControl.csproj ./
@@ -11,8 +11,9 @@ COPY ./src/RaceControl/RaceControl.csproj ./
 # Restore as distinct layers
 RUN dotnet restore --runtime linux-musl-x64
 
-# Copy everything
+# Copy project files
 COPY ./src/RaceControl/ ./
+COPY ./app.json ./
 
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
@@ -24,11 +25,11 @@ RUN dotnet publish -c Release -o out  \
 ####################################################################
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
 
-WORKDIR /App
+WORKDIR /race-control
 
 # Copy required files
-COPY --from=base /App/out ./
-COPY --from=base /App/app.json ./
+COPY --from=build /race-control/out ./
+COPY --from=build /race-control/app.json ./
 
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
