@@ -32,7 +32,7 @@ public class HomeController(ILogger<HomeController> logger, WebsocketService web
             await websocketService.SendAsync(webSocket, sessionMessage, HttpContext.RequestAborted); 
         }
         
-        var flagMessage = new WebsocketMessage<FlagData>(MessageEvent.FlagChange, trackStatus.ActiveFlag);
+        var flagMessage = new WebsocketMessage<FlagData>(MessageEvent.FlagChange, trackStatus.ActiveFlagData);
         await websocketService.SendAsync(webSocket, flagMessage, HttpContext.RequestAborted);
 
         while (!HttpContext.RequestAborted.IsCancellationRequested && webSocket.State == WebSocketState.Open)
