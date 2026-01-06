@@ -1,6 +1,6 @@
 const panel = new Panel('flag-panel');
-//const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
-const socket = new WebSocket('ws://localhost:5000');
+const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
+//const socket = new WebSocket('ws://localhost:5000');
 let latency = 0;
 
 socket.addEventListener('message', (message) => {
@@ -8,13 +8,15 @@ socket.addEventListener('message', (message) => {
 
     switch (event.toLowerCase()) {
         case 'sessionchange':
-            latency = data.latency * 1000;
+            latency = (data.category === undefined)
+                ? data.latency * 1000
+                : data.category.latency * 1000;
             console.log(latency);
             break;
         case 'flagchange':
             console.log(latency);
             setTimeout(() => {
-                handleFlagChangeMessage(data.flag)
+                handleFlagChangeMessage(data)
             }, latency);
             break;
         default:
@@ -22,8 +24,8 @@ socket.addEventListener('message', (message) => {
     }
 });
 
-const handleFlagChangeMessage = (flag) => {
-    switch (flag) {
+const handleFlagChangeMessage = (data) => {
+    switch (data.flag) {
         case 'Clear':
             panel.greenFlag();
             break;
@@ -34,10 +36,10 @@ const handleFlagChangeMessage = (flag) => {
             panel.doubleYellowFlag();
             break;
         case 'Blue':
-            panel.blueFlag(data.Driver ?? null);
+            panel.blueFlag(data.driver ?? null);
             break;
         case 'BlackWhite':
-            panel.blackWhiteFlag(data.Driver);
+            panel.blackWhiteFlag(data.driver);
             break;
         case 'Red':
             panel.redFlag();

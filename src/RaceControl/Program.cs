@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
-using Microsoft.EntityFrameworkCore;
 using NodaTime.Serialization.SystemTextJson;
 using Quartz;
 using RaceControl.Database;
