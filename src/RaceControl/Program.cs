@@ -35,7 +35,7 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());
 });
 
-// Load controllers and add the services to the web application.
+// Load controllers, signalr hubs and services to the web application.
 builder.Services.AddSignalR();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();
