@@ -1,15 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
+using RaceControl.Hubs;
 using RaceControl.Services;
 
 namespace RaceControl.Controllers;
 
 public class SessionController(
-    ILogger<HomeController> logger,
+    ILogger<HealthController> logger,
+    IHubContext<SessionHub, IRaceControlClient> sessionHubContext,
     CategoryService categoryService,
-    RaceControlContext dbContext,
-    WebsocketService websocketService)
+    RaceControlContext dbContext)
     : ControllerBase
 {
     [Route("/session")]
@@ -43,7 +45,7 @@ public class SessionController(
         await dbContext.SaveChangesAsync();
         
         activeSession.Category = category;
-        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, activeSession, CancellationToken.None);
+        await sessionHubContext.Clients.All.CategoryChange(activeSession.Category);
         
         return Ok(category);
     }

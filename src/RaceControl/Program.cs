@@ -1,8 +1,10 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using NodaTime.Serialization.SystemTextJson;
 using Quartz;
 using RaceControl.Database;
+using RaceControl.Hubs;
 using RaceControl.Jobs;
 using RaceControl.Services;
 using RaceControl.Track;
@@ -30,15 +32,14 @@ builder.Services.Configure<JsonOptions>(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<MessageEvent>());
     options.SerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());
 });
 
 // Load controllers and add the services to the web application.
+builder.Services.AddSignalR();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();
 builder.Services.AddSingleton<CategoryService>();
-builder.Services.AddSingleton<WebsocketService>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
@@ -72,6 +73,10 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseWebSockets();
 app.MapControllers();
+
+// Map SignalR Hubs to app
+app.MapHub<TrackStatusHub>("/tack-status");
+app.MapHub<SessionHub>("/session");
 
 app.Logger.LogInformation("[Race Control] Starting Application");
 await app.RunAsync();

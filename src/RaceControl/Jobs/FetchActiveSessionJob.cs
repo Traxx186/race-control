@@ -1,12 +1,18 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Quartz;
 using RaceControl.Database;
+using RaceControl.Hubs;
 using RaceControl.Services;
 
 namespace RaceControl.Jobs;
 
-public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger, CategoryService categoryService, WebsocketService websocketService) : IJob
+public class FetchActiveSessionJob(
+    ILogger<SyncSessionsJob> logger,
+    IHubContext<SessionHub, IRaceControlClient> sessionHubContext,
+    RaceControlContext dbContext, 
+    CategoryService categoryService) : IJob
 {
     public static readonly JobKey JobKey = new("FetchActiveSessionJob");
     
@@ -28,7 +34,7 @@ public class FetchActiveSessionJob(RaceControlContext dbContext, ILogger<SyncSes
         
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
         
-        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, session.Category, CancellationToken.None);
+        await sessionHubContext.Clients.All.CategoryChange(session.Category);
         await categoryService.StartCategoryAsync(session);
     }
 }
