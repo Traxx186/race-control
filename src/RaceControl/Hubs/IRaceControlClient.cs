@@ -7,5 +7,5 @@ public interface IRaceControlClient
 { 
     Task FlagChange(FlagData flagData);
     
-    Task CategoryChange(Category category);
+    Task CategoryChange(Category? category);
 }
