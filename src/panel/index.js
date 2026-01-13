@@ -1,28 +1,23 @@
+//const baseUrl = 'https://race-control.justinvanderkruit.nl';
+const baseUrl = 'http://localhost:5000';
+
 const panel = new Panel('flag-panel');
-const socket = new WebSocket('wss://race-control.justinvanderkruit.nl');
-//const socket = new WebSocket('ws://localhost:5000');
+const sessionHub = new signalR.HubConnectionBuilder().withUrl(`${baseUrl}/tack-status`).build();
+
 let latency = 0;
 
-socket.addEventListener('message', (message) => {
-    const { event, data } = JSON.parse(message.data);
-
-    switch (event.toLowerCase()) {
-        case 'sessionchange':
-            latency = (data.category === undefined)
-                ? data.latency * 1000
-                : data.category.latency * 1000;
-            console.log(latency);
-            break;
-        case 'flagchange':
-            console.log(latency);
-            setTimeout(() => {
-                handleFlagChangeMessage(data)
-            }, latency);
-            break;
-        default:
-            console.error(`${event} not supported`);
-    }
+sessionHub.on('CategoryChange', (category) => {
+   console.log(category); 
 });
+
+const start = async () => {
+    await sessionHub.start();
+    
+    await sessionHub.invoke('CurrentSession');
+}
+
+
+start();
 
 const handleFlagChangeMessage = (data) => {
     switch (data.flag) {
