@@ -2,7 +2,9 @@
 const baseUrl = 'http://localhost:5000';
 
 const panel = new Panel('flag-panel');
-const sessionHub = new signalR.HubConnectionBuilder().withUrl(`${baseUrl}/tack-status`).build();
+const sessionHub = new signalR.HubConnectionBuilder()
+    .withUrl(`${baseUrl}/tack-status`)
+    .build();
 
 let latency = 0;
 
@@ -15,7 +17,6 @@ const start = async () => {
     
     await sessionHub.invoke('CurrentSession');
 }
-
 
 start();
 

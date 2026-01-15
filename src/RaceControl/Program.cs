@@ -37,6 +37,7 @@ builder.Services.Configure<JsonOptions>(options =>
 
 // Load controllers, signalr hubs and services to the web application.
 builder.Services.AddSignalR();
+builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();
 builder.Services.AddSingleton<CategoryService>();
@@ -70,9 +71,14 @@ builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 // Create a Web Application object from the Web Application Builder.
 var app = builder.Build();
-app.UseForwardedHeaders();
-app.UseWebSockets();
+app.UseStaticFiles();
+app.UseRouting();
+
+// Map controller & related web data
 app.MapControllers();
+app.MapRazorPages();
+app.MapDefaultControllerRoute();
+app.MapStaticAssets();
 
 // Map SignalR Hubs to app
 app.MapHub<TrackStatusHub>("/tack-status");
