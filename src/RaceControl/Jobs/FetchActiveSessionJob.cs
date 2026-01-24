@@ -10,7 +10,7 @@ namespace RaceControl.Jobs;
 
 public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,
-    IHubContext<SessionHub, IRaceControlClient> sessionHubContext,
+    IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
     RaceControlContext dbContext, 
     CategoryService categoryService) : IJob
 {

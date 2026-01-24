@@ -9,25 +9,13 @@ namespace RaceControl.Controllers;
 
 public class SessionController(
     ILogger<HealthController> logger,
-    IHubContext<SessionHub, IRaceControlClient> sessionHubContext,
+    IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
     CategoryService categoryService,
     RaceControlContext dbContext)
     : ControllerBase
 {
-    [Route("/session")]
-    [HttpGet]
-    public IActionResult Index()
-    {
-        logger.LogInformation("[Session] Requesting active session and returning result");
 
-        var currentSession = categoryService.ActiveSession;
-        if (currentSession == null)
-            return NotFound("No active session");
-
-        return Ok(currentSession);
-    }
-
-    [Route("/session")]
+    [Route("/api/session")]
     [HttpPatch]
     public async Task<IActionResult> UpdateSessionLatency([FromBody] PatchSessionLatency sessionLatency)
     {

@@ -1,11 +1,8 @@
 using RaceControl.Database.Entities;
-using RaceControl.Track;
 
 namespace RaceControl.Hubs;
 
-public interface IRaceControlClient
+public interface ISessionHubClient
 { 
-    Task FlagChange(FlagData flagData);
-    
     Task CategoryChange(Category? category);
 }

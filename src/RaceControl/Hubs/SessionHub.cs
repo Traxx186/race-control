@@ -3,7 +3,7 @@ using RaceControl.Services;
 
 namespace RaceControl.Hubs;
 
-public class SessionHub : Hub<IRaceControlClient>
+public class SessionHub : Hub<ISessionHubClient>
 {
     public async Task CurrentSession(CategoryService categoryService)
     {

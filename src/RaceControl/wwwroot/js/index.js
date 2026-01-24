@@ -1,9 +1,11 @@
-//const baseUrl = 'https://race-control.justinvanderkruit.nl';
-const baseUrl = 'http://localhost:5000';
-
 const panel = new Panel('flag-panel');
+
 const sessionHub = new signalR.HubConnectionBuilder()
-    .withUrl(`${baseUrl}/tack-status`)
+    .withUrl('/session')
+    .build();
+
+const trackStatusHub = new signalR.HubConnectionBuilder()
+    .withUrl('/track-status')
     .build();
 
 let latency = 0;
@@ -12,50 +14,15 @@ sessionHub.on('CategoryChange', (category) => {
    console.log(category); 
 });
 
+trackStatusHub.on('FlagChange', (flagData) => {
+    console.log(flagData);
+});
+
 const start = async () => {
     await sessionHub.start();
+    await trackStatusHub.start();
     
     await sessionHub.invoke('CurrentSession');
 }
 
-start();
-
-const handleFlagChangeMessage = (data) => {
-    switch (data.flag) {
-        case 'Clear':
-            panel.greenFlag();
-            break;
-        case 'Yellow':
-            panel.yellowFlag();
-            break;
-        case 'DoubleYellow':
-            panel.doubleYellowFlag();
-            break;
-        case 'Blue':
-            panel.blueFlag(data.driver ?? null);
-            break;
-        case 'BlackWhite':
-            panel.blackWhiteFlag(data.driver);
-            break;
-        case 'Red':
-            panel.redFlag();
-            break;
-        case 'SafetyCar':
-            panel.safetyCar('SC');
-            break;
-        case 'Fyc':
-            panel.fullCourseYellow();
-            break;
-        case 'Vsc':
-            panel.safetyCar('VSC');
-            break;
-        case 'Chequered':
-            panel.chequeredFlag();
-            break;
-        case 'Surface':
-            panel.slipperySurfaceFlag();
-            break;
-        default:
-            console.warn(`Flag ${flag} not supported`);
-    }
-}
+await start();

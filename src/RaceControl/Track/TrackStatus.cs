@@ -5,7 +5,7 @@ namespace RaceControl.Track;
 
 public sealed class TrackStatus(
     ILogger<TrackStatus> logger,
-    IHubContext<TrackStatusHub, IRaceControlClient> trackStatusHubContext)
+    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext)
 {
     private const int InformationFlagPriority = 0;
     
