@@ -81,7 +81,7 @@ app.MapDefaultControllerRoute();
 app.MapStaticAssets();
 
 // Map SignalR Hubs to app
-app.MapHub<TrackStatusHub>("/tack-status");
+app.MapHub<TrackStatusHub>("/track-status");
 app.MapHub<SessionHub>("/session");
 
 app.Logger.LogInformation("[Race Control] Starting Application");

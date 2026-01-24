@@ -7,15 +7,16 @@ using RaceControl.Services;
 
 namespace RaceControl.Controllers;
 
+[Route("/api/session")]
+[ApiController]
 public class SessionController(
-    ILogger<HealthController> logger,
+    ILogger<SessionController> logger,
     IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
     CategoryService categoryService,
     RaceControlContext dbContext)
     : ControllerBase
 {
 
-    [Route("/api/session")]
     [HttpPatch]
     public async Task<IActionResult> UpdateSessionLatency([FromBody] PatchSessionLatency sessionLatency)
     {

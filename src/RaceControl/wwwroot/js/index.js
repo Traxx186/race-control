@@ -11,11 +11,20 @@ const trackStatusHub = new signalR.HubConnectionBuilder()
 let latency = 0;
 
 sessionHub.on('CategoryChange', (category) => {
-   console.log(category); 
+   if (category === null)
+       return;
+   
+   latency = category.latency * 1000;
+   console.log(latency);
 });
 
 trackStatusHub.on('FlagChange', (flagData) => {
-    console.log(flagData);
+    if (flagData === null)
+        return;
+    
+    setTimeout(() => {
+        panel.setFlag(flagData.flag, flagData?.driver);
+    })
 });
 
 const start = async () => {
@@ -25,4 +34,4 @@ const start = async () => {
     await sessionHub.invoke('CurrentSession');
 }
 
-await start();
+start();

@@ -2,11 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace RaceControl.Controllers;
 
-public class HealthController(ILogger<HealthController> logger) : ControllerBase
+public class HealthController(ILogger<HealthController> logger) : Controller
 {
-
-    [Route("/health")]
-    public IActionResult Healthcheck()
+    public IActionResult Index()
     {
         logger.LogInformation("[Race Control] Healthcheck requested");
         return Ok("Ok");
