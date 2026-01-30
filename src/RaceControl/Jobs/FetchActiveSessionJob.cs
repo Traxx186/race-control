@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using NodaTime;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Hubs;
@@ -24,7 +23,7 @@ public class FetchActiveSessionJob(
         logger.LogInformation("[Fetch Session] Searching in database for active session");
         
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
-        var searchDate = new LocalDateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0);
+        var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
         var session = dbContext.Sessions.Include(session => session.Category)
             .SingleOrDefault(s => s.Time == searchDate);
         

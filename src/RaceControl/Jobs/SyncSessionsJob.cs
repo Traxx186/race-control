@@ -1,4 +1,3 @@
-using NodaTime;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
@@ -38,7 +37,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
                 Category = category,
                 Name = r.Name,
                 Key = s.Key,
-                Time = LocalDateTime.FromDateTime(s.Value)
+                Time = s.Value
             }));
 
             logger.LogInformation("[Session Sync] Update database sessions for {key}", category.Key);

@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NodaTime;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RaceControl.Database;
 
@@ -74,7 +73,7 @@ namespace RaceControl.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("name");
 
-                    b.Property<LocalDateTime>("Time")
+                    b.Property<DateTime>("Time")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("time");
 

@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
-using NodaTime;
 
 #nullable disable
 
@@ -31,7 +30,7 @@ namespace RaceControl.Migrations
                     id = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     key = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    time = table.Column<LocalDateTime>(type: "timestamp without time zone", nullable: false),
+                    time = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     category_key = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false)
                 },
                 constraints: table =>

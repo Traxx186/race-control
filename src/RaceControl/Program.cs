@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using NodaTime.Serialization.SystemTextJson;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Hubs;
@@ -32,7 +31,6 @@ builder.Services.Configure<JsonOptions>(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
-    options.SerializerOptions.Converters.Add(new NodaTimeDefaultJsonConverterFactory());
 });
 
 // Load controllers, signalr hubs and services to the web application.
@@ -44,9 +42,8 @@ builder.Services.AddSingleton<CategoryService>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
-    .UseNpgsql(builder.Configuration["DATABASE_URL"], o =>
-        o.UseNodaTime()
-    ).UseSnakeCaseNamingConvention()
+    .UseNpgsql(builder.Configuration["DATABASE_URL"])
+    .UseSnakeCaseNamingConvention()
 );
 
 // Add all the Quartz jobs with their job trigger to the Quartz service.
