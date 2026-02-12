@@ -34,7 +34,13 @@ builder.Services.Configure<JsonOptions>(options =>
 });
 
 // Load controllers, signalr hubs and services to the web application.
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    { 
+        options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>()); 
+    });
+
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TrackStatus>();

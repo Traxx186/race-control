@@ -24,7 +24,7 @@ trackStatusHub.on('FlagChange', (flagData) => {
     
     setTimeout(() => {
         panel.setFlag(flagData.flag, flagData?.driver);
-    })
+    }, latency)
 });
 
 const start = async () => {
