@@ -30,8 +30,6 @@ trackStatusHub.on('FlagChange', (flagData) => {
 const start = async () => {
     await sessionHub.start();
     await trackStatusHub.start();
-    
-    await sessionHub.invoke('CurrentSession');
 }
 
 start();
