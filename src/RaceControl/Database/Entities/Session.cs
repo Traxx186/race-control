@@ -9,6 +9,8 @@ public class Session
     public string Key { get; set; }
     
     public DateTime Time { get; set; }
+    
+    public int Round { get; set; }
 
     public string CategoryKey { get; set; }
     

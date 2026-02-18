@@ -66,7 +66,7 @@ builder.Services.AddQuartz(quartz =>
     quartz.AddTrigger(opts => opts
         .ForJob(FetchActiveSessionJob.JobKey)
         .WithIdentity("FetchActiveSessionJob-trigger")
-        .WithCronSchedule("0 * * ? * SUN,MON,THU,FRI,SAT")
+        .WithCronSchedule("0 * * ? * MON,THU,FRI,SAT,SUN")
     );
 });
 

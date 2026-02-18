@@ -32,11 +32,12 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
 
             var races = calendar.Races.SelectMany(r => r.Sessions.Select(s => new Session
             {
-                Id = $"{category.Key}_{currentYear}_{r.Name.ToLower().Replace(" ", string.Empty)}_{s.Key}",
+                Id = $"{category.Key}_{currentYear}_{r.Round:00}_{s.Key}",
                 CategoryKey = category.Key,
                 Category = category,
                 Name = r.Name,
                 Key = s.Key,
+                Round = r.Round,
                 Time = s.Value
             }));
 
@@ -44,7 +45,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
             foreach (var race in races)
             {
                 // Query for a session of the given category, session name, session key and session year
-                var sessionId = $"{category.Key}_{currentYear}_{race.Name.ToLower().Replace(" ", string.Empty)}_{race.Key}";
+                var sessionId = $"{category.Key}_{currentYear}_{race.Round:00}_{race.Key}";
                 var existingSession = dbContext.Sessions
                     .SingleOrDefault(s => s.Id == sessionId);
 
@@ -89,6 +90,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     /// </summary>
     private record CalendarItem(
         string Name,
+        int Round,
         Dictionary<string, DateTime> Sessions
     );
 }
