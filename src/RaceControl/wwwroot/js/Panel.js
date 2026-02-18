@@ -6,19 +6,59 @@ class Panel {
 
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
-        this.resizeCanvas();
+        this.#resizeCanvas();
 
-        window.addEventListener('resize', this.resizeCanvas(), false);
+        window.addEventListener('resize', this.#resizeCanvas(), false);
     }
 
-    resizeCanvas() {
+    setFlag(flag, driver = null) {
+        switch (flag) {
+            case 'Clear':
+                this.#greenFlag();
+                break;
+            case 'Yellow':
+                this.#yellowFlag();
+                break;
+            case 'DoubleYellow':
+                this.#doubleYellowFlag();
+                break;
+            case 'Blue':
+                this.#blueFlag(driver);
+                break;
+            case 'BlackWhite':
+                this.#blackWhiteFlag(driver);
+                break;
+            case 'Red':
+                this.#redFlag();
+                break;
+            case 'SafetyCar':
+                this.#safetyCar('SC');
+                break;
+            case 'Fyc':
+                this.#fullCourseYellow();
+                break;
+            case 'Vsc':
+                this.#safetyCar('VSC');
+                break;
+            case 'Chequered':
+                this.#chequeredFlag();
+                break;
+            case 'Surface':
+                this.#slipperySurfaceFlag();
+                break;
+            default:
+                console.warn(`Flag ${flag} not supported`);
+        }
+    }
+    
+    #resizeCanvas() {
         this.canvas.height = window.innerHeight;
         this.canvas.width = window.innerWidth;
             
         this.ctx = this.canvas.getContext("2d");
     }
 
-    greenFlag(){
+    #greenFlag() {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Clear';
@@ -45,7 +85,7 @@ class Panel {
         }, 30_000);
     }
 
-    yellowFlag() {
+    #yellowFlag() {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Yellow';
@@ -64,7 +104,7 @@ class Panel {
         }, 500);
     }
 
-    redFlag() {
+    #redFlag() {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Red';
@@ -83,7 +123,7 @@ class Panel {
         }, 500);
     }
 
-    doubleYellowFlag() {
+    #doubleYellowFlag() {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'DoubleYellow';
@@ -113,7 +153,7 @@ class Panel {
         }, 250);
     }
 
-    safetyCar(text) {
+    #safetyCar(text) {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'SafetyCar';
@@ -173,7 +213,7 @@ class Panel {
         }, 500);
     }
 
-    fullCourseYellow() {
+    #fullCourseYellow() {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'FCY';
@@ -230,7 +270,7 @@ class Panel {
         }, 500);
     }
 
-    blueFlag(number = null) {
+    #blueFlag(number = null) {
         const { width, height } = this.canvas;
 
         this.ctx.reset();
@@ -273,7 +313,7 @@ class Panel {
         }, 10_000);
     }
 
-    blackWhiteFlag(number) {
+    #blackWhiteFlag(number) {
         const { width, height } = this.canvas;
 
         this.ctx.reset();
@@ -309,7 +349,7 @@ class Panel {
         }, 10_000);
     }
 
-    chequeredFlag() {
+    #chequeredFlag() {
         const { width, height } = this.canvas;
         const squareSize = 250;
         const rows = Math.ceil(height / squareSize);
@@ -323,7 +363,7 @@ class Panel {
     
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
-                    this.ctx.fillStyle = (i + j) % 2 == 0 ? '#000' : '#fff';
+                    this.ctx.fillStyle = (i + j) % 2 === 0 ? '#000' : '#fff';
                     this.ctx.fillRect(j * squareSize, i * squareSize, squareSize, squareSize);
                 }
             }
@@ -333,7 +373,7 @@ class Panel {
         
                 for (let i = 0; i < rows; i++) {
                     for (let j = 0; j < cols; j++) {
-                        this.ctx.fillStyle = (i + j) % 2 == 0 ? '#fff' : '#000';
+                        this.ctx.fillStyle = (i + j) % 2 === 0 ? '#fff' : '#000';
                         this.ctx.fillRect(j * squareSize, i * squareSize, squareSize, squareSize);
                     }
                 }
@@ -346,7 +386,7 @@ class Panel {
         }, 30_000);
     }
 
-    slipperySurfaceFlag() {
+    #slipperySurfaceFlag() {
         const { width, height } = this.canvas;
         const stripeWidth = width / 4;
         const spacing = stripeWidth * 0.128;

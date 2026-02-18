@@ -1,8 +1,11 @@
-using RaceControl.Services;
+using Microsoft.AspNetCore.SignalR;
+using RaceControl.Hubs;
 
 namespace RaceControl.Track;
 
-public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService websocketService)
+public sealed class TrackStatus(
+    ILogger<TrackStatus> logger,
+    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext)
 {
     private const int InformationFlagPriority = 0;
     
@@ -45,8 +48,8 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
         {
             logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
             ActiveFlagData = data;
-            await websocketService.BroadcastEventAsync(MessageEvent.FlagChange, ActiveFlagData, CancellationToken.None);
-            
+            await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
+           
             return;
         }
 
@@ -60,7 +63,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
         if (ActiveFlagData.Flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await websocketService.BroadcastEventAsync(MessageEvent.FlagChange, data, CancellationToken.None);
+            await trackStatusHubContext.Clients.All.FlagChange(data);
             return;
         }
 
@@ -73,7 +76,7 @@ public sealed class TrackStatus(ILogger<TrackStatus> logger, WebsocketService we
 
         logger.LogInformation("[Track Status] New received status flag with higher priority, updating track status");
         ActiveFlagData = data;
-        await websocketService.BroadcastEventAsync(MessageEvent.FlagChange, ActiveFlagData, CancellationToken.None);
+        await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
     }
 
     /// <summary>

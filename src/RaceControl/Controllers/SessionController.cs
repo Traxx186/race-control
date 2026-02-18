@@ -1,31 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
+using RaceControl.Hubs;
 using RaceControl.Services;
 
 namespace RaceControl.Controllers;
 
+[Route("/api/session")]
+[ApiController]
 public class SessionController(
-    ILogger<HomeController> logger,
+    ILogger<SessionController> logger,
+    IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
     CategoryService categoryService,
-    RaceControlContext dbContext,
-    WebsocketService websocketService)
+    RaceControlContext dbContext)
     : ControllerBase
 {
-    [Route("/session")]
-    [HttpGet]
-    public IActionResult Index()
-    {
-        logger.LogInformation("[Session] Requesting active session and returning result");
 
-        var currentSession = categoryService.ActiveSession;
-        if (currentSession == null)
-            return NotFound("No active session");
-
-        return Ok(currentSession);
-    }
-
-    [Route("/session")]
     [HttpPatch]
     public async Task<IActionResult> UpdateSessionLatency([FromBody] PatchSessionLatency sessionLatency)
     {
@@ -43,7 +34,7 @@ public class SessionController(
         await dbContext.SaveChangesAsync();
         
         activeSession.Category = category;
-        await websocketService.BroadcastEventAsync(MessageEvent.SessionChange, activeSession, CancellationToken.None);
+        await sessionHubContext.Clients.All.CategoryChange(activeSession.Category);
         
         return Ok(category);
     }

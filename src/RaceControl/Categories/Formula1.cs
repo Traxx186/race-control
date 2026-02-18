@@ -64,6 +64,8 @@ public partial class Formula1(ILogger logger, string url) : ICategory
         if (!SessionChequered.TryGetValue(session, out var numOfChequered))
         {
             logger.LogError("[Formula 1] Cannot find session {session}", session);
+            SessionFinished?.Invoke(this, EventArgs.Empty);
+            
             return;
         }
 
