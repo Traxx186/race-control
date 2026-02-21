@@ -35,7 +35,7 @@ COPY --from=build /race-control/app.json ./
 ENV DOTNET_EnableDiagnostics=0
 
 # Install required dependencies
-RUN apk --no-cache add curl
+RUN apk add --no-cache --upgrade curl krb5-libs
 
 # create appuser
 ENV USER=race-control
