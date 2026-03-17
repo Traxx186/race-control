@@ -8,6 +8,7 @@ using Quartz;
 using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Jobs;
+using RaceControl.Middleware;
 using RaceControl.Services;
 using RaceControl.Track;
 using Serilog;
@@ -88,6 +89,7 @@ builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 var app = builder.Build();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRobotsTxt(app.Environment);
 
 // Map controller & related web data
 app.MapControllers();
