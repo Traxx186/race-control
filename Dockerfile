@@ -1,7 +1,14 @@
+# Versions
+ARG DOTNET_IMAGE_VERSION=10.0-alpine
+
+# Set appuser info
+ARG USER=race-control
+ARG USER_ID=32767
+
 #####################################################################
 ## Build project
 #####################################################################
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_IMAGE_VERSION} AS build
 
 WORKDIR /race-control
 
@@ -23,9 +30,12 @@ RUN dotnet publish -c Release -o out  \
 #####################################################################
 ## Final image
 #####################################################################
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_IMAGE_VERSION}
 
 WORKDIR /race-control
+
+ARG USER
+ARG USER_ID
 
 # Copy required files
 COPY --from=build /race-control/out ./
@@ -37,17 +47,13 @@ ENV DOTNET_EnableDiagnostics=0
 # Install required dependencies
 RUN apk add --no-cache --upgrade curl krb5-libs
 
-# create appuser
-ENV USER=race-control
-ENV UID=32767
-
 # Create new non-root user
 RUN adduser \
    --disabled-password \
    --gecos "" \
    --shell "/sbin/nologin" \
    --no-create-home \
-   --uid "${UID}" \
+   --uid "${USER_ID}" \
    "${USER}"
 
 # Set file permissions
