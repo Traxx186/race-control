@@ -55,7 +55,6 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
         await trackStatus.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
 
         logger.LogInformation("[Category Service] Closing the active category");
-        _activeCategory?.Stop();
         _activeCategory = null;
         _activeSession = null;
     }
@@ -70,7 +69,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     {
         category = key switch
         {
-            "f1" => new Formula1(logger, "https://livetiming.formula1.com"),
+            "f1" => new Formula1(logger),
             "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
             "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
             _ => null

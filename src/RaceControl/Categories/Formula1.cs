@@ -1,13 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using RaceControl.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
 using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public partial class Formula1(ILogger logger, string url) : ICategory
-{   
+public partial class Formula1(ILogger logger) : ICategory
+{
+    private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
+    
     /// <summary>
     /// How many times a <see cref="Flag.Chequered"/> needs to be received until the API 
     /// connections needs to be broken.
@@ -30,20 +32,15 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     private static partial Regex NotResumeRegex();
     
     /// <summary>
-    /// The SignalR <see cref="Client"/> connection object.
+    /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
-    private Client? _signalR;
+    private HubConnection? _signalR;
 
     /// <summary>
     /// How many <see cref="Flag.Chequered"/> are shown in the current session before the API connection
     /// needs to be closed.
     /// </summary>
     private int _numberOfChequered;
-
-    /// <summary>
-    /// If the object has already been disposed.
-    /// </summary>
-    private bool _disposed;
 
     /// <summary>
     /// <inheritdoc/>
@@ -61,68 +58,44 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     public async Task StartAsync(string session)
     {
         logger.LogInformation("[Formula 1] Starting API connection");
-        if (!SessionChequered.TryGetValue(session, out var numOfChequered))
+        if (!SessionChequered.TryGetValue(session, out _numberOfChequered))
         {
             logger.LogError("[Formula 1] Cannot find session {session}", session);
             SessionFinished?.Invoke(this, EventArgs.Empty);
             
             return;
         }
-
-        _signalR = new Client(
-            url,
-            "Streaming",
-            ["RaceControlMessages", "TrackStatus"],
-            new Version(1, 5)
-        );
-
-        _numberOfChequered = numOfChequered;
-
-        _signalR.AddHandler("Streaming", "feed", HandleMessage);
-        await _signalR.StartAsync("Subscribe");
+        
+        logger.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
+        _signalR = new HubConnectionBuilder()
+            .WithUrl(LiveTimingUrl)
+            .WithAutomaticReconnect()
+            .Build();
+        
+        await _signalR.StartAsync();
     }
 
-    public void Stop()
-    {
-        logger.LogInformation("[Formula 1] Closing API connection");
-        Dispose();
-    }
-    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Dispose()
+    public async Task StopAsync()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
+        logger.LogInformation("[Formula 1] Closing API connection");
+        await _signalR?.StopAsync()!;
+        
+        if (null == FlagParsed)
+            return;
+        
+        // Remove all the linked invocations of the FlagParsed event handler
+        foreach (var del in FlagParsed.GetInvocationList())
+            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
+
+        if (null == SessionFinished)
             return;
 
-        if (disposing)
-        {
-            _signalR?.Stop();
-            _signalR = null;
-
-            if (null == FlagParsed)
-                return;
-
-            // Remove all the linked invocations of the FlagParsed event handler
-            foreach (var del in FlagParsed.GetInvocationList())
-                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-            if (null == SessionFinished)
-                return;
-
-            // Remove all the linked invocations of the SessionFinished event handler
-            foreach (var del in SessionFinished.GetInvocationList())
-                SessionFinished -= (EventHandler)del;
-        }
-
-        _disposed = true;
+        // Remove all the linked invocations of the SessionFinished event handler
+        foreach (var del in SessionFinished.GetInvocationList())
+            SessionFinished -= (EventHandler)del;
     }
 
     /// <summary>
@@ -139,8 +112,9 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    protected virtual void OnSessionFinished()
+    protected virtual async Task OnSessionFinished()
     {
+        await StopAsync();
         SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
@@ -149,7 +123,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
     /// argument.
     /// </summary>
     /// <param name="message">Message received from Formula 1 API.</param>
-    private void HandleMessage(JsonArray message)
+    private async Task HandleMessageAsync(JsonArray message)
     {
         var argument = message[0]?.ToString() ?? string.Empty;
         var parsedFlag = argument switch
@@ -163,7 +137,7 @@ public partial class Formula1(ILogger logger, string url) : ICategory
             return;
 
         if (parsedFlag.Flag is Flag.Chequered && --_numberOfChequered < 1)
-            OnSessionFinished();
+            await OnSessionFinished();
 
         logger.LogInformation("[Formula 1] New flag {flag}", parsedFlag.Flag);
         OnFlagParsed(parsedFlag);

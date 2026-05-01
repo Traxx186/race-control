@@ -17,11 +17,6 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// If the session has actually started.
     /// </summary>
     private bool _hasStarted;
-
-    /// <summary>
-    /// If the object has already been disposed.
-    /// </summary>
-    private bool _disposed;
     
     /// <summary>
     /// <inheritdoc/>
@@ -58,49 +53,27 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Stop()
+    public async Task StopAsync()
     {
         logger.LogInformation("[Formula 3] Closing API connection");
-        Dispose();
-    }
-    
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) 
+        _signalR?.Stop();
+        _signalR = null;
+
+        if (null == FlagParsed)
             return;
 
-        if (disposing)
-        {
-            _signalR?.Stop();
-            _signalR = null;
+        // Remove all the linked invocations of the FlagParsed event handler
+        foreach (var del in FlagParsed.GetInvocationList())
+            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
 
-            if (null == FlagParsed)
-                return;
+        if (null == SessionFinished)
+            return;
 
-            // Remove all the linked invocations of the FlagParsed event handler
-            foreach (var del in FlagParsed.GetInvocationList())
-                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-            if (null == SessionFinished)
-                return;
-
-            // Remove all the linked invocations of the SessionFinished event handler
-            foreach (var del in SessionFinished.GetInvocationList())
-                SessionFinished -= (EventHandler)del;
-        }
-
-        _disposed = true;
+        // Remove all the linked invocations of the SessionFinished event handler
+        foreach (var del in SessionFinished.GetInvocationList())
+            SessionFinished -= (EventHandler)del;
     }
-
+    
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
