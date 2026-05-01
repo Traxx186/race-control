@@ -85,8 +85,10 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    protected virtual void OnSessionFinished()
+    protected virtual async Task OnSessionFinished()
     {
+        await StopAsync();
+
         SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
