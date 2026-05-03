@@ -10,12 +10,12 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// The currently active category.
     /// </summary>
     private ICategory? _activeCategory;
-    
+
     /// <summary>
     /// The currently active session.
     /// </summary>
     private Session? _activeSession;
-    
+
     /// <summary>
     /// If there is already a session active.
     /// </summary>
@@ -25,7 +25,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     /// Returns the currently active session, if there is any.
     /// </summary>
     public Session? ActiveSession => _activeSession;
-    
+
     /// <summary>
     /// Starts the API connection of the category based on the given session.
     /// </summary>
@@ -33,16 +33,15 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     public async Task StartCategoryAsync(Session session)
     {
         _activeSession ??= session;
-        
-        if (!TryGetCategory(_activeSession.CategoryKey, out var category))
+
+        if (!TryGetCategory(_activeSession.CategoryKey, out _activeCategory))
             return;
-        
+
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
-        
-        _activeCategory = category!;
-        _activeCategory.FlagParsed += async (_, args) => await trackStatus.SetActiveFlagAsync(args.FlagData);
-        _activeCategory.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
-        
+
+        _activeCategory!.FlagParsed += async (_, args) => await trackStatus.SetActiveFlagAsync(args.FlagData);
+        _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
+
         await _activeCategory.StartAsync(_activeSession.Key);
     }
 
@@ -74,7 +73,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
             "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
             _ => null
         };
-        
+
         return category != null;
     }
 }
