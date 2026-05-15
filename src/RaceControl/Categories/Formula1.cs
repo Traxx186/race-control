@@ -4,7 +4,7 @@ using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public partial class Formula1(ILogger? logger = null) : ICategory
+public partial class Formula1(ILogger logger) : ICategory
 {
     private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 

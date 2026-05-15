@@ -5,10 +5,12 @@ using RaceControl.Database.Entities;
 
 namespace RaceControl.Jobs;
 
-public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJob> logger) : IJob
+public class SyncSessionsJob(
+    RaceControlContext dbContext,
+    ILogger<SyncSessionsJob> logger,
+    IHttpClientFactory httpClientFactory
+    ) : IJob
 {
-    private static readonly HttpClient HttpClient = new();
-    
     public static readonly JobKey JobKey = new("SyncSessionsJob");
 
     /// <summary>
@@ -41,7 +43,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
                 logger.LogInformation("[Session Sync] Remove session of cancelled races");
                 await DeleteSessions(category, currentYear, cancelledRaces);
             }
-            
+
             var notCancelledRaces = calendar.Races
                 .Where(r => !r.Canceled)
                 .ToArray();
@@ -65,9 +67,10 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     private async Task<Calendar?> FetchCalendarAsync(string category, int year)
     {
         logger.LogInformation("[Session Sync] Fetching calendar data for {key}", category);
+        using var client = httpClientFactory.CreateClient();
 
         var url = $"https://raw.githubusercontent.com/sportstimes/f1/main/_db/{category}/{year}.json";
-        return await HttpClient.GetFromJsonAsync<Calendar>(url);
+        return await client.GetFromJsonAsync<Calendar>(url);
     }
 
     /// <summary>
@@ -78,8 +81,8 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     /// <param name="races">Races where the sessions added/updated.</param>
     private void UpsertSessions(Category category, int year, CalendarItem[] races)
     {
-        var sessions = races.SelectMany(r => 
-            r.Sessions.Select(s => new Session 
+        var sessions = races.SelectMany(r =>
+            r.Sessions.Select(s => new Session
                 {
                     Id = $"{category.Key}_{year}_{r.Round:00}_{s.Key}",
                     CategoryKey = category.Key,
@@ -91,8 +94,8 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
                 }
             ))
             .ToArray();
-        
-        
+
+
         foreach (var session in sessions)
         {
             // Query for a session of the given category, session name, session key and session year
@@ -117,7 +120,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
     /// <param name="races">Races where the sessions will be deleted.</param>
     private async Task DeleteSessions(Category category, int year, CalendarItem[] races)
     {
-        var sessionKeys = races.SelectMany(r => 
+        var sessionKeys = races.SelectMany(r =>
                 r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")
             )
             .ToArray();
@@ -126,7 +129,7 @@ public class SyncSessionsJob(RaceControlContext dbContext, ILogger<SyncSessionsJ
             .Where(s => sessionKeys.Contains(s.Id))
             .ExecuteDeleteAsync();
     }
-    
+
     /// <summary>
     /// The structure of the response from the calendar api.
     /// </summary>

@@ -25,8 +25,8 @@ COPY ./app.json ./
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
    --runtime linux-musl-x64 \
-   --self-contained true 
- 
+   --self-contained true
+
 #####################################################################
 ## Final image
 #####################################################################
@@ -45,7 +45,7 @@ COPY --from=build /race-control/app.json ./
 ENV DOTNET_EnableDiagnostics=0
 
 # Install required dependencies
-RUN apk add --no-cache --upgrade curl krb5-libs
+RUN apk add --no-cache --upgrade krb5-libs
 
 # Create new non-root user
 RUN adduser \
@@ -67,6 +67,6 @@ EXPOSE 8080
 
 # Add healthcheck to the container
 HEALTHCHECK --interval=5m --timeout=3s \
-    CMD curl -f  http://localhost:8080/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["./RaceControl"]

@@ -14,7 +14,7 @@ using RaceControl.Track;
 using Serilog;
 using Serilog.Settings.Configuration;
 
-// Create a new WebApplication builder and load Environment Variables and the appsettings.json file 
+// Create a new WebApplication builder and load Environment Variables and the appsettings.json file
 // into the configuration.
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.SetBasePath(Environment.CurrentDirectory);
@@ -30,7 +30,7 @@ builder.Services.AddDataProtection()
         ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
     });
 
-// Create a new logger instance with the app configuration 
+// Create a new logger instance with the app configuration
 builder.Services.AddSerilog(configuration =>
     configuration.ReadFrom
         .Configuration(
@@ -49,13 +49,14 @@ builder.Services.Configure<JsonOptions>(options =>
 // Load controllers, signalr hubs and services to the web application.
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
-    { 
+    {
         options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>()); 
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
     });
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<TrackStatus>();
 builder.Services.AddSingleton<CategoryService>();
 
