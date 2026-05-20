@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RaceControl.Database.Entities;
-using RaceControl.Database.Configurations;
+using RaceControl.Database.ModelConfiguration;
 
 namespace RaceControl.Database;
 

@@ -41,7 +41,7 @@ public class SyncSessionsJob(
             if (cancelledRaces.Length > 0)
             {
                 logger.LogInformation("[Session Sync] Remove session of cancelled races");
-                await DeleteSessions(category, currentYear, cancelledRaces);
+                await DeleteSessionsAsync(category, currentYear, cancelledRaces);
             }
 
             var notCancelledRaces = calendar.Races
@@ -118,7 +118,7 @@ public class SyncSessionsJob(
     /// <param name="category">The related category of the sessions.</param>
     /// <param name="year">The season year.</param>
     /// <param name="races">Races where the sessions will be deleted.</param>
-    private async Task DeleteSessions(Category category, int year, CalendarItem[] races)
+    private async Task DeleteSessionsAsync(Category category, int year, CalendarItem[] races)
     {
         var sessionKeys = races.SelectMany(r =>
                 r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")

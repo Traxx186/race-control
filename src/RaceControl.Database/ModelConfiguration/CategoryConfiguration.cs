@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Database.Configurations;
+namespace RaceControl.Database.ModelConfiguration;
 
 public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 {
