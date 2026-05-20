@@ -30,7 +30,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// The protocol version to be used
     /// </summary>
     private readonly Version? _version;
-    
+
     /// <summary>
     /// Custom endpoint if API doesn't use /signalr.
     /// </summary>
@@ -50,7 +50,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// List of handlers.
     /// </summary>
     private readonly List<(string, string, Action<JsonArray>)> _handlers = [];
-    
+
     /// <summary>
     /// If the SignalR service is active.
     /// </summary>
@@ -77,10 +77,10 @@ public sealed class Client(string url, string hub, object[] args)
         var uriBuilder = new UriBuilder(_url);
         if (!_useDefaultEndpoint)
             uriBuilder.Path = _customEndpoint;
-        
+
         Running = true;
         while (Running)
-        { 
+        {
             using var connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
 #if DEBUG
             connection.TraceWriter = Console.Out;
@@ -91,7 +91,7 @@ public sealed class Client(string url, string hub, object[] args)
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
-            
+
             if (null != _version)
                 connection.Protocol = _version;
 
@@ -100,13 +100,13 @@ public sealed class Client(string url, string hub, object[] args)
 
             Log.Information("[SignalR] Connecting to {url}", _url);
             await connection.Start();
-            
+
             if (_url.Contains("formula1"))
                 await hubProxy.Invoke(method, _args.ToList());
             else
                 await hubProxy.Invoke(method, _args);
-            
-            Console.Read();   
+
+            Console.Read();
         }
     }
 
@@ -142,7 +142,7 @@ public sealed class Client(string url, string hub, object[] args)
     {
         _connection?.Dispose();
         _connection = null;
-        
+
         Running = false;
     }
 }
