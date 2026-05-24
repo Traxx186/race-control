@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR.Client;
 using RaceControl.Track;
@@ -22,6 +24,11 @@ public partial class Formula1(ILogger logger) : ICategory
         { "sprint", 1 },
         { "gp", 1 }
     };
+
+    /// <summary>
+    /// Which SignalR methods to subscribe to when connection to the live timing API.
+    /// </summary>
+    private static readonly string[] SupportedMethods = ["TrackStatus", "RaceControlMessages"];
 
     /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
@@ -60,31 +67,33 @@ public partial class Formula1(ILogger logger) : ICategory
     /// </summary>
     public async Task StartAsync(string session)
     {
-        logger?.LogInformation("[Formula 1] Starting API connection");
+        logger.LogInformation("[Formula 1] Starting API connection");
         if (!SessionChequered.TryGetValue(session, out _numberOfChequered))
         {
-            logger?.LogError("[Formula 1] Cannot find session {session}", session);
+            logger.LogError("[Formula 1] Cannot find session {session}", session);
             SessionFinished?.Invoke(this, EventArgs.Empty);
 
             return;
         }
 
-        logger?.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
+        logger.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
         _signalR = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl)
+            .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()
             .Build();
 
         _signalR.Closed += async _ =>
         {
-            logger?.LogInformation("[Formula 1] API connection terminated");
+            logger.LogInformation("[Formula 1] API connection terminated");
             await OnSessionFinished();
         };
 
         _signalR.On<TrackStatusMessage>("TrackStatus", async message => await HandleTrackStatusMessageAsync(message));
-        _signalR.On<RaceControlMessage>("RaceControlMessages", async message => await HandleRaceControlMessageAsync(message));
+        _signalR.On<RaceControlMessages>("RaceControlMessages", async message => await HandleRaceControlMessagesAsync(message));
 
         await _signalR.StartAsync();
+        await _signalR.InvokeAsync("Subscribe", SupportedMethods);
     }
 
     /// <summary>
@@ -92,8 +101,8 @@ public partial class Formula1(ILogger logger) : ICategory
     /// </summary>
     public async Task StopAsync()
     {
-        logger?.LogInformation("[Formula 1] Closing API connection");
-        await _signalR?.StopAsync()!;
+        logger.LogInformation("[Formula 1] Closing API connection");
+        await _signalR!.StopAsync();
 
         if (null == FlagParsed)
             return;
@@ -141,10 +150,10 @@ public partial class Formula1(ILogger logger) : ICategory
     /// <returns>Parsed flag.</returns>
     private async Task HandleTrackStatusMessageAsync(TrackStatusMessage trackStatusMessage)
     {
-        logger?.LogInformation("[Formula 1] Parsing track status message");
+        logger.LogInformation("[Formula 1] Parsing track status message");
         if (!short.TryParse(trackStatusMessage.Status, out var status))
         {
-            logger?.LogError("[Formula 1] Invalid track status message received");
+            logger.LogError("[Formula 1] Invalid track status message received");
             return;
         }
 
@@ -164,15 +173,22 @@ public partial class Formula1(ILogger logger) : ICategory
     /// <summary>
     /// Parses a race control message to a flag and relative data.
     /// </summary>
-    /// <param name="raceControlMessage">Message object.</param>
-    private async Task HandleRaceControlMessageAsync(RaceControlMessage raceControlMessage)
+    /// <param name="messages">Message object.</param>
+    private async Task HandleRaceControlMessagesAsync(RaceControlMessages messages)
     {
-        logger?.LogInformation("[Formula 1] Parsing race control message");
+        logger.LogInformation("[Formula 1] Parsing race control message");
+
+        var raceControlMessage = messages.Messages[0].Deserialize<RaceControlMessage>();
+        if (null == raceControlMessage)
+        {
+            logger.LogWarning("[Formula 1] Invalid race control message received");
+            return;
+        }
 
         // Checks if the slippery surface flag is shown.
         if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
-            logger?.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
+            logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
             await OnFlagParsed(new FlagData { Flag = Flag.Surface });
 
             return;
@@ -181,7 +197,7 @@ public partial class Formula1(ILogger logger) : ICategory
         // Checks if the session will be postponed.
         if (raceControlMessage.Message.Contains("postponed", StringComparison.CurrentCultureIgnoreCase))
         {
-            logger?.LogInformation("[Formula 1] Session will be postponed, setting current flag to {flag}", Flag.Chequered);
+            logger.LogInformation("[Formula 1] Session will be postponed, setting current flag to {flag}", Flag.Chequered);
 
             // Because a postponed session will be rescheduled, sub sessions like those in qualifying will not take
             // place. Therefore, setting the numOfChequered to 0 is required in order to stop the API connection.
@@ -194,7 +210,7 @@ public partial class Formula1(ILogger logger) : ICategory
         // Checks if the session will not be resumed.
         if (NotResumeRegex().IsMatch(raceControlMessage.Message))
         {
-            logger?.LogInformation("[Formula 1] Session will not be resumed, setting current flag to {flag}", Flag.Chequered);
+            logger.LogInformation("[Formula 1] Session will not be resumed, setting current flag to {flag}", Flag.Chequered);
             await OnFlagParsed(new FlagData { Flag = Flag.Chequered });
             return;
         }
@@ -202,14 +218,14 @@ public partial class Formula1(ILogger logger) : ICategory
         // If the message category is not 'Flag', or received clear message, the message can be ignored.
         if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
         {
-            logger?.LogInformation("[Formula 1] Race control message ignored");
+            logger.LogInformation("[Formula 1] Race control message ignored");
             return;
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
         if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag))
         {
-            logger?.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
+            logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
         }
 
@@ -220,7 +236,7 @@ public partial class Formula1(ILogger logger) : ICategory
     }
 
     /// <summary>
-    /// Structure of a track status message.
+    /// Structure of the returned value from the TrackStatus method.
     /// </summary>
     private sealed record TrackStatusMessage(
         string Status,
@@ -228,17 +244,19 @@ public partial class Formula1(ILogger logger) : ICategory
     );
 
     /// <summary>
-    /// Structure of a race control message.
+    /// Structure of the returned value from the RaceControlMessages method.
+    /// </summary>
+    private sealed record RaceControlMessages(
+        JsonObject Messages
+    );
+
+    /// <summary>
+    /// Structure of a returned RaceControlMessages method message.
     /// </summary>
     private sealed record RaceControlMessage(
-        DateTime Utc,
-        int Lap,
         string Category,
         string Message,
         string Flag,
-        string Scope,
-        string RacingNumber,
-        int Sector,
-        string Mode
+        string RacingNumber
     );
 }

@@ -14,6 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Quartz" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
     <PackageReference Include="Serilog.AspNetCore" />

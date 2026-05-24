@@ -56,6 +56,8 @@ public sealed class Client(string url, string hub, object[] args)
     /// </summary>
     private bool Running { set; get; }
 
+    public event Action<Exception> Error;
+
     public Client(string url, string hub, object[] args, Version version)
         : this(url, hub, args)
     {
@@ -87,10 +89,15 @@ public sealed class Client(string url, string hub, object[] args)
             connection.TraceLevel = TraceLevels.All;
 #endif
             connection.CookieContainer = new CookieContainer();
-            connection.Error += e => Log.Error("[SignalR] Error occured: {error}", e.Message);
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
             connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
+
+            connection.Error += e =>
+            {
+                Log.Error("[SignalR] Error occured: {error}", e.Message);
+                Error.Invoke(e);
+            };
 
             if (null != _version)
                 connection.Protocol = _version;
