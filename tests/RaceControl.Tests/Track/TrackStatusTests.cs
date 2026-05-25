@@ -20,13 +20,13 @@ public class TrackStatusTests
     }
 
     [TestMethod]
-    public void Try_ParseValidFlag_ReturnsTrue()
+    public void TryParseFlag_WithValidFlag_ReturnsTrue()
     {
         Assert.IsTrue(TrackStatus.TryParseFlag("BLACK AND WHITE",  out _));
     }
 
     [TestMethod]
-    public void Try_ParseInvalidFlag_ReturnsFalse()
+    public void TryParseFlag_WithInvalidFlag_ReturnsFalse()
     {
         Assert.IsFalse(TrackStatus.TryParseFlag("RAIN",  out _));
     }

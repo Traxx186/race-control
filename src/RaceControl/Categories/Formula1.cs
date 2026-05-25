@@ -2,11 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR.Client;
+using RaceControl.Services;
 using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public partial class Formula1(ILogger logger) : ICategory
+public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICategory
 {
     private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 
@@ -76,9 +77,16 @@ public partial class Formula1(ILogger logger) : ICategory
             return;
         }
 
+        var authToken = await FetchAuthToken();
+        if (string.IsNullOrWhiteSpace(authToken))
+            return;
+
         logger.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
         _signalR = new HubConnectionBuilder()
-            .WithUrl(LiveTimingUrl)
+            .WithUrl(LiveTimingUrl, options =>
+            {
+                options.Headers["Authorization"] = $"Bearer {authToken}";
+            })
             .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()
             .Build();
@@ -93,7 +101,7 @@ public partial class Formula1(ILogger logger) : ICategory
         _signalR.On<RaceControlMessages>("RaceControlMessages", async message => await HandleRaceControlMessagesAsync(message));
 
         await _signalR.StartAsync();
-        await _signalR.InvokeAsync("Subscribe", SupportedMethods);
+        await _signalR.InvokeAsync<string>("Subscribe", SupportedMethods);
     }
 
     /// <summary>
@@ -233,6 +241,27 @@ public partial class Formula1(ILogger logger) : ICategory
             driver = 0;
 
         await OnFlagParsed(new FlagData { Flag = flag, Driver = driver == 0 ? null : driver });
+    }
+
+    /// <summary>
+    /// Get the auth token from storage and validate. If invalid, nothing is returned.
+    /// </summary>
+    /// <returns>Auth token.</returns>
+    private async Task<string?> FetchAuthToken()
+    {
+        try
+        {
+            var authToken = await f1AuthService.GetAuthToken();
+            await f1AuthService.ValidateJwt(authToken);
+
+            return authToken;
+        }
+        catch (Exception e)
+        {
+            logger.LogError("[Formula 1] Subscription token is invalid. Reason {error}", e.Message);
+            SessionFinished?.Invoke(this, EventArgs.Empty);
+            return null;
+        }
     }
 
     /// <summary>

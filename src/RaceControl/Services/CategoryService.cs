@@ -4,7 +4,10 @@ using RaceControl.Track;
 
 namespace RaceControl.Services;
 
-public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackStatus)
+public class CategoryService(
+    ILogger<CategoryService> logger,
+    F1AuthService f1AuthService,
+    TrackStatus trackStatus)
 {
     /// <summary>
     /// The currently active category.
@@ -68,7 +71,7 @@ public class CategoryService(ILogger<CategoryService> logger, TrackStatus trackS
     {
         category = key switch
         {
-            "f1" => new Formula1(logger),
+            "f1" => new Formula1(logger, f1AuthService),
             "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
             "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
             _ => null
