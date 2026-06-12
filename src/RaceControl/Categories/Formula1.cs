@@ -29,7 +29,7 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// <summary>
     /// Which SignalR methods to subscribe to when connection to the live timing API.
     /// </summary>
-    private static readonly string[] SupportedMethods = ["TrackStatus", "RaceControlMessages"];
+    private static readonly string[] SupportedMethods = ["TrackStatus", "RaceControlMessages", "SessionStatus"];
 
     /// <summary>
     /// Regex for checking if a race control message contains the message that the race/session will not resume.
@@ -77,15 +77,11 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
             return;
         }
 
-        var authToken = await FetchAuthToken();
-        if (string.IsNullOrWhiteSpace(authToken))
-            return;
-
         logger.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
         _signalR = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl, options =>
             {
-                options.Headers["Authorization"] = $"Bearer {authToken}";
+                options.AccessTokenProvider = FetchAuthToken;
             })
             .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()
@@ -97,11 +93,10 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
             await OnSessionFinished();
         };
 
-        _signalR.On<TrackStatusMessage>("TrackStatus", async message => await HandleTrackStatusMessageAsync(message));
-        _signalR.On<RaceControlMessages>("RaceControlMessages", async message => await HandleRaceControlMessagesAsync(message));
+        _signalR.On<string, JsonNode>("feed", async (method, data) => Console.WriteLine(method));
 
         await _signalR.StartAsync();
-        await _signalR.InvokeAsync<string>("Subscribe", SupportedMethods);
+        await _signalR.InvokeAsync<string>("Subscribe", new[] {SupportedMethods});
     }
 
     /// <summary>
