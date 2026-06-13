@@ -9,6 +9,7 @@ using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Jobs;
 using RaceControl.Middleware;
+using RaceControl.Options;
 using RaceControl.Services;
 using RaceControl.Track;
 using Serilog;
@@ -19,6 +20,7 @@ using Serilog.Settings.Configuration;
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.SetBasePath(Environment.CurrentDirectory);
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(RaceControlOptions.ConfigFilePath, optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
 
 // Add app key storage & set encryptor configuration

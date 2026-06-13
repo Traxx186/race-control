@@ -244,19 +244,7 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// <returns>Auth token.</returns>
     private async Task<string?> FetchAuthToken()
     {
-        try
-        {
-            var authToken = await f1AuthService.GetAuthToken();
-            await f1AuthService.ValidateJwt(authToken);
-
-            return authToken;
-        }
-        catch (Exception e)
-        {
-            logger.LogError("[Formula 1] Subscription token is invalid. Reason {error}", e.Message);
-            SessionFinished?.Invoke(this, EventArgs.Empty);
-            return null;
-        }
+        return string.Empty;
     }
 
     /// <summary>
