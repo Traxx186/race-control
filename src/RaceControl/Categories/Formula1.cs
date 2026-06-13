@@ -2,51 +2,30 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Options;
+using RaceControl.Options;
 using RaceControl.Services;
 using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICategory
+public class Formula1: ICategory
 {
-    private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
+    private const string LiveTimingUrl = "wss://livetiming.formula1.com/signalrcore";
+
+    private readonly ILogger _logger;
+    private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
+    private readonly F1AuthService _f1AuthService;
 
     /// <summary>
-    /// How many times a <see cref="Flag.Chequered"/> needs to be received until the API connections needs to be
-    /// disconnected.
+    /// Which SignalR topics to subscribe to when connection to the live timing API.
     /// </summary>
-    private static readonly Dictionary<string, int> SessionChequered = new()
-    {
-        { "fp1", 1 },
-        { "fp2", 1 },
-        { "fp3", 1 },
-        { "qualifying", 3 },
-        { "sprintQualifying", 3 },
-        { "sprint", 1 },
-        { "gp", 1 }
-    };
-
-    /// <summary>
-    /// Which SignalR methods to subscribe to when connection to the live timing API.
-    /// </summary>
-    private static readonly string[] SupportedMethods = ["TrackStatus", "RaceControlMessages", "SessionStatus"];
-
-    /// <summary>
-    /// Regex for checking if a race control message contains the message that the race/session will not resume.
-    /// </summary>
-    [GeneratedRegex("(?:WILL NOT).*(?:RESUME)", RegexOptions.IgnoreCase, "en-US")]
-    private static partial Regex NotResumeRegex();
+    private static readonly string[] Topics = ["TrackStatus", "RaceControlMessages", "SessionStatus"];
 
     /// <summary>
     /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
-    private HubConnection? _signalR;
-
-    /// <summary>
-    /// How many <see cref="Flag.Chequered"/> are shown in the current session before the API connection
-    /// needs to be closed.
-    /// </summary>
-    private int _numberOfChequered;
+    private HubConnection? _connection;
 
     /// <summary>
     /// <inheritdoc/>
@@ -61,42 +40,62 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// <summary>
     /// If the live timing API is active.
     /// </summary>
-    public bool Connected => _signalR?.State == HubConnectionState.Connected;
+    public bool Connected => _connection?.State == HubConnectionState.Connected;
+
+    public Formula1(
+        ILogger logger,
+        IOptionsMonitor<RaceControlOptions> options,
+        F1AuthService f1AuthService)
+    {
+        _logger = logger;
+        _optionsMonitor = options;
+        _f1AuthService = f1AuthService;
+
+        _optionsMonitor.OnChange(async _ =>
+        {
+            if (_connection is null)
+                return;
+
+            _logger.LogInformation("[Formula 1] Config changed, restart Live timing");
+            await StartAsync(string.Empty);
+        });
+    }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public async Task StartAsync(string session)
     {
-        logger.LogInformation("[Formula 1] Starting API connection");
-        if (!SessionChequered.TryGetValue(session, out _numberOfChequered))
-        {
-            logger.LogError("[Formula 1] Cannot find session {session}", session);
-            SessionFinished?.Invoke(this, EventArgs.Empty);
+        _logger.LogInformation("[Formula 1] Starting Live Timing connection");
 
-            return;
+        if (_connection is not null)
+        {
+            _logger.LogWarning("[Formula 1] Connection already active, restarting");
+            await DisposeConnection();
         }
 
-        logger.LogInformation("[Formula 1] Connect to {url}",  LiveTimingUrl);
-        _signalR = new HubConnectionBuilder()
+        _connection = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl, options =>
             {
-                options.AccessTokenProvider = FetchAuthToken;
+                options.AccessTokenProvider = () => Task.FromResult(_f1AuthService.AccessToken);
             })
             .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()
             .Build();
 
-        _signalR.Closed += async _ =>
+        _connection.Closed += async _ =>
         {
-            logger.LogInformation("[Formula 1] API connection terminated");
+            _logger.LogInformation("[Formula 1] API connection terminated");
             await OnSessionFinished();
         };
 
-        _signalR.On<string, JsonNode>("feed", async (method, data) => Console.WriteLine(method));
+        _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);
+        await _connection.StartAsync();
 
-        await _signalR.StartAsync();
-        await _signalR.InvokeAsync<string>("Subscribe", new[] {SupportedMethods});
+        _logger.LogInformation("[Formula 1] Subscribe to selected topics");
+        await _connection.InvokeAsync("Subscribe", Topics);
+
+        _logger.LogInformation("[Formula 1] Live Timing connected");
     }
 
     /// <summary>
@@ -104,8 +103,8 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// </summary>
     public async Task StopAsync()
     {
-        logger.LogInformation("[Formula 1] Closing API connection");
-        await _signalR!.StopAsync();
+        _logger.LogInformation("[Formula 1] Closing API connection");
+        await DisposeConnection();
 
         if (null == FlagParsed)
             return;
@@ -123,6 +122,17 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     }
 
     /// <summary>
+    /// Closes the SignalR connection.
+    /// </summary>
+    private async Task DisposeConnection()
+    {
+        if (_connection is not null)
+            await _connection!.StopAsync();
+
+        _connection = null;
+    }
+
+    /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flagData">The parsed flag.</param>
@@ -130,9 +140,6 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     {
         var args = new FlagDataEventArgs { FlagData = flagData };
         FlagParsed?.Invoke(this, args);
-
-        if (flagData.Flag is Flag.Chequered && --_numberOfChequered < 1)
-            await OnSessionFinished();
     }
 
     /// <summary>
@@ -140,23 +147,43 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// </summary>
     protected virtual async Task OnSessionFinished()
     {
-        if (_signalR?.State == HubConnectionState.Connected)
+        if (_connection?.State == HubConnectionState.Connected)
             await StopAsync();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
+    /// Checks which function needs to be called based on the given topic.
+    /// </summary>
+    /// <param name="topic">Topic of the incoming message.</param>
+    /// <param name="data">Date of the incoming message.</param>
+    /// <param name="timestamp">When the incoming message was sent.</param>
+    private async Task HandleMessageAsync(string topic, JsonNode data, DateTimeOffset timestamp)
+    {
+        var handler = topic switch
+        {
+            "SessionStatus" => HandleSessionStatusMessageAsync(data),
+            "TrackStatus" => HandleTrackStatusMessageAsync(data),
+            "RaceControlMessages" => HandleRaceControlMessagesAsync(data),
+            _ => Task.Run(() => _logger.LogWarning("[Formula 1] Unsupported topic {topic}", topic))
+        };
+
+        await handler;
+    }
+
+    /// <summary>
     /// Parses a track status message to a flag and relative data.
     /// </summary>
-    /// <param name="trackStatusMessage">Message object.</param>
+    /// <param name="data">Message object.</param>
     /// <returns>Parsed flag.</returns>
-    private async Task HandleTrackStatusMessageAsync(TrackStatusMessage trackStatusMessage)
+    private async Task HandleTrackStatusMessageAsync(JsonNode data)
     {
-        logger.LogInformation("[Formula 1] Parsing track status message");
+        _logger.LogInformation("[Formula 1] Parsing track status message");
+        var trackStatusMessage = data.GetValue<TrackStatusMessage>();
         if (!short.TryParse(trackStatusMessage.Status, out var status))
         {
-            logger.LogError("[Formula 1] Invalid track status message received");
+            _logger.LogError("[Formula 1] Invalid track status message received");
             return;
         }
 
@@ -176,59 +203,39 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     /// <summary>
     /// Parses a race control message to a flag and relative data.
     /// </summary>
-    /// <param name="messages">Message object.</param>
-    private async Task HandleRaceControlMessagesAsync(RaceControlMessages messages)
+    /// <param name="data">Race control message data.</param>
+    private async Task HandleRaceControlMessagesAsync(JsonNode data)
     {
-        logger.LogInformation("[Formula 1] Parsing race control message");
+        _logger.LogInformation("[Formula 1] Parsing race control message");
 
-        var raceControlMessage = messages.Messages[0].Deserialize<RaceControlMessage>();
+        var raceControlMessages = data.GetValue<RaceControlMessages>();
+        var raceControlMessage = raceControlMessages.Messages[0].Deserialize<RaceControlMessage>();
         if (null == raceControlMessage)
         {
-            logger.LogWarning("[Formula 1] Invalid race control message received");
+            _logger.LogWarning("[Formula 1] Invalid race control message received");
             return;
         }
 
         // Checks if the slippery surface flag is shown.
         if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
-            logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
+            _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
             await OnFlagParsed(new FlagData { Flag = Flag.Surface });
 
-            return;
-        }
-
-        // Checks if the session will be postponed.
-        if (raceControlMessage.Message.Contains("postponed", StringComparison.CurrentCultureIgnoreCase))
-        {
-            logger.LogInformation("[Formula 1] Session will be postponed, setting current flag to {flag}", Flag.Chequered);
-
-            // Because a postponed session will be rescheduled, sub sessions like those in qualifying will not take
-            // place. Therefore, setting the numOfChequered to 0 is required in order to stop the API connection.
-            _numberOfChequered = 0;
-
-            await OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-            return;
-        }
-
-        // Checks if the session will not be resumed.
-        if (NotResumeRegex().IsMatch(raceControlMessage.Message))
-        {
-            logger.LogInformation("[Formula 1] Session will not be resumed, setting current flag to {flag}", Flag.Chequered);
-            await OnFlagParsed(new FlagData { Flag = Flag.Chequered });
             return;
         }
 
         // If the message category is not 'Flag', or received clear message, the message can be ignored.
         if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
         {
-            logger.LogInformation("[Formula 1] Race control message ignored");
+            _logger.LogInformation("[Formula 1] Race control message ignored");
             return;
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
         if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag))
         {
-            logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
+            _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
         }
 
@@ -239,16 +246,24 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     }
 
     /// <summary>
-    /// Get the auth token from storage and validate. If invalid, nothing is returned.
+    /// Parses a session status message. If the message equals a finalized message, the session finished event will
+    /// be triggered.
     /// </summary>
-    /// <returns>Auth token.</returns>
-    private async Task<string?> FetchAuthToken()
+    /// <param name="data">Session status message</param>
+    private async Task HandleSessionStatusMessageAsync(JsonNode data)
     {
-        return string.Empty;
+        _logger.LogInformation("[Formula 1] Parsing session status message");
+
+        var message = data.GetValue<SessionStatusMessage>();
+        if (!message.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
+        await OnSessionFinished();
     }
 
     /// <summary>
-    /// Structure of the returned value from the TrackStatus method.
+    /// Structure of a TrackStatus method.
     /// </summary>
     private sealed record TrackStatusMessage(
         string Status,
@@ -256,19 +271,27 @@ public partial class Formula1(ILogger logger, F1AuthService f1AuthService) : ICa
     );
 
     /// <summary>
-    /// Structure of the returned value from the RaceControlMessages method.
+    /// Structure of a RaceControlMessages method.
     /// </summary>
     private sealed record RaceControlMessages(
         JsonObject Messages
     );
 
     /// <summary>
-    /// Structure of a returned RaceControlMessages method message.
+    /// Structure of the content of a single RaceControlMessages message.
     /// </summary>
     private sealed record RaceControlMessage(
         string Category,
         string Message,
         string Flag,
         string RacingNumber
+    );
+
+    /// <summary>
+    /// Structure of a SessionStatus method message.
+    /// </summary>
+    private sealed record SessionStatusMessage(
+        string Status,
+        string Started
     );
 }

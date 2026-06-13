@@ -1,11 +1,14 @@
+using Microsoft.Extensions.Options;
 using RaceControl.Categories;
 using RaceControl.Database.Entities;
+using RaceControl.Options;
 using RaceControl.Track;
 
 namespace RaceControl.Services;
 
 public class CategoryService(
     ILogger<CategoryService> logger,
+    IOptionsMonitor<RaceControlOptions> options,
     F1AuthService f1AuthService,
     TrackStatus trackStatus)
 {
@@ -71,7 +74,7 @@ public class CategoryService(
     {
         category = key switch
         {
-            "f1" => new Formula1(logger, f1AuthService),
+            "f1" => new Formula1(logger, options, f1AuthService),
             "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
             "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
             _ => null
