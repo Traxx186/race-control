@@ -9,7 +9,7 @@ using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public class Formula1: ICategory
+public sealed class Formula1: ICategory
 {
     private const string LiveTimingUrl = "wss://livetiming.formula1.com/signalrcore";
 
@@ -136,7 +136,7 @@ public class Formula1: ICategory
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flagData">The parsed flag.</param>
-    protected virtual async Task OnFlagParsed(FlagData flagData)
+    private async Task OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs { FlagData = flagData };
         FlagParsed?.Invoke(this, args);
@@ -145,7 +145,7 @@ public class Formula1: ICategory
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    protected virtual async Task OnSessionFinished()
+    private async Task OnSessionFinished()
     {
         if (_connection?.State == HubConnectionState.Connected)
             await StopAsync();
@@ -180,8 +180,8 @@ public class Formula1: ICategory
     private async Task HandleTrackStatusMessageAsync(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
-        var trackStatusMessage = data.GetValue<TrackStatusMessage>();
-        if (!short.TryParse(trackStatusMessage.Status, out var status))
+        var trackStatusMessage = data.Deserialize<TrackStatusMessage>();
+        if (!short.TryParse(trackStatusMessage?.Status, out var status))
         {
             _logger.LogError("[Formula 1] Invalid track status message received");
             return;
@@ -208,9 +208,9 @@ public class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
 
-        var raceControlMessages = data.GetValue<RaceControlMessages>();
-        var raceControlMessage = raceControlMessages.Messages[0].Deserialize<RaceControlMessage>();
-        if (null == raceControlMessage)
+        var raceControlMessages = data.Deserialize<RaceControlMessages>();
+        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessage>();
+        if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");
             return;
@@ -254,9 +254,18 @@ public class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var message = data.GetValue<SessionStatusMessage>();
-        if (!message.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        var message = data.Deserialize<SessionStatusMessage>();
+        if (message is null)
+        {
+            _logger.LogWarning("[Formula 1] Invalid session status message received");
             return;
+        }
+
+        if (!message.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("[Formula 1] Session status message ignored");
+            return;
+        }
 
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
         await OnSessionFinished();

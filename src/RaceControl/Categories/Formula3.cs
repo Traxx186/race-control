@@ -136,7 +136,7 @@ public class Formula3(ILogger logger, string url) : ICategory
         logger.LogInformation("[Formula 3] Parsing track feed message");
 
         var data = message[1]?.Deserialize<TrackStatusMessage>();
-        if (data == null || !short.TryParse(data.Value, out var status))
+        if (!short.TryParse(data?.Value, out var status))
         {
             logger.LogError("[Formula 3] Invalid track status message received");
             return;
@@ -164,7 +164,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     {
         logger.LogInformation("[Formula 3] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
-        if (data == null) {
+        if (data is null) {
             logger.LogError("[Formula 3] Invalid session feed message received");
             return;
         }

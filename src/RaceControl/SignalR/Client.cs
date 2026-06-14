@@ -147,7 +147,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// </summary>
     public void Stop()
     {
-        _connection?.Dispose();
+        _connection?.Stop();
         _connection = null;
 
         Running = false;
