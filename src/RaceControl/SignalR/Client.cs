@@ -54,7 +54,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// <summary>
     /// If the SignalR service is active.
     /// </summary>
-    private bool Running { set; get; }
+    public bool Running { get; private set; }
 
     public event Action<Exception> Error;
 
