@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
 using RaceControl.Options;
@@ -283,7 +282,7 @@ public sealed class Formula1: ICategory
     /// Structure of a RaceControlMessages method.
     /// </summary>
     private sealed record RaceControlMessages(
-        JsonObject Messages
+        JsonNode Messages
     );
 
     /// <summary>
