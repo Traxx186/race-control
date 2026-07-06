@@ -44,12 +44,12 @@ public class Formula2(ILogger logger, string url) : ICategory
             "/streaming"
         );
 
-        _signalR.Error += async _ => await OnSessionFinishedAsync();
-        _signalR.AddHandler("Streaming", "timefeed", async message => await HandleTimefeedMessageAsync(message));
+        _signalR.Error += async _ => await OnSessionFinishedAsync().ConfigureAwait(false);
+        //_signalR.AddHandler("Streaming", "timefeed", async message => await HandleTimefeedMessageAsync(message));
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", async message => await HandleSessionFeedMessageAsync(message));
 
-        await _signalR.StartAsync("JoinFeeds");
+        await _signalR.StartAsync("JoinFeeds").ConfigureAwait(false);
     }
 
     public async Task StopAsync()
@@ -89,7 +89,8 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// </summary>
     protected virtual async Task OnSessionFinishedAsync()
     {
-        await StopAsync();
+        if (_signalR is not null)
+            await StopAsync().ConfigureAwait(false);
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
     }
@@ -121,7 +122,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         logger.LogInformation("[Formula 2] Session finalized, closing API connection");
         _hasStarted = false;
         OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-        await OnSessionFinishedAsync();
+        await OnSessionFinishedAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -133,7 +134,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         logger.LogInformation("[Formula 2] Parsing track feed message");
 
         var data = message[1]?.Deserialize<TrackStatusMessage>();
-        if (short.TryParse(data?.Value, out var status))
+        if (!short.TryParse(data?.Value, out var status))
         {
             logger.LogError("[Formula 2] Invalid track status message received");
             return;
@@ -156,7 +157,6 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// Parses the incoming Session Feed message to check if the session is finished.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
-
     protected virtual async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing session feed message");
@@ -166,30 +166,35 @@ public class Formula2(ILogger logger, string url) : ICategory
             return;
         }
 
-        switch (data.Value.ToLower())
+        if (data.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
-            case "started":
-                logger.LogInformation("[Formula 2] Session started");
-                OnFlagParsed(new FlagData { Flag = Flag.Clear });
-                _hasStarted = true;
+            logger.LogInformation("[Formula 2] Session started");
+            OnFlagParsed(new FlagData { Flag = Flag.Clear });
+            _hasStarted = true;
 
-                break;
-            case "finished":
-            case "finalised":
-                if (!_hasStarted)
-                    break;
-
-                logger.LogInformation("[Formula 2] Session finalized, closing API connection");
-
-                _hasStarted = false;
-                OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-                await OnSessionFinishedAsync();
-
-                break;
-            default:
-                logger.LogInformation("[Formula 2] Session feed message ignored");
-                break;
+            return;
         }
+
+        if (data.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("[Formula 2] Session finished");
+            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+
+            return;
+        }
+
+        if (data.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
+        {
+            logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+
+            _hasStarted = false;
+            OnFlagParsed(new FlagData { Flag = Flag.Clear });
+            await OnSessionFinishedAsync().ConfigureAwait(false);
+
+            return;
+        }
+
+        logger.LogInformation("[Formula 2] Session feed message ignored");
     }
 
     /// <summary>

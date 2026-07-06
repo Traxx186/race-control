@@ -8,7 +8,7 @@ public sealed class TrackStatus(
     IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext)
 {
     private const int InformationFlagPriority = 0;
-    
+
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
     /// </summary>
@@ -49,7 +49,7 @@ public sealed class TrackStatus(
             logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
             ActiveFlagData = data;
             await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
-           
+
             return;
         }
 
@@ -70,17 +70,17 @@ public sealed class TrackStatus(
         logger.LogInformation("[Track Status] Received status flag");
         if (newFlagPrio < currentFlagPrio)
         {
-            logger.LogInformation("[Track Status] New received status flag has lower priority, ignoring flag");
+            logger.LogInformation("[Track Status] New received flag has lower priority, ignoring flag");
             return;
         }
 
-        logger.LogInformation("[Track Status] New received status flag with higher priority, updating track status");
+        logger.LogInformation("[Track Status] New received flag with higher priority, updating track status");
         ActiveFlagData = data;
         await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
     }
 
     /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>. 
+    /// Converts the input string to a <see cref="Flag"/>.
     /// </summary>
     /// <param name="input">The string representing a flag.</param>
     /// <param name="flag">
@@ -106,7 +106,7 @@ public sealed class TrackStatus(
             "YELLOW" => Flag.Yellow,
             _ => Flag.None
         };
-        
+
         return flag != Flag.None;
     }
 }
