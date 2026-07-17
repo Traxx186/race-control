@@ -58,7 +58,9 @@ public class Formula3(ILogger logger, string url) : ICategory
     public async Task StopAsync()
     {
         logger.LogInformation("[Formula 3] Closing API connection");
-        _signalR?.Stop();
+        _hasStarted = false;
+
+        await _signalR!.StopAsync().ConfigureAwait(false);
         _signalR = null;
 
         if (null == FlagParsed)
@@ -92,10 +94,11 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// </summary>
     protected virtual async Task OnSessionFinishedAsync()
     {
-        if (_signalR is not null)
-            await StopAsync().ConfigureAwait(false);
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
+
+        if (_signalR is not null && _hasStarted)
+            await StopAsync().ConfigureAwait(false);
     }
 
         /// <summary>
@@ -191,7 +194,6 @@ public class Formula3(ILogger logger, string url) : ICategory
         {
             logger.LogInformation("[Formula 3] Session finalized, closing API connection");
 
-            _hasStarted = false;
             OnFlagParsed(new FlagData { Flag = Flag.Clear });
             await OnSessionFinishedAsync().ConfigureAwait(false);
 

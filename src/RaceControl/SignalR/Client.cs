@@ -145,11 +145,11 @@ public sealed class Client(string url, string hub, object[] args)
     /// <summary>
     /// Disconnects the SignalR client.
     /// </summary>
-    public void Stop()
+    public async Task StopAsync()
     {
-        _connection?.Stop();
-        _connection = null;
+        await Task.Run(() => _connection?.Stop()).ConfigureAwait(false);
 
+        _connection = null;
         Running = false;
     }
 }
