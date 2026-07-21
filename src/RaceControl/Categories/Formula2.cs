@@ -54,6 +54,9 @@ public class Formula2(ILogger logger, string url) : ICategory
 
     public async Task StopAsync()
     {
+        if (!_hasStarted || _signalR is null)
+            return;
+
         logger.LogInformation("[Formula 2] Closing API connection");
         _hasStarted = false;
 
@@ -91,10 +94,14 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// </summary>
     protected virtual async Task OnSessionFinishedAsync()
     {
-        SessionFinished?.Invoke(this, EventArgs.Empty);
-
-        if (_signalR is not null && _hasStarted)
-            await StopAsync().ConfigureAwait(false);
+        await Task.WhenAny(
+            StopAsync(),
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                SessionFinished?.Invoke(this, EventArgs.Empty);
+            })
+        );
     }
 
     /// <summary>

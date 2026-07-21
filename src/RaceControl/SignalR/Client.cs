@@ -149,6 +149,7 @@ public sealed class Client(string url, string hub, object[] args)
     {
         await Task.Run(() => _connection?.Stop()).ConfigureAwait(false);
 
+        Log.Information("[SignalR] Client disconnected");
         _connection = null;
         Running = false;
     }
