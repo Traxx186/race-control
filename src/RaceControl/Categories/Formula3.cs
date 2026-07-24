@@ -34,7 +34,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     public async Task StartAsync(string session)
     {
         logger.LogInformation("[Formula 3] Starting API connection");
-        var feeds = new[] {"status", "time"};
+        var feeds = new[] {"status"};
 
         _signalR = new Client(
             url,
@@ -45,7 +45,6 @@ public class Formula3(ILogger logger, string url) : ICategory
         );
 
         _signalR.Error += async _ => await OnSessionFinishedAsync().ConfigureAwait(false);
-        //_signalR.AddHandler("Streaming", "timefeed", async message => await HandleTimefeedMessageAsync(message));
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", async message => await HandleSessionFeedMessageAsync(message));
 
@@ -57,28 +56,17 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// </summary>
     public async Task StopAsync()
     {
+        FlagParsed = null;
+        SessionFinished = null;
+
         if (!_hasStarted || _signalR is null)
             return;
 
         logger.LogInformation("[Formula 3] Closing API connection");
         _hasStarted = false;
 
-        await _signalR!.StopAsync().ConfigureAwait(false);
+        await _signalR!.StopAsync();
         _signalR = null;
-
-        if (null == FlagParsed)
-            return;
-
-        // Remove all the linked invocations of the FlagParsed event handler
-        foreach (var del in FlagParsed.GetInvocationList())
-            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-        if (null == SessionFinished)
-            return;
-
-        // Remove all the linked invocations of the SessionFinished event handler
-        foreach (var del in SessionFinished.GetInvocationList())
-            SessionFinished -= (EventHandler)del;
     }
 
     /// <summary>
@@ -97,44 +85,9 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// </summary>
     protected virtual async Task OnSessionFinishedAsync()
     {
-        await Task.WhenAny(
-            StopAsync(),
-            Task.Run(async () =>
-            {
-                await Task.Delay(1000);
-                SessionFinished?.Invoke(this, EventArgs.Empty);
-            })
-        );
-    }
+        await StopAsync();
 
-    /// <summary>
-    /// Parses the incoming Timing Feed message to check if the session is finished.
-    /// </summary>
-    /// <param name="message">Message argument data received from Formula 3 API.</param>
-    protected virtual async Task HandleTimefeedMessageAsync(JsonArray message)
-    {
-        logger.LogInformation("[Formula 3] Parsing time feed message");
-
-        var sessionTimeData = message[2]?.Deserialize<string>();
-        if (string.IsNullOrWhiteSpace(sessionTimeData))
-        {
-            logger.LogInformation("[Formula 3] Invalid session time received.");
-            return;
-        }
-
-        var sessionTimeLeft = TimeSpan.ParseExact(sessionTimeData, "c", CultureInfo.InvariantCulture);
-
-        // If the session has not jed finalized, stop the execution of the method.
-        if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero)
-        {
-            logger.LogInformation("[Formula 3] Session still active, remaining time left {time}", sessionTimeLeft.ToString("c"));
-            return;
-        }
-
-        logger.LogInformation("[Formula 3] Session finalized, closing API connection");
-        _hasStarted = false;
-        OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-        await OnSessionFinishedAsync().ConfigureAwait(false);
+        SessionFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
