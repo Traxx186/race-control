@@ -12,14 +12,11 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_IMAGE_VERSION} AS build
 
 WORKDIR /race-control
 
-# Copy csproj and restore as distinct layers
-COPY ./src/RaceControl/RaceControl.csproj ./
+# Copy project files
+COPY ./ ./
 
 # Restore as distinct layers
-RUN dotnet restore --runtime linux-musl-x64
-
-# Copy project files
-COPY ./src/RaceControl/ ./
+RUN dotnet restore RaceControl.slnx --runtime linux-musl-x64
 
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
