@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using RaceControl.SignalR;
@@ -44,11 +43,11 @@ public class Formula3(ILogger logger, string url) : ICategory
             "/streaming"
         );
 
-        _signalR.Error += async _ => await OnSessionFinishedAsync().ConfigureAwait(false);
+        _signalR.Error += async _ => await OnSessionFinishedAsync();
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
         _signalR.AddHandler("Streaming", "sessionfeed", async message => await HandleSessionFeedMessageAsync(message));
 
-        await _signalR.StartAsync("JoinFeeds").ConfigureAwait(false);
+        await _signalR.StartAsync("JoinFeeds");
     }
 
     /// <summary>
@@ -57,7 +56,6 @@ public class Formula3(ILogger logger, string url) : ICategory
     public async Task StopAsync()
     {
         FlagParsed = null;
-        SessionFinished = null;
 
         if (!_hasStarted || _signalR is null)
             return;
@@ -73,7 +71,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flagData">The parsed flag.</param>
-    protected virtual void OnFlagParsed(FlagData flagData)
+    private void OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs { FlagData = flagData };
 
@@ -83,18 +81,19 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    protected virtual async Task OnSessionFinishedAsync()
+    private async Task OnSessionFinishedAsync()
     {
         await StopAsync();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
+        SessionFinished = null;
     }
 
     /// <summary>
     /// Parses the incoming Tack Feed message to get the current flag of the session.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
-    protected virtual void HandleTrackFeedMessage(JsonArray message)
+    private void HandleTrackFeedMessage(JsonArray message)
     {
         logger.LogInformation("[Formula 3] Parsing track feed message");
 
@@ -123,7 +122,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// </summary>
     /// <param name="message">Message argument data received from Formula 3 API.</param>
 
-    protected virtual async Task HandleSessionFeedMessageAsync(JsonArray message)
+    private async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 3] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
@@ -152,9 +151,7 @@ public class Formula3(ILogger logger, string url) : ICategory
         if (data.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
         {
             logger.LogInformation("[Formula 3] Session finalized, closing API connection");
-
-            OnFlagParsed(new FlagData { Flag = Flag.Clear });
-            await OnSessionFinishedAsync().ConfigureAwait(false);
+            await OnSessionFinishedAsync();
 
             return;
         }

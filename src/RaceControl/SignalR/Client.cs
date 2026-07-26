@@ -56,7 +56,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// </summary>
     public bool Running { get; private set; }
 
-    public event Action<Exception> Error;
+    public event Action<Exception>? Error;
 
     public Client(string url, string hub, object[] args, Version version)
         : this(url, hub, args)
@@ -96,7 +96,7 @@ public sealed class Client(string url, string hub, object[] args)
             connection.Error += e =>
             {
                 Log.Error("[SignalR] Error occured: {error}", e.Message);
-                Error.Invoke(e);
+                Error?.Invoke(e);
             };
 
             if (null != _version)
@@ -147,7 +147,7 @@ public sealed class Client(string url, string hub, object[] args)
     /// </summary>
     public async Task StopAsync()
     {
-        await Task.Run(() => _connection?.Stop()).ConfigureAwait(false);
+        await Task.Run(() => _connection?.Stop());
 
         Log.Information("[SignalR] Client disconnected");
         _connection = null;

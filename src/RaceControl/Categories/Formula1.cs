@@ -105,19 +105,7 @@ public sealed class Formula1: ICategory
         _logger.LogInformation("[Formula 1] Closing API connection");
         await DisposeConnection();
 
-        if (null == FlagParsed)
-            return;
-
-        // Remove all the linked invocations of the FlagParsed event handler
-        foreach (var del in FlagParsed.GetInvocationList())
-            FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-        if (null == SessionFinished)
-            return;
-
-        // Remove all the linked invocations of the SessionFinished event handler
-        foreach (var del in SessionFinished.GetInvocationList())
-            SessionFinished -= (EventHandler)del;
+        FlagParsed = null;
     }
 
     /// <summary>
@@ -135,7 +123,7 @@ public sealed class Formula1: ICategory
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flagData">The parsed flag.</param>
-    private async Task OnFlagParsed(FlagData flagData)
+    private void OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs { FlagData = flagData };
         FlagParsed?.Invoke(this, args);
@@ -150,6 +138,7 @@ public sealed class Formula1: ICategory
             await StopAsync();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
+        SessionFinished = null;
     }
 
     /// <summary>
@@ -160,15 +149,21 @@ public sealed class Formula1: ICategory
     /// <param name="timestamp">When the incoming message was sent.</param>
     private async Task HandleMessageAsync(string topic, JsonNode data, DateTimeOffset timestamp)
     {
-        var handler = topic switch
+        switch (topic)
         {
-            "SessionStatus" => HandleSessionStatusMessageAsync(data),
-            "TrackStatus" => HandleTrackStatusMessageAsync(data),
-            "RaceControlMessages" => HandleRaceControlMessagesAsync(data),
-            _ => Task.Run(() => _logger.LogWarning("[Formula 1] Unsupported topic {topic}", topic))
-        };
-
-        await handler;
+            case "SessionStatus":
+                await HandleSessionStatusMessageAsync(data);
+                break;
+            case "TrackStatus":
+                HandleTrackStatusMessage(data);
+                break;
+            case "RaceControlMessages":
+                HandleRaceControlMessages(data);
+                break;
+            default:
+                _logger.LogWarning("[Formula 1] Unsupported topic {topic}", topic);
+                break;
+        }
     }
 
     /// <summary>
@@ -176,7 +171,7 @@ public sealed class Formula1: ICategory
     /// </summary>
     /// <param name="data">Message object.</param>
     /// <returns>Parsed flag.</returns>
-    private async Task HandleTrackStatusMessageAsync(JsonNode data)
+    private void HandleTrackStatusMessage(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
         var trackStatusMessage = data.Deserialize<TrackStatusMessage>();
@@ -196,14 +191,14 @@ public sealed class Formula1: ICategory
             _ => Flag.None
         };
 
-        await OnFlagParsed(new FlagData { Flag = flag });
+        OnFlagParsed(new FlagData { Flag = flag });
     }
 
     /// <summary>
     /// Parses a race control message to a flag and relative data.
     /// </summary>
     /// <param name="data">Race control message data.</param>
-    private async Task HandleRaceControlMessagesAsync(JsonNode data)
+    private void HandleRaceControlMessages(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
 
@@ -219,7 +214,7 @@ public sealed class Formula1: ICategory
         if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
-            await OnFlagParsed(new FlagData { Flag = Flag.Surface });
+            OnFlagParsed(new FlagData { Flag = Flag.Surface });
 
             return;
         }
@@ -241,7 +236,7 @@ public sealed class Formula1: ICategory
         if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
             driver = 0;
 
-        await OnFlagParsed(new FlagData { Flag = flag, Driver = driver == 0 ? null : driver });
+        OnFlagParsed(new FlagData { Flag = flag, Driver = driver == 0 ? null : driver });
     }
 
     /// <summary>

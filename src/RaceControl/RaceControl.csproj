@@ -9,6 +9,7 @@
     <Authors>Traxx186</Authors>
     <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
