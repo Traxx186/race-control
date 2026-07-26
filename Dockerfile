@@ -20,7 +20,6 @@ RUN dotnet restore --runtime linux-musl-x64
 
 # Copy project files
 COPY ./src/RaceControl/ ./
-COPY ./app.json ./
 
 # Build and publish a release
 RUN dotnet publish -c Release -o out  \
@@ -39,7 +38,6 @@ ARG USER_ID
 
 # Copy required files
 COPY --from=build /race-control/out ./
-COPY --from=build /race-control/app.json ./
 
 # Disables diagnostic pipeline for security
 ENV DOTNET_EnableDiagnostics=0
