@@ -2,7 +2,7 @@ using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public interface ICategory : IDisposable
+public interface ICategory
 {
     /// <summary>
     /// Event that gets invoked when the active flag of the category has changed.
@@ -23,5 +23,5 @@ public interface ICategory : IDisposable
     /// <summary>
     /// Closes the connection to the live timing service related to the category.
     /// </summary>
-    void Stop();
+    Task StopAsync();
 }

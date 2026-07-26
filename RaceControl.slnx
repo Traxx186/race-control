@@ -1,3 +1,7 @@
 <Solution>
+  <Folder Name="/Tests/">
+    <Project Path="tests/RaceControl.Tests/RaceControl.Tests.csproj" />
+  </Folder>
+  <Project Path="src/RaceControl.Database/RaceControl.Database.csproj" />
   <Project Path="src/RaceControl/RaceControl.csproj" />
 </Solution>

@@ -9,16 +9,18 @@ using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Jobs;
 using RaceControl.Middleware;
+using RaceControl.Options;
 using RaceControl.Services;
 using RaceControl.Track;
 using Serilog;
 using Serilog.Settings.Configuration;
 
-// Create a new WebApplication builder and load Environment Variables and the appsettings.json file 
+// Create a new WebApplication builder and load Environment Variables and the appsettings.json file
 // into the configuration.
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.SetBasePath(Environment.CurrentDirectory);
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(RaceControlOptions.ConfigFilePath, optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
 
 // Add app key storage & set encryptor configuration
@@ -30,7 +32,7 @@ builder.Services.AddDataProtection()
         ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
     });
 
-// Create a new logger instance with the app configuration 
+// Create a new logger instance with the app configuration
 builder.Services.AddSerilog(configuration =>
     configuration.ReadFrom
         .Configuration(
@@ -49,14 +51,16 @@ builder.Services.Configure<JsonOptions>(options =>
 // Load controllers, signalr hubs and services to the web application.
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
-    { 
+    {
         options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>()); 
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
     });
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<TrackStatus>();
+builder.Services.AddSingleton<F1AuthService>();
 builder.Services.AddSingleton<CategoryService>();
 
 // Create the database connection and add the app database context to the services
@@ -72,14 +76,14 @@ builder.Services.AddQuartz(quartz =>
     quartz.AddTrigger(opts => opts
         .ForJob(SyncSessionsJob.JobKey)
         .WithIdentity("SyncSessionsJob-trigger")
-        .WithCronSchedule("0 0 8 ? * THU")
+        .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 
     quartz.AddJob<FetchActiveSessionJob>(opts => opts.WithIdentity(FetchActiveSessionJob.JobKey));
     quartz.AddTrigger(opts => opts
         .ForJob(FetchActiveSessionJob.JobKey)
         .WithIdentity("FetchActiveSessionJob-trigger")
-        .WithCronSchedule("0 * * ? * MON,THU,FRI,SAT,SUN")
+        .WithCronSchedule("0 * * ? * SUN,MON,THU,FRI,SAT *")
     );
 });
 

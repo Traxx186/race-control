@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Database.Configurations;
+namespace RaceControl.Database.ModelConfiguration;
 
 public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
@@ -14,19 +14,19 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(e => e.Id)
             .HasMaxLength(255)
             .HasColumnName("id");
-            
+
         builder.Property(e => e.CategoryKey)
             .HasMaxLength(32)
             .HasColumnName("category_key");
-            
+
         builder.Property(e => e.Key)
             .HasMaxLength(32)
             .HasColumnName("key");
-            
+
         builder.Property(e => e.Name)
             .HasMaxLength(64)
             .HasColumnName("name");
-            
+
         builder.Property(e => e.Time)
             .HasColumnName("time");
 

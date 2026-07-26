@@ -7,11 +7,12 @@ class Panel {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.#resizeCanvas();
-
-        window.addEventListener('resize', this.#resizeCanvas(), false);
     }
 
     setFlag(flag, driver = null) {
+        clearInterval(this.#interval);
+        this.ctx.reset();
+
         switch (flag) {
             case 'Clear':
                 this.#greenFlag();
@@ -50,11 +51,11 @@ class Panel {
                 console.warn(`Flag ${flag} not supported`);
         }
     }
-    
+
     #resizeCanvas() {
         this.canvas.height = window.innerHeight;
         this.canvas.width = window.innerWidth;
-            
+
         this.ctx = this.canvas.getContext("2d");
     }
 
@@ -62,8 +63,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Clear';
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -89,8 +88,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Yellow';
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -108,8 +105,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'Red';
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -127,8 +122,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'DoubleYellow';
-        this.ctx.reset();
-        clearInterval(this.#interval)
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -157,8 +150,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'SafetyCar';
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -198,7 +189,7 @@ class Panel {
             this.ctx.font = "25em Arial";
             this.ctx.fillStyle = '#fff';
             this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle'; 
+            this.ctx.textBaseline = 'middle';
             this.ctx.fillText(text, Math.floor(width / 2), Math.floor(height / 2));
 
             setTimeout(() => {
@@ -207,7 +198,7 @@ class Panel {
                 this.ctx.font = "25em Arial";
                 this.ctx.fillStyle = '#fff';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle'; 
+                this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(text, Math.floor(width / 2), Math.floor(height / 2));
             }, 250);
         }, 500);
@@ -217,8 +208,6 @@ class Panel {
         const { width, height } = this.canvas;
 
         this.#currentFlag = 'FCY';
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -258,23 +247,20 @@ class Panel {
             this.ctx.font = "25em Arial";
             this.ctx.fillStyle = '#fff';
             this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle'; 
+            this.ctx.textBaseline = 'middle';
             this.ctx.fillText('FYC', Math.floor(width / 2), Math.floor(height / 2));
 
             setTimeout(() => {
                 this.ctx.reset();
 
                 this.ctx.fillStyle = '#fedd00';
-                this.ctx.fillRect(0, 0, width, height);    
+                this.ctx.fillRect(0, 0, width, height);
             }, 250);
         }, 500);
     }
 
     #blueFlag(number = null) {
         const { width, height } = this.canvas;
-
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -283,11 +269,11 @@ class Panel {
                 this.ctx.strokeStyle = '#0a16db';
                 this.ctx.lineWidth = 125;
                 this.ctx.strokeRect(0, 0, width, height);
-    
+
                 this.ctx.font = "25em Arial";
                 this.ctx.fillStyle = '#fff';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle'; 
+                this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(number, Math.floor(width / 2), Math.floor(height / 2));
             } else {
                 this.ctx.fillStyle = '#0a16db';
@@ -300,7 +286,7 @@ class Panel {
                 if (number) {
                     this.ctx.fillStyle = '#0a16db';
                     this.ctx.fillRect(0, 0, width, height);
-                }   
+                }
             }, 250);
         }, 500);
 
@@ -315,9 +301,6 @@ class Panel {
 
     #blackWhiteFlag(number) {
         const { width, height } = this.canvas;
-
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -335,7 +318,7 @@ class Panel {
                 this.ctx.font = "25em Arial";
                 this.ctx.fillStyle = '#fff';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle'; 
+                this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(number, Math.floor(width / 2), Math.floor(height / 2));
             }, 500);
         }, 1000);
@@ -355,12 +338,9 @@ class Panel {
         const rows = Math.ceil(height / squareSize);
         const cols = Math.ceil(width / squareSize);
 
-        this.ctx.reset();
-        clearInterval(this.#interval);
-
         this.#interval = setInterval(() => {
             this.ctx.reset();
-    
+
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
                     this.ctx.fillStyle = (i + j) % 2 === 0 ? '#000' : '#fff';
@@ -370,7 +350,7 @@ class Panel {
 
             setTimeout(() => {
                 this.ctx.reset();
-        
+
                 for (let i = 0; i < rows; i++) {
                     for (let j = 0; j < cols; j++) {
                         this.ctx.fillStyle = (i + j) % 2 === 0 ? '#fff' : '#000';
@@ -390,9 +370,6 @@ class Panel {
         const { width, height } = this.canvas;
         const stripeWidth = width / 4;
         const spacing = stripeWidth * 0.128;
-
-        this.ctx.reset();
-        clearInterval(this.#interval);
 
         this.ctx.fillStyle = '#ff0000';
         this.ctx.fillRect(0, 0, stripeWidth - spacing, height);

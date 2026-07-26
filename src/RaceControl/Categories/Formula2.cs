@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using RaceControl.SignalR;
@@ -19,11 +18,6 @@ public class Formula2(ILogger logger, string url) : ICategory
     private bool _hasStarted;
 
     /// <summary>
-    /// If the object has already been disposed.
-    /// </summary>
-    private bool _disposed;
-
-    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler<FlagDataEventArgs>? FlagParsed;
@@ -39,7 +33,7 @@ public class Formula2(ILogger logger, string url) : ICategory
     public async Task StartAsync(string session)
     {
         logger.LogInformation("[Formula 2] Starting API connection");
-        var feeds = new[] {"status", "time"};
+        var feeds = new[] {"status"};
 
         _signalR = new Client(
             url,
@@ -49,60 +43,35 @@ public class Formula2(ILogger logger, string url) : ICategory
             "/streaming"
         );
 
-        _signalR.AddHandler("Streaming", "timefeed", HandleTimefeedMessage);
+        _signalR.Error += async _ => await OnSessionFinishedAsync();
         _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
-        _signalR.AddHandler("Streaming", "sessionfeed", HandleSessionFeedMessage);
+        _signalR.AddHandler("Streaming", "sessionfeed", async message => await HandleSessionFeedMessageAsync(message));
+
         await _signalR.StartAsync("JoinFeeds");
     }
 
-    public void Stop()
-    {
-        logger.LogInformation("[Formula 2] Closing API connection");
-        Dispose();
-    }
-    
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void Dispose()
+    public async Task StopAsync()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) 
+        FlagParsed = null;
+
+        if (!_hasStarted || _signalR is null)
             return;
 
-        if (disposing)
-        {
-            _signalR?.Stop();
-            _signalR = null;
+        logger.LogInformation("[Formula 2] Closing API connection");
+        _hasStarted = false;
 
-            if (null == FlagParsed)
-                return;
-
-            // Remove all the linked invocations of the FlagParsed event handler
-            foreach (var del in FlagParsed.GetInvocationList())
-                FlagParsed -= (EventHandler<FlagDataEventArgs>)del;
-
-            if (null == SessionFinished)
-                return;
-
-            // Remove all the linked invocations of the SessionFinished event handler
-            foreach (var del in SessionFinished.GetInvocationList())
-                SessionFinished -= (EventHandler)del;
-        }
-
-        _disposed = true;
+        await _signalR!.StopAsync();
+        _signalR = null;
     }
 
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flagData">The parsed flag.</param>
-    protected virtual void OnFlagParsed(FlagData flagData)
+    private void OnFlagParsed(FlagData flagData)
     {
         var args = new FlagDataEventArgs { FlagData = flagData };
 
@@ -112,57 +81,30 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    protected virtual void OnSessionFinished()
+    private async Task OnSessionFinishedAsync()
     {
+        await StopAsync();
+
         SessionFinished?.Invoke(this, EventArgs.Empty);
-    }
-
-    /// <summary>
-    /// Parses the incoming Timing Feed message to check if the session is finished.
-    /// </summary>
-    /// <param name="message">Message argument data received from Formula 2 API.</param>
-    protected virtual void HandleTimefeedMessage(JsonArray message)
-    {
-        logger.LogInformation("[Formula 2] Parsing time feed message");
-
-        var sessionTimeData = message[2]?.Deserialize<string>();
-        if (string.IsNullOrWhiteSpace(sessionTimeData))
-        {
-            logger.LogInformation("[Formula 2] Invalid session time received.");
-            return;
-        }
-
-        var sessionTimeLeft = TimeSpan.ParseExact(sessionTimeData, "c", CultureInfo.InvariantCulture);
-        
-        // If the session has not jed finalized, stop the execution of the method.
-        if (!_hasStarted || sessionTimeLeft != TimeSpan.Zero)
-        {
-            logger.LogInformation("[Formula 2] Session still active, remaining time left {time}", sessionTimeLeft.ToString("c"));
-            return;
-        }
-        
-        logger.LogInformation("[Formula 2] Session finalized, closing API connection");
-        _hasStarted = false;
-        OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-        OnSessionFinished();
+        SessionFinished = null;
     }
 
     /// <summary>
     /// Parses the incoming Tack Feed message to get the current flag of the session.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
-    protected virtual void HandleTrackFeedMessage(JsonArray message)
+    private void HandleTrackFeedMessage(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing track feed message");
 
         var data = message[1]?.Deserialize<TrackStatusMessage>();
-        if (data == null || !short.TryParse(data.Value, out var status))
+        if (!short.TryParse(data?.Value, out var status))
         {
             logger.LogError("[Formula 2] Invalid track status message received");
             return;
         }
 
-        var flag = status switch 
+        var flag = status switch
         {
             1 => Flag.Clear,
             2 => Flag.Yellow,
@@ -179,40 +121,41 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// Parses the incoming Session Feed message to check if the session is finished.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
-
-    protected virtual void HandleSessionFeedMessage(JsonArray message)
+    private async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing session feed message");
         var data = message[1]?.Deserialize<SessionFeedMessage>();
-        if (data == null) {
+        if (data is null) {
             logger.LogError("[Formula 2] Invalid session feed message received");
             return;
         }
 
-        switch (data.Value.ToLower())
+        if (data.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
-            case "started":
-                logger.LogInformation("[Formula 2] Session started");
-                OnFlagParsed(new FlagData { Flag = Flag.Clear });
-                _hasStarted = true;
+            logger.LogInformation("[Formula 2] Session started");
+            OnFlagParsed(new FlagData { Flag = Flag.Clear });
+            _hasStarted = true;
 
-                break;
-            case "finished":
-            case "finalised":
-                if (!_hasStarted)
-                    break;
+            return;
+        }
 
-                logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+        if (data.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("[Formula 2] Session finished");
+            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
 
-                _hasStarted = false;
-                OnFlagParsed(new FlagData { Flag = Flag.Chequered });
-                OnSessionFinished();
+            return;
+        }
 
-                break;
-            default:
-                logger.LogInformation("[Formula 2] Session feed message ignored");
-                break;
-        }       
+        if (data.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
+        {
+            logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+            await OnSessionFinishedAsync();
+
+            return;
+        }
+
+        logger.LogInformation("[Formula 2] Session feed message ignored");
     }
 
     /// <summary>
