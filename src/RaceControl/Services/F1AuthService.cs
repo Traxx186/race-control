@@ -5,7 +5,7 @@ using RaceControl.Options;
 
 namespace RaceControl.Services;
 
-public sealed class F1AuthService
+public sealed class F1AuthService : IF1AuthService
 {
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
     private readonly ILogger<F1AuthService> _logger;

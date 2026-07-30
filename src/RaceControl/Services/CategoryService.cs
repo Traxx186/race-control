@@ -10,7 +10,7 @@ public class CategoryService(
     ILogger<CategoryService> logger,
     IOptionsMonitor<RaceControlOptions> options,
     F1AuthService f1AuthService,
-    TrackStatus trackStatus)
+    TrackStatus trackStatus) : ICategoryService
 {
     /// <summary>
     /// The currently active category.
@@ -22,20 +22,13 @@ public class CategoryService(
     /// </summary>
     private Session? _activeSession;
 
-    /// <summary>
-    /// If there is already a session active.
-    /// </summary>
+    /// <inheritdoc/>
     public bool HasSessionActive => _activeSession != null;
 
-    /// <summary>
-    /// Returns the currently active session, if there is any.
-    /// </summary>
+    /// <inheritdoc/>
     public Session? ActiveSession => _activeSession;
 
-    /// <summary>
-    /// Starts the API connection of the category based on the given session.
-    /// </summary>
-    /// <param name="session">The session of the category to start.</param>
+    /// <inheritdoc/>
     public async Task StartCategoryAsync(Session session)
     {
         _activeSession ??= session;
