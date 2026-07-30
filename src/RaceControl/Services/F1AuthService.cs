@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
+using RaceControl.Data.Enums;
 using RaceControl.Options;
 
 namespace RaceControl.Services;
@@ -123,14 +124,5 @@ public sealed class F1AuthService : IF1AuthService
         public DateTimeOffset Expiry => DateTimeOffset.FromUnixTimeSeconds(Exp);
 
         public DateTimeOffset IssuedAt => DateTimeOffset.FromUnixTimeSeconds(Iat);
-    }
-
-    public enum AuthenticationResult
-    {
-        Success,
-        NoToken,
-        InvalidToken,
-        InvalidSubscriptionStatus,
-        ExpiredToken,
     }
 }

@@ -1,7 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RaceControl.Data.Enums;
+using RaceControl.Data.Events;
 using RaceControl.SignalR;
-using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
@@ -20,7 +21,7 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
@@ -70,10 +71,10 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
-    /// <param name="flagData">The parsed flag.</param>
-    private void OnFlagParsed(FlagData flagData)
+    /// <param name="flag">The parsed flag.</param>
+    private void OnFlagParsed(Flag flag)
     {
-        var args = new FlagDataEventArgs { FlagData = flagData };
+        var args = new FlagChangedEventArgs { Flag = flag };
 
         FlagParsed?.Invoke(this, args);
     }
@@ -114,7 +115,7 @@ public class Formula2(ILogger logger, string url) : ICategory
             _ => Flag.None
         };
 
-        OnFlagParsed(new FlagData{ Flag = flag });
+        OnFlagParsed(flag);
     }
 
     /// <summary>
@@ -133,7 +134,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         if (data.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session started");
-            OnFlagParsed(new FlagData { Flag = Flag.Clear });
+            OnFlagParsed(Flag.Clear);
             _hasStarted = true;
 
             return;
@@ -142,7 +143,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         if (data.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session finished");
-            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+            OnFlagParsed(Flag.Chequered);
 
             return;
         }

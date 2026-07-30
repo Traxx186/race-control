@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using RaceControl.Categories;
+using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
 using RaceControl.Options;
-using RaceControl.Track;
 
 namespace RaceControl.Services;
 
@@ -38,7 +38,7 @@ public class CategoryService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
 
-        _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.FlagData);
+        _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.Flag, args.Driver);
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeCategory.StartAsync(_activeSession.Key);
@@ -49,7 +49,7 @@ public class CategoryService(
     /// </summary>
     private async Task StopActiveCategoryAsync()
     {
-        await trackStatusService.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
+        await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 
         logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory = null;

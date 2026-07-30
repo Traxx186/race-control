@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
+using RaceControl.Data.Dtos;
+using RaceControl.Data.Enums;
 using RaceControl.Hubs;
-using RaceControl.Track;
 
 namespace RaceControl.Services;
 
@@ -33,32 +34,34 @@ public sealed class TrackStatusService(
     private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
 
     /// <inheritdoc/>
-    public FlagData ActiveFlagData { get; private set; } = new() { Flag = Flag.Clear };
+    public Flag ActiveFlag { get; private set; } = Flag.Clear;
 
     /// <inheritdoc/>
-    public async Task SetActiveFlagAsync(FlagData data)
+    public async Task SetActiveFlagAsync(Flag flag, int? driver = null)
     {
         logger.LogInformation("[Track Status] New flag received");
-        if (OverrideFlags.Contains(data.Flag))
+        if (OverrideFlags.Contains(flag))
         {
-            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
-            ActiveFlagData = data;
-            await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
+            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", flag);
+
+            ActiveFlag = flag;
+            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
 
             return;
         }
 
         // If given flag is the same as the active flag, or the active flag is
         // None. Do not try to set the given flag.
-        if (data.Flag == ActiveFlagData.Flag || data.Flag == Flag.None)
+        if (flag == ActiveFlag || flag == Flag.None)
             return;
 
-        var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlagData.Flag);
-        if (ActiveFlagData.Flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
+        var newFlagPrio = FlagPriority.GetValueOrDefault(flag);
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag);
+        if (flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await trackStatusHubContext.Clients.All.FlagChange(data);
+            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(flag, driver));
+
             return;
         }
 
@@ -70,8 +73,9 @@ public sealed class TrackStatusService(
         }
 
         logger.LogInformation("[Track Status] New received flag with higher priority, updating track status");
-        ActiveFlagData = data;
-        await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
+        ActiveFlag = flag;
+
+        await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
     }
 
     /// <inheritdoc/>

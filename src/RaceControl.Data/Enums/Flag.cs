@@ -1,4 +1,4 @@
-namespace RaceControl.Track;
+namespace RaceControl.Data.Enums;
 
 /// <summary>
 /// Possible flags that can be displayed on the flag panels.

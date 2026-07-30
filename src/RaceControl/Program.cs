@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using RaceControl.Data.Enums;
 using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Jobs;
 using RaceControl.Middleware;
 using RaceControl.Options;
 using RaceControl.Services;
-using RaceControl.Track;
 using Serilog;
 using Serilog.Settings.Configuration;
 

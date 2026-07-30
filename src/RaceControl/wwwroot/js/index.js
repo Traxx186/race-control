@@ -13,9 +13,8 @@ let latency = 0;
 sessionHub.on('CategoryChange', (category) => {
    if (category === null)
        return;
-   
+
    latency = category.latency * 1000;
-   console.log(latency);
 });
 
 trackStatusHub.on('FlagChange', (flagData) => {

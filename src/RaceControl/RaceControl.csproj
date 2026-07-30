@@ -9,6 +9,7 @@
     <Authors>Traxx186</Authors>
     <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <AssemblyName>RaceControl</AssemblyName>
     <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
@@ -25,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RaceControl.Data\RaceControl.Data.csproj" />
     <ProjectReference Include="..\RaceControl.Database\RaceControl.Database.csproj" />
   </ItemGroup>
 

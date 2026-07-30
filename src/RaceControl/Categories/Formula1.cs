@@ -2,9 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
+using RaceControl.Data.Enums;
+using RaceControl.Data.Events;
 using RaceControl.Options;
 using RaceControl.Services;
-using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
@@ -29,7 +30,7 @@ public sealed class Formula1: ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
@@ -122,10 +123,11 @@ public sealed class Formula1: ICategory
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
-    /// <param name="flagData">The parsed flag.</param>
-    private void OnFlagParsed(FlagData flagData)
+    /// <param name="flag">The parsed flag.</param>
+    /// <param name="driverNumber">The number of the driver for whom the flag is intended.</param>
+    private void OnFlagParsed(Flag flag, int? driverNumber = null)
     {
-        var args = new FlagDataEventArgs { FlagData = flagData };
+        var args = new FlagChangedEventArgs { Flag = flag, Driver = driverNumber};
         FlagParsed?.Invoke(this, args);
     }
 
@@ -191,7 +193,7 @@ public sealed class Formula1: ICategory
             _ => Flag.None
         };
 
-        OnFlagParsed(new FlagData { Flag = flag });
+        OnFlagParsed(flag);
     }
 
     /// <summary>
@@ -214,7 +216,7 @@ public sealed class Formula1: ICategory
         if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
-            OnFlagParsed(new FlagData { Flag = Flag.Surface });
+            OnFlagParsed(Flag.Surface);
 
             return;
         }
@@ -236,7 +238,7 @@ public sealed class Formula1: ICategory
         if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
             driver = 0;
 
-        OnFlagParsed(new FlagData { Flag = flag, Driver = driver == 0 ? null : driver });
+        OnFlagParsed(flag, driver == 0 ? null : driver);
     }
 
     /// <summary>
