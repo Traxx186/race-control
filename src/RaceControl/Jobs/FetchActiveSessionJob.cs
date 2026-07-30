@@ -11,7 +11,7 @@ public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,
     IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
     RaceControlContext dbContext,
-    CategoryService categoryService) : IJob
+    ICategoryService categoryService) : IJob
 {
     public static readonly JobKey JobKey = new("FetchActiveSessionJob");
 

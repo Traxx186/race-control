@@ -14,7 +14,7 @@ public sealed class Formula1: ICategory
 
     private readonly ILogger _logger;
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
-    private readonly F1AuthService _f1AuthService;
+    private readonly IF1AuthService _f1AuthService;
 
     /// <summary>
     /// Which SignalR topics to subscribe to when connection to the live timing API.
@@ -44,7 +44,7 @@ public sealed class Formula1: ICategory
     public Formula1(
         ILogger logger,
         IOptionsMonitor<RaceControlOptions> options,
-        F1AuthService f1AuthService)
+        IF1AuthService f1AuthService)
     {
         _logger = logger;
         _optionsMonitor = options;
@@ -227,7 +227,7 @@ public sealed class Formula1: ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (!TrackStatusService.TryParseFlag(raceControlMessage.Flag, out var flag))
         {
             _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;

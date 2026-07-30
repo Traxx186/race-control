@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
 using RaceControl.Hubs;
+using RaceControl.Track;
 
-namespace RaceControl.Track;
+namespace RaceControl.Services;
 
-public sealed class TrackStatus(
-    ILogger<TrackStatus> logger,
-    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext)
+public sealed class TrackStatusService(
+    ILogger<TrackStatusService> logger,
+    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext) : ITrackStatusService
 {
     private const int InformationFlagPriority = 0;
 
@@ -31,16 +32,10 @@ public sealed class TrackStatus(
     /// </summary>
     private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
 
-    /// <summary>
-    /// The current active flag of the session.
-    /// </summary>
+    /// <inheritdoc/>
     public FlagData ActiveFlagData { get; private set; } = new() { Flag = Flag.Clear };
 
-    /// <summary>
-    /// Sets the current active flag. If the priority of the given flag equals 0, the OnFlagChange event will be called
-    /// but the flag data will not be saved.
-    /// </summary>
-    /// <param name="data">Flag data to be processed.</param>
+    /// <inheritdoc/>
     public async Task SetActiveFlagAsync(FlagData data)
     {
         logger.LogInformation("[Track Status] New flag received");
@@ -79,15 +74,7 @@ public sealed class TrackStatus(
         await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
     }
 
-    /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>.
-    /// </summary>
-    /// <param name="input">The string representing a flag.</param>
-    /// <param name="flag">
-    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
-    /// Else <code>Flag.None</code> will be returned.
-    /// </param>
-    /// <returns>If the flag could be parsed.</returns>
+    /// <inheritdoc/>
     public static bool TryParseFlag(string? input, out Flag flag)
     {
         flag = input switch

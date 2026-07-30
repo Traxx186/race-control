@@ -9,8 +9,8 @@ namespace RaceControl.Services;
 public class CategoryService(
     ILogger<CategoryService> logger,
     IOptionsMonitor<RaceControlOptions> options,
-    F1AuthService f1AuthService,
-    TrackStatus trackStatus) : ICategoryService
+    IF1AuthService f1AuthService,
+    ITrackStatusService trackStatusService) : ICategoryService
 {
     /// <summary>
     /// The currently active category.
@@ -38,7 +38,7 @@ public class CategoryService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
 
-        _activeCategory!.FlagParsed += async (_, args) => await trackStatus.SetActiveFlagAsync(args.FlagData);
+        _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.FlagData);
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeCategory.StartAsync(_activeSession.Key);
@@ -49,7 +49,7 @@ public class CategoryService(
     /// </summary>
     private async Task StopActiveCategoryAsync()
     {
-        await trackStatus.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
+        await trackStatusService.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
 
         logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory = null;

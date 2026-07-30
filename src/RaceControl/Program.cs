@@ -59,8 +59,8 @@ builder.Services.AddSignalR()
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<TrackStatus>();
-builder.Services.AddSingleton<F1AuthService>();
+builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
+builder.Services.AddSingleton<IF1AuthService, F1AuthService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
 
 // Create the database connection and add the app database context to the services

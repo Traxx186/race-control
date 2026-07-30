@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
-using RaceControl.Track;
+using RaceControl.Services;
 
 namespace RaceControl.Hubs;
 
-public class TrackStatusHub(TrackStatus trackStatus) : Hub<ITrackStatusHubClient>
+public class TrackStatusHub(ITrackStatusService trackStatusService) : Hub<ITrackStatusHubClient>
 {
     public override Task OnConnectedAsync()
     {
-        return Clients.Caller.FlagChange(trackStatus.ActiveFlagData);
+        return Clients.Caller.FlagChange(trackStatusService.ActiveFlagData);
     }
 }

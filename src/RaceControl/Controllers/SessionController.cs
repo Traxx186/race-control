@@ -12,7 +12,7 @@ namespace RaceControl.Controllers;
 public class SessionController(
     ILogger<SessionController> logger,
     IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
-    CategoryService categoryService,
+    ICategoryService categoryService,
     RaceControlContext dbContext)
     : ControllerBase
 {
@@ -32,10 +32,10 @@ public class SessionController(
         logger.LogInformation("[Session] Saving changes to database");
         dbContext.ChangeTracker.DetectChanges();
         await dbContext.SaveChangesAsync();
-        
+
         activeSession.Category = category;
         await sessionHubContext.Clients.All.CategoryChange(activeSession.Category);
-        
+
         return Ok(category);
     }
 }
