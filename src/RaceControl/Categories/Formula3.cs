@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.SignalR;
@@ -27,6 +28,9 @@ public class Formula3(ILogger logger, string url) : ICategory
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler? SessionFinished;
+
+    /// <inheritdoc/>
+    public bool Connected => _signalR?.Running ?? false;
 
     /// <summary>
     /// <inheritdoc/>
@@ -98,7 +102,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     {
         logger.LogInformation("[Formula 3] Parsing track feed message");
 
-        var data = message[1]?.Deserialize<TrackStatusMessage>();
+        var data = message[1]?.Deserialize<TrackStatusMessageDto>();
         if (!short.TryParse(data?.Value, out var status))
         {
             logger.LogError("[Formula 3] Invalid track status message received");
@@ -126,7 +130,7 @@ public class Formula3(ILogger logger, string url) : ICategory
     private async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 3] Parsing session feed message");
-        var data = message[1]?.Deserialize<SessionFeedMessage>();
+        var data = message[1]?.Deserialize<SessionStatusMessageDto>();
         if (data is null) {
             logger.LogError("[Formula 3] Invalid session feed message received");
             return;
@@ -159,19 +163,4 @@ public class Formula3(ILogger logger, string url) : ICategory
 
         logger.LogInformation("[Formula 3] Session feed message ignored");
     }
-
-    /// <summary>
-    /// Structure of a track status message.
-    /// </summary>
-    private sealed record TrackStatusMessage(
-        string Value,
-        string Message
-    );
-
-    /// <summary>
-    /// Structure of a session feed message.
-    /// </summary>
-    private sealed record SessionFeedMessage (
-        string Value
-    );
 }

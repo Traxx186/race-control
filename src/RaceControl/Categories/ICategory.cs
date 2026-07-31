@@ -5,6 +5,11 @@ namespace RaceControl.Categories;
 public interface ICategory
 {
     /// <summary>
+    /// If the live timing API is active.
+    /// </summary>
+    bool Connected { get; }
+
+    /// <summary>
     /// Event that gets invoked when the active flag of the category has changed.
     /// </summary>
     event EventHandler<FlagChangedEventArgs> FlagParsed;

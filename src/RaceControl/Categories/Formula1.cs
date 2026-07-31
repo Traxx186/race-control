@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
+using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.Options;
@@ -37,9 +38,7 @@ public sealed class Formula1: ICategory
     /// </summary>
     public event EventHandler? SessionFinished;
 
-    /// <summary>
-    /// If the live timing API is active.
-    /// </summary>
+    /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
 
     public Formula1(
@@ -176,7 +175,7 @@ public sealed class Formula1: ICategory
     private void HandleTrackStatusMessage(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
-        var trackStatusMessage = data.Deserialize<TrackStatusMessage>();
+        var trackStatusMessage = data.Deserialize<TrackStatusMessageDto>();
         if (!short.TryParse(trackStatusMessage?.Status, out var status))
         {
             _logger.LogError("[Formula 1] Invalid track status message received");
@@ -204,8 +203,8 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
 
-        var raceControlMessages = data.Deserialize<RaceControlMessages>();
-        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessage>();
+        var raceControlMessages = data.Deserialize<RaceControlMessagesDto>();
+        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessageDto>();
         if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");
@@ -250,7 +249,7 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var message = data.Deserialize<SessionStatusMessage>();
+        var message = data.Deserialize<SessionStatusMessageDto>();
         if (message is null)
         {
             _logger.LogWarning("[Formula 1] Invalid session status message received");
@@ -266,37 +265,4 @@ public sealed class Formula1: ICategory
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
         await OnSessionFinished();
     }
-
-    /// <summary>
-    /// Structure of a TrackStatus method.
-    /// </summary>
-    private sealed record TrackStatusMessage(
-        string Status,
-        string Message
-    );
-
-    /// <summary>
-    /// Structure of a RaceControlMessages method.
-    /// </summary>
-    private sealed record RaceControlMessages(
-        JsonNode Messages
-    );
-
-    /// <summary>
-    /// Structure of the content of a single RaceControlMessages message.
-    /// </summary>
-    private sealed record RaceControlMessage(
-        string Category,
-        string Message,
-        string Flag,
-        string RacingNumber
-    );
-
-    /// <summary>
-    /// Structure of a SessionStatus method message.
-    /// </summary>
-    private sealed record SessionStatusMessage(
-        string Status,
-        string Started
-    );
 }

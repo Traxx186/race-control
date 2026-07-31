@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
 using RaceControl.Options;
 
@@ -12,7 +13,7 @@ public sealed class F1AuthService : IF1AuthService
     private readonly ILogger<F1AuthService> _logger;
 
     public string? AccessToken { get; private set; }
-    public TokenPayload? Payload { get; private set; }
+    public TokenPayloadDto? Payload { get; private set; }
     public AuthenticationResult IsAuthenticated { get; private set; }
 
     public F1AuthService(
@@ -36,7 +37,7 @@ public sealed class F1AuthService : IF1AuthService
             : null;
     }
 
-    private AuthenticationResult CheckToken(string? accessToken, out TokenPayload? token)
+    private AuthenticationResult CheckToken(string? accessToken, out TokenPayloadDto? token)
     {
         token = null;
         if (string.IsNullOrWhiteSpace(accessToken))
@@ -76,7 +77,7 @@ public sealed class F1AuthService : IF1AuthService
     /// </summary>
     /// <param name="accessToken">Token to be used.</param>
     /// <returns>The token payload.</returns>
-    private TokenPayload? GetTokenPayloadFromAccessToken(string accessToken)
+    private TokenPayloadDto? GetTokenPayloadFromAccessToken(string accessToken)
     {
         var subscriptionToken = GetSubscriptionTokenFromAccessToken(accessToken)!;
 
@@ -91,7 +92,7 @@ public sealed class F1AuthService : IF1AuthService
             tokenPart += new string('=', 4 - missingPaddingChars);
         }
 
-        var tokenPayload = JsonSerializer.Deserialize<TokenPayload>(Convert.FromBase64String(tokenPart));
+        var tokenPayload = JsonSerializer.Deserialize<TokenPayloadDto>(Convert.FromBase64String(tokenPart));
         return tokenPayload;
     }
 
@@ -105,24 +106,5 @@ public sealed class F1AuthService : IF1AuthService
         var jsonString = Uri.UnescapeDataString(accessToken);
 
         return JsonNode.Parse(jsonString)?["data"]?["subscriptionToken"]?.GetValue<string>();
-    }
-
-    /// <summary>
-    /// Body of the subscriptionToken
-    /// </summary>
-    /// <param name="SubscriptionStatus">What the status of the account subscription is.</param>
-    /// <param name="SubscribedProduct">Which products the user is subscribed to.</param>
-    /// <param name="Exp">When the token will expire.</param>
-    /// <param name="Iat">When the token was issued.</param>
-    public sealed record TokenPayload(
-        string SubscriptionStatus,
-        string? SubscribedProduct,
-        int Exp,
-        int Iat
-    )
-    {
-        public DateTimeOffset Expiry => DateTimeOffset.FromUnixTimeSeconds(Exp);
-
-        public DateTimeOffset IssuedAt => DateTimeOffset.FromUnixTimeSeconds(Iat);
     }
 }
