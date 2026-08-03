@@ -1,16 +1,13 @@
-using Microsoft.Extensions.Options;
 using RaceControl.Categories;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
-using RaceControl.Options;
 
 namespace RaceControl.Services;
 
 public class CategoryService(
     ILogger<CategoryService> logger,
-    IOptionsMonitor<RaceControlOptions> options,
-    IF1AuthService f1AuthService,
-    ITrackStatusService trackStatusService) : ICategoryService
+    ITrackStatusService trackStatusService,
+    IEnumerable<ICategory> categories) : ICategoryService
 {
     /// <summary>
     /// The currently active category.
@@ -66,9 +63,9 @@ public class CategoryService(
     {
         category = key switch
         {
-            "f1" => new Formula1(logger, options, f1AuthService),
-            "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
-            "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
+            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
+            "f2" => categories.OfType<Formula2>().FirstOrDefault(),
+            "f3" => categories.OfType<Formula3>().FirstOrDefault(),
             _ => null
         };
 

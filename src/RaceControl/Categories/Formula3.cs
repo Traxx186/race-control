@@ -7,8 +7,10 @@ using RaceControl.SignalR;
 
 namespace RaceControl.Categories;
 
-public class Formula3(ILogger logger, string url) : ICategory
+public class Formula3(ILogger<Formula3> logger) : ICategory
 {
+    private const string LiveTimingUrl = "https://ltss.fiaformula3.com";
+
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
@@ -41,7 +43,7 @@ public class Formula3(ILogger logger, string url) : ICategory
         var feeds = new[] {"status"};
 
         _signalR = new Client(
-            url,
+            LiveTimingUrl,
             "streaming",
             ["F3", feeds],
             new Version(2, 1),

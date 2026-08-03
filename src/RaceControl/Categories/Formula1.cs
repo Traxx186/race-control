@@ -42,7 +42,7 @@ public sealed class Formula1: ICategory
     public bool Connected => _connection?.State == HubConnectionState.Connected;
 
     public Formula1(
-        ILogger logger,
+        ILogger<Formula1> logger,
         IOptionsMonitor<RaceControlOptions> options,
         IF1AuthService f1AuthService)
     {
