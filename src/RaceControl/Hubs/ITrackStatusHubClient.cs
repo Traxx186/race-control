@@ -1,8 +1,8 @@
-using RaceControl.Track;
+using RaceControl.Data.Dtos;
 
 namespace RaceControl.Hubs;
 
 public interface ITrackStatusHubClient
-{ 
-    Task FlagChange(FlagData flagData);
+{
+    Task FlagChange(FlagDataDto flagData);
 }

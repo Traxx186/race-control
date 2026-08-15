@@ -1,4 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>RaceControl.Database</AssemblyName>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />

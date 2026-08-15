@@ -2,9 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
+using RaceControl.Data.Dtos.LiveTimingDtos;
+using RaceControl.Data.Enums;
+using RaceControl.Data.Events;
 using RaceControl.Options;
 using RaceControl.Services;
-using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
@@ -14,7 +16,7 @@ public sealed class Formula1: ICategory
 
     private readonly ILogger _logger;
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
-    private readonly F1AuthService _f1AuthService;
+    private readonly IF1AuthService _f1AuthService;
 
     /// <summary>
     /// Which SignalR topics to subscribe to when connection to the live timing API.
@@ -29,22 +31,20 @@ public sealed class Formula1: ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler? SessionFinished;
 
-    /// <summary>
-    /// If the live timing API is active.
-    /// </summary>
+    /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
 
     public Formula1(
-        ILogger logger,
+        ILogger<Formula1> logger,
         IOptionsMonitor<RaceControlOptions> options,
-        F1AuthService f1AuthService)
+        IF1AuthService f1AuthService)
     {
         _logger = logger;
         _optionsMonitor = options;
@@ -122,10 +122,11 @@ public sealed class Formula1: ICategory
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
-    /// <param name="flagData">The parsed flag.</param>
-    private void OnFlagParsed(FlagData flagData)
+    /// <param name="flag">The parsed flag.</param>
+    /// <param name="driverNumber">The number of the driver for whom the flag is intended.</param>
+    private void OnFlagParsed(Flag flag, int? driverNumber = null)
     {
-        var args = new FlagDataEventArgs { FlagData = flagData };
+        var args = new FlagChangedEventArgs { Flag = flag, Driver = driverNumber};
         FlagParsed?.Invoke(this, args);
     }
 
@@ -174,7 +175,7 @@ public sealed class Formula1: ICategory
     private void HandleTrackStatusMessage(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
-        var trackStatusMessage = data.Deserialize<TrackStatusMessage>();
+        var trackStatusMessage = data.Deserialize<TrackStatusMessageDto>();
         if (!short.TryParse(trackStatusMessage?.Status, out var status))
         {
             _logger.LogError("[Formula 1] Invalid track status message received");
@@ -191,7 +192,7 @@ public sealed class Formula1: ICategory
             _ => Flag.None
         };
 
-        OnFlagParsed(new FlagData { Flag = flag });
+        OnFlagParsed(flag);
     }
 
     /// <summary>
@@ -202,8 +203,8 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
 
-        var raceControlMessages = data.Deserialize<RaceControlMessages>();
-        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessage>();
+        var raceControlMessages = data.Deserialize<RaceControlMessagesDto>();
+        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessageDto>();
         if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");
@@ -214,7 +215,7 @@ public sealed class Formula1: ICategory
         if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
-            OnFlagParsed(new FlagData { Flag = Flag.Surface });
+            OnFlagParsed(Flag.Surface);
 
             return;
         }
@@ -227,7 +228,7 @@ public sealed class Formula1: ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatus.TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (!TrackStatusService.TryParseFlag(raceControlMessage.Flag, out var flag))
         {
             _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
@@ -236,7 +237,7 @@ public sealed class Formula1: ICategory
         if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
             driver = 0;
 
-        OnFlagParsed(new FlagData { Flag = flag, Driver = driver == 0 ? null : driver });
+        OnFlagParsed(flag, driver == 0 ? null : driver);
     }
 
     /// <summary>
@@ -248,7 +249,7 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var message = data.Deserialize<SessionStatusMessage>();
+        var message = data.Deserialize<SessionStatusMessageDto>();
         if (message is null)
         {
             _logger.LogWarning("[Formula 1] Invalid session status message received");
@@ -264,37 +265,4 @@ public sealed class Formula1: ICategory
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
         await OnSessionFinished();
     }
-
-    /// <summary>
-    /// Structure of a TrackStatus method.
-    /// </summary>
-    private sealed record TrackStatusMessage(
-        string Status,
-        string Message
-    );
-
-    /// <summary>
-    /// Structure of a RaceControlMessages method.
-    /// </summary>
-    private sealed record RaceControlMessages(
-        JsonNode Messages
-    );
-
-    /// <summary>
-    /// Structure of the content of a single RaceControlMessages message.
-    /// </summary>
-    private sealed record RaceControlMessage(
-        string Category,
-        string Message,
-        string Flag,
-        string RacingNumber
-    );
-
-    /// <summary>
-    /// Structure of a SessionStatus method message.
-    /// </summary>
-    private sealed record SessionStatusMessage(
-        string Status,
-        string Started
-    );
 }

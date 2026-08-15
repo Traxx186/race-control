@@ -1,17 +1,15 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using RaceControl.Categories;
 using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Jobs;
 using RaceControl.Middleware;
 using RaceControl.Options;
 using RaceControl.Services;
-using RaceControl.Track;
 using Serilog;
 using Serilog.Settings.Configuration;
 
@@ -41,27 +39,19 @@ builder.Services.AddSerilog(configuration =>
         )
 );
 
-// Configure JSON serialization options
-builder.Services.Configure<JsonOptions>(options =>
-{
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
-});
-
 // Load controllers, signalr hubs and services to the web application.
-builder.Services.AddSignalR()
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter<Flag>());
-    });
-
+builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<TrackStatus>();
-builder.Services.AddSingleton<F1AuthService>();
-builder.Services.AddSingleton<CategoryService>();
+builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
+builder.Services.AddSingleton<IF1AuthService, F1AuthService>();
+builder.Services.AddSingleton<ICategoryService, CategoryService>();
+
+// Add the supported racing categories
+builder.Services.AddSingleton<ICategory, Formula1>();
+builder.Services.AddSingleton<ICategory, Formula2>();
+builder.Services.AddSingleton<ICategory, Formula3>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts

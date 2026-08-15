@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using RaceControl.Data.Dtos;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
@@ -64,13 +65,13 @@ public class SyncSessionsJob(
     /// <param name="category">The category to fetch the data for.</param>
     /// <param name="year">The year of the season.</param>
     /// <returns>The fetched data.</returns>
-    private async Task<Calendar?> FetchCalendarAsync(string category, int year)
+    private async Task<CalendarDto?> FetchCalendarAsync(string category, int year)
     {
         logger.LogInformation("[Session Sync] Fetching calendar data for {key}", category);
         using var client = httpClientFactory.CreateClient();
 
         var url = $"https://raw.githubusercontent.com/sportstimes/f1/main/_db/{category}/{year}.json";
-        return await client.GetFromJsonAsync<Calendar>(url);
+        return await client.GetFromJsonAsync<CalendarDto>(url);
     }
 
     /// <summary>
@@ -79,7 +80,7 @@ public class SyncSessionsJob(
     /// <param name="category">The related category of the sessions.</param>
     /// <param name="year">The season year.</param>
     /// <param name="races">Races where the sessions added/updated.</param>
-    private void UpsertSessions(Category category, int year, CalendarItem[] races)
+    private void UpsertSessions(Category category, int year, CalendarItemDto[] races)
     {
         var sessions = races.SelectMany(r =>
             r.Sessions.Select(s => new Session
@@ -92,9 +93,8 @@ public class SyncSessionsJob(
                     Round = r.Round,
                     Time = s.Value
                 }
-            ))
-            .ToArray();
-
+            )
+        );
 
         foreach (var session in sessions)
         {
@@ -118,32 +118,14 @@ public class SyncSessionsJob(
     /// <param name="category">The related category of the sessions.</param>
     /// <param name="year">The season year.</param>
     /// <param name="races">Races where the sessions will be deleted.</param>
-    private async Task DeleteSessionsAsync(Category category, int year, CalendarItem[] races)
+    private async Task DeleteSessionsAsync(Category category, int year, CalendarItemDto[] races)
     {
         var sessionKeys = races.SelectMany(r =>
-                r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")
-            )
-            .ToArray();
+            r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")
+        );
 
         await dbContext.Sessions
             .Where(s => sessionKeys.Contains(s.Id))
             .ExecuteDeleteAsync();
     }
-
-    /// <summary>
-    /// The structure of the response from the calendar api.
-    /// </summary>
-    private record Calendar(
-        CalendarItem[] Races
-    );
-
-    /// <summary>
-    /// The structure of a calendar item of the calendar api.
-    /// </summary>
-    private record CalendarItem(
-        string Name,
-        int Round,
-        bool Canceled,
-        Dictionary<string, DateTime> Sessions
-    );
 }

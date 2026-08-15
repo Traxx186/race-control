@@ -2,32 +2,32 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RaceControl.Hubs;
-using RaceControl.Track;
+using RaceControl.Services;
 
 namespace RaceControl.Tests.Track;
 
 [TestClass]
-public class TrackStatusTests
+public class TrackStatusServiceTests
 {
-    private static ILogger<TrackStatus>? _logger;
+    private static ILogger<TrackStatusService>? _logger;
     private static IHubContext<TrackStatusHub, ITrackStatusHubClient>? _trackStatusHubContext;
 
     [ClassInitialize]
     public static void ClassInitialize(TestContext context)
     {
-        _logger = new Mock<ILogger<TrackStatus>>().Object;
+        _logger = new Mock<ILogger<TrackStatusService>>().Object;
         _trackStatusHubContext = new Mock<IHubContext<TrackStatusHub, ITrackStatusHubClient>>().Object;
     }
 
     [TestMethod]
     public void TryParseFlag_WithValidFlag_ReturnsTrue()
     {
-        Assert.IsTrue(TrackStatus.TryParseFlag("BLACK AND WHITE",  out _));
+        Assert.IsTrue(TrackStatusService.TryParseFlag("BLACK AND WHITE",  out _));
     }
 
     [TestMethod]
     public void TryParseFlag_WithInvalidFlag_ReturnsFalse()
     {
-        Assert.IsFalse(TrackStatus.TryParseFlag("RAIN",  out _));
+        Assert.IsFalse(TrackStatusService.TryParseFlag("RAIN",  out _));
     }
 }

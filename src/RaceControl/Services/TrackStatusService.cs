@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.SignalR;
+using RaceControl.Data.Dtos;
+using RaceControl.Data.Enums;
 using RaceControl.Hubs;
 
-namespace RaceControl.Track;
+namespace RaceControl.Services;
 
-public sealed class TrackStatus(
-    ILogger<TrackStatus> logger,
-    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext)
+public sealed class TrackStatusService(
+    ILogger<TrackStatusService> logger,
+    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext) : ITrackStatusService
 {
     private const int InformationFlagPriority = 0;
 
@@ -31,39 +33,35 @@ public sealed class TrackStatus(
     /// </summary>
     private static readonly Flag[] OverrideFlags = [Flag.Clear, Flag.Chequered];
 
-    /// <summary>
-    /// The current active flag of the session.
-    /// </summary>
-    public FlagData ActiveFlagData { get; private set; } = new() { Flag = Flag.Clear };
+    /// <inheritdoc/>
+    public Flag ActiveFlag { get; private set; } = Flag.Clear;
 
-    /// <summary>
-    /// Sets the current active flag. If the priority of the given flag equals 0, the OnFlagChange event will be called
-    /// but the flag data will not be saved.
-    /// </summary>
-    /// <param name="data">Flag data to be processed.</param>
-    public async Task SetActiveFlagAsync(FlagData data)
+    /// <inheritdoc/>
+    public async Task SetActiveFlagAsync(Flag flag, int? driver = null)
     {
         logger.LogInformation("[Track Status] New flag received");
-        if (OverrideFlags.Contains(data.Flag))
+        if (OverrideFlags.Contains(flag))
         {
-            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", data.Flag);
-            ActiveFlagData = data;
-            await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
+            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", flag);
+
+            ActiveFlag = flag;
+            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
 
             return;
         }
 
         // If given flag is the same as the active flag, or the active flag is
         // None. Do not try to set the given flag.
-        if (data.Flag == ActiveFlagData.Flag || data.Flag == Flag.None)
+        if (flag == ActiveFlag || flag == Flag.None)
             return;
 
-        var newFlagPrio = FlagPriority.GetValueOrDefault(data.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlagData.Flag);
-        if (ActiveFlagData.Flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
+        var newFlagPrio = FlagPriority.GetValueOrDefault(flag);
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag);
+        if (flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await trackStatusHubContext.Clients.All.FlagChange(data);
+            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(flag, driver));
+
             return;
         }
 
@@ -75,19 +73,12 @@ public sealed class TrackStatus(
         }
 
         logger.LogInformation("[Track Status] New received flag with higher priority, updating track status");
-        ActiveFlagData = data;
-        await trackStatusHubContext.Clients.All.FlagChange(ActiveFlagData);
+        ActiveFlag = flag;
+
+        await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
     }
 
-    /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>.
-    /// </summary>
-    /// <param name="input">The string representing a flag.</param>
-    /// <param name="flag">
-    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
-    /// Else <code>Flag.None</code> will be returned.
-    /// </param>
-    /// <returns>If the flag could be parsed.</returns>
+    /// <inheritdoc/>
     public static bool TryParseFlag(string? input, out Flag flag)
     {
         flag = input switch

@@ -1,12 +1,16 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RaceControl.Data.Dtos.LiveTimingDtos;
+using RaceControl.Data.Enums;
+using RaceControl.Data.Events;
 using RaceControl.SignalR;
-using RaceControl.Track;
 
 namespace RaceControl.Categories;
 
-public class Formula2(ILogger logger, string url) : ICategory
+public class Formula2(ILogger<Formula2> logger) : ICategory
 {
+    private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
+
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
     /// </summary>
@@ -20,12 +24,15 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagDataEventArgs>? FlagParsed;
+    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler? SessionFinished;
+
+    /// <inheritdoc/>
+    public bool Connected => _signalR?.Running ?? false;
 
     /// <summary>
     /// <inheritdoc/>
@@ -36,7 +43,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         var feeds = new[] {"status"};
 
         _signalR = new Client(
-            url,
+            LiveTimingUrl,
             "streaming",
             ["F2", feeds],
             new Version(2, 1),
@@ -70,10 +77,10 @@ public class Formula2(ILogger logger, string url) : ICategory
     /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
-    /// <param name="flagData">The parsed flag.</param>
-    private void OnFlagParsed(FlagData flagData)
+    /// <param name="flag">The parsed flag.</param>
+    private void OnFlagParsed(Flag flag)
     {
-        var args = new FlagDataEventArgs { FlagData = flagData };
+        var args = new FlagChangedEventArgs { Flag = flag };
 
         FlagParsed?.Invoke(this, args);
     }
@@ -97,7 +104,7 @@ public class Formula2(ILogger logger, string url) : ICategory
     {
         logger.LogInformation("[Formula 2] Parsing track feed message");
 
-        var data = message[1]?.Deserialize<TrackStatusMessage>();
+        var data = message[1]?.Deserialize<TrackStatusMessageDto>();
         if (!short.TryParse(data?.Value, out var status))
         {
             logger.LogError("[Formula 2] Invalid track status message received");
@@ -114,7 +121,7 @@ public class Formula2(ILogger logger, string url) : ICategory
             _ => Flag.None
         };
 
-        OnFlagParsed(new FlagData{ Flag = flag });
+        OnFlagParsed(flag);
     }
 
     /// <summary>
@@ -124,7 +131,7 @@ public class Formula2(ILogger logger, string url) : ICategory
     private async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing session feed message");
-        var data = message[1]?.Deserialize<SessionFeedMessage>();
+        var data = message[1]?.Deserialize<SessionStatusMessageDto>();
         if (data is null) {
             logger.LogError("[Formula 2] Invalid session feed message received");
             return;
@@ -133,7 +140,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         if (data.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session started");
-            OnFlagParsed(new FlagData { Flag = Flag.Clear });
+            OnFlagParsed(Flag.Clear);
             _hasStarted = true;
 
             return;
@@ -142,7 +149,7 @@ public class Formula2(ILogger logger, string url) : ICategory
         if (data.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session finished");
-            OnFlagParsed(new FlagData { Flag = Flag.Chequered });
+            OnFlagParsed(Flag.Chequered);
 
             return;
         }
@@ -157,19 +164,4 @@ public class Formula2(ILogger logger, string url) : ICategory
 
         logger.LogInformation("[Formula 2] Session feed message ignored");
     }
-
-    /// <summary>
-    /// Structure of a track status message.
-    /// </summary>
-    private sealed record TrackStatusMessage(
-        string Value,
-        string Message
-    );
-
-    /// <summary>
-    /// Structure of a session feed message.
-    /// </summary>
-    private sealed record SessionFeedMessage (
-        string Value
-    );
 }

@@ -3,9 +3,9 @@ using RaceControl.Services;
 
 namespace RaceControl.Hubs;
 
-public class SessionHub(CategoryService categoryService) : Hub<ISessionHubClient>
+public class SessionHub(ICategoryService categoryService) : Hub<ISessionHubClient>
 {
-    public async Task CurrentSession(CategoryService service)
+    public async Task CurrentSession(ICategoryService service)
     {
         await Clients.Caller.CategoryChange(service.ActiveSession?.Category);
     }

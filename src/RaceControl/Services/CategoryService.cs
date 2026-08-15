@@ -1,16 +1,13 @@
-using Microsoft.Extensions.Options;
 using RaceControl.Categories;
+using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
-using RaceControl.Options;
-using RaceControl.Track;
 
 namespace RaceControl.Services;
 
 public class CategoryService(
     ILogger<CategoryService> logger,
-    IOptionsMonitor<RaceControlOptions> options,
-    F1AuthService f1AuthService,
-    TrackStatus trackStatus)
+    ITrackStatusService trackStatusService,
+    IEnumerable<ICategory> categories) : ICategoryService
 {
     /// <summary>
     /// The currently active category.
@@ -22,20 +19,13 @@ public class CategoryService(
     /// </summary>
     private Session? _activeSession;
 
-    /// <summary>
-    /// If there is already a session active.
-    /// </summary>
+    /// <inheritdoc/>
     public bool HasSessionActive => _activeSession != null;
 
-    /// <summary>
-    /// Returns the currently active session, if there is any.
-    /// </summary>
+    /// <inheritdoc/>
     public Session? ActiveSession => _activeSession;
 
-    /// <summary>
-    /// Starts the API connection of the category based on the given session.
-    /// </summary>
-    /// <param name="session">The session of the category to start.</param>
+    /// <inheritdoc/>
     public async Task StartCategoryAsync(Session session)
     {
         _activeSession ??= session;
@@ -45,7 +35,7 @@ public class CategoryService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
 
-        _activeCategory!.FlagParsed += async (_, args) => await trackStatus.SetActiveFlagAsync(args.FlagData);
+        _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.Flag, args.Driver);
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeCategory.StartAsync(_activeSession.Key);
@@ -56,7 +46,7 @@ public class CategoryService(
     /// </summary>
     private async Task StopActiveCategoryAsync()
     {
-        await trackStatus.SetActiveFlagAsync(new FlagData { Flag = Flag.Clear });
+        await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 
         logger.LogInformation("[Category Service] Closing the active category");
         _activeCategory = null;
@@ -73,9 +63,9 @@ public class CategoryService(
     {
         category = key switch
         {
-            "f1" => new Formula1(logger, options, f1AuthService),
-            "f2" => new Formula2(logger, "https://ltss.fiaformula2.com"),
-            "f3" => new Formula3(logger, "https://ltss.fiaformula3.com"),
+            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
+            "f2" => categories.OfType<Formula2>().FirstOrDefault(),
+            "f3" => categories.OfType<Formula3>().FirstOrDefault(),
             _ => null
         };
 
