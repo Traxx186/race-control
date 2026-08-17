@@ -1,34 +1,29 @@
 const panel = new Panel('flag-panel');
 
-const sessionHub = new signalR.HubConnectionBuilder()
-    .withUrl('/session')
-    .build();
-
-const trackStatusHub = new signalR.HubConnectionBuilder()
-    .withUrl('/track-status')
+const raceControlHub = new signalR.HubConnectionBuilder()
+    .withUrl('/signalr')
     .build();
 
 let latency = 0;
 
-sessionHub.on('CategoryChange', (category) => {
+raceControlHub.on('CategoryChange', (category) => {
    if (category === null)
        return;
 
    latency = category.latency * 1000;
 });
 
-trackStatusHub.on('FlagChange', (flagData) => {
+raceControlHub.on('FlagChange', (flagData) => {
     if (flagData === null)
         return;
-    
+
     setTimeout(() => {
         panel.setFlag(flagData.flag, flagData?.driver);
     }, latency)
 });
 
 const start = async () => {
-    await sessionHub.start();
-    await trackStatusHub.start();
+    await raceControlHub.start();
 }
 
-start();
+start().then(r => {});

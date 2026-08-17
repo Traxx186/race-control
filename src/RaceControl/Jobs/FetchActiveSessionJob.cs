@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using RaceControl.Data.Dtos;
 using RaceControl.Database;
 using RaceControl.Hubs;
 using RaceControl.Services;
@@ -9,7 +10,7 @@ namespace RaceControl.Jobs;
 
 public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,
-    IHubContext<SessionHub, ISessionHubClient> sessionHubContext,
+    IHubContext<RaceControlHub, IRaceControlHubClient> racHubContext,
     RaceControlContext dbContext,
     ICategoryService categoryService) : IJob
 {
@@ -33,7 +34,8 @@ public class FetchActiveSessionJob(
 
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
 
-        await sessionHubContext.Clients.All.CategoryChange(session.Category);
+        var category = new CategoryDto(Latency: session.Category.Latency, Key: session.CategoryKey);
+        await racHubContext.Clients.All.CategoryChange(category);
         await categoryService.StartCategoryAsync(session);
     }
 }

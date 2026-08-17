@@ -10,13 +10,13 @@ namespace RaceControl.Tests.Track;
 public class TrackStatusServiceTests
 {
     private static ILogger<TrackStatusService>? _logger;
-    private static IHubContext<TrackStatusHub, ITrackStatusHubClient>? _trackStatusHubContext;
+    private static IHubContext<RaceControlHub, IRaceControlHubClient>? _trackStatusHubContext;
 
     [ClassInitialize]
     public static void ClassInitialize(TestContext context)
     {
         _logger = new Mock<ILogger<TrackStatusService>>().Object;
-        _trackStatusHubContext = new Mock<IHubContext<TrackStatusHub, ITrackStatusHubClient>>().Object;
+        _trackStatusHubContext = new Mock<IHubContext<RaceControlHub, IRaceControlHubClient>>().Object;
     }
 
     [TestMethod]

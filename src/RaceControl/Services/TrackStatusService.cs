@@ -7,7 +7,7 @@ namespace RaceControl.Services;
 
 public sealed class TrackStatusService(
     ILogger<TrackStatusService> logger,
-    IHubContext<TrackStatusHub, ITrackStatusHubClient> trackStatusHubContext) : ITrackStatusService
+    IHubContext<RaceControlHub, IRaceControlHubClient> raceHubContext) : ITrackStatusService
 {
     private const int InformationFlagPriority = 0;
 
@@ -45,7 +45,7 @@ public sealed class TrackStatusService(
             logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", flag);
 
             ActiveFlag = flag;
-            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
+            await raceHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
 
             return;
         }
@@ -60,7 +60,7 @@ public sealed class TrackStatusService(
         if (flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(flag, driver));
+            await raceHubContext.Clients.All.FlagChange(new FlagDataDto(flag, driver));
 
             return;
         }
@@ -75,7 +75,7 @@ public sealed class TrackStatusService(
         logger.LogInformation("[Track Status] New received flag with higher priority, updating track status");
         ActiveFlag = flag;
 
-        await trackStatusHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
+        await raceHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
     }
 
     /// <inheritdoc/>
