@@ -12,7 +12,7 @@ namespace RaceControl.Categories;
 
 public sealed class Formula1: ICategory
 {
-    private const string LiveTimingUrl = "wss://livetiming.formula1.com/signalrcore";
+    private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 
     private readonly ILogger _logger;
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;

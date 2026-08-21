@@ -11,6 +11,7 @@
     <RepositoryType>git</RepositoryType>
     <AssemblyName>RaceControl</AssemblyName>
     <ServerGarbageCollection>true</ServerGarbageCollection>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
