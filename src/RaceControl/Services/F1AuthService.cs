@@ -104,7 +104,7 @@ public sealed class F1AuthService : IF1AuthService
     private string? GetSubscriptionTokenFromAccessToken(string accessToken)
     {
         var jsonString = Uri.UnescapeDataString(accessToken);
-
+        _logger.LogDebug("{jsonString}", jsonString);
         return JsonNode.Parse(jsonString)?["data"]?["subscriptionToken"]?.GetValue<string>();
     }
 }

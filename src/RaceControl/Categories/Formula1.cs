@@ -16,7 +16,6 @@ public sealed class Formula1: ICategory
 
     private readonly ILogger _logger;
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
-    private readonly IF1AuthService _f1AuthService;
 
     /// <summary>
     /// Which SignalR topics to subscribe to when connection to the live timing API.
@@ -43,12 +42,10 @@ public sealed class Formula1: ICategory
 
     public Formula1(
         ILogger<Formula1> logger,
-        IOptionsMonitor<RaceControlOptions> options,
-        IF1AuthService f1AuthService)
+        IOptionsMonitor<RaceControlOptions> options)
     {
         _logger = logger;
         _optionsMonitor = options;
-        _f1AuthService = f1AuthService;
 
         _optionsMonitor.OnChange(async _ =>
         {
@@ -73,10 +70,18 @@ public sealed class Formula1: ICategory
             await DisposeConnection();
         }
 
+        var accessToken =  _optionsMonitor.CurrentValue.Formula1AccessToken;
         _connection = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult(_f1AuthService.AccessToken);
+                options.AccessTokenProvider = () =>
+                {
+                    _logger.LogDebug(
+                        "[Formula 1] Using access token {accessToken}",
+                        !string.IsNullOrWhiteSpace(accessToken) ? "<redacted>" : "<missing>"
+                    );
+                    return Task.FromResult(accessToken);
+                };
             })
             .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()

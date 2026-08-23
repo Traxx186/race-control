@@ -2,6 +2,8 @@ namespace RaceControl.Options;
 
 public record RaceControlOptions
 {
+    public const string Key = "RaceControl";
+
     public static string ConfigFilePath => GetConfigFilePath();
 
     /// <summary>
@@ -17,7 +19,9 @@ public record RaceControlOptions
         if (File.Exists(path))
             return path;
 
-        var baseContent = "{}";
+        var baseContent = @"{
+            ""RaceControl"": {}
+        }";
 
         Directory.CreateDirectory(Directory.GetParent(path)!.FullName);
         File.WriteAllText(path, baseContent);
