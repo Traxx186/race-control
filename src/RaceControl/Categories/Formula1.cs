@@ -28,6 +28,11 @@ public sealed class Formula1: ICategory
     private HubConnection? _connection;
 
     /// <summary>
+    /// If the connection was restarted because of a config change.
+    /// </summary>
+    private bool _restart;
+
+    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public event EventHandler<FlagChangedEventArgs>? FlagParsed;
@@ -53,14 +58,16 @@ public sealed class Formula1: ICategory
                 return;
 
             _logger.LogInformation("[Formula 1] Config changed, restart Live timing");
-            await StartAsync(string.Empty);
+            _restart = true;
+
+            await StartAsync();
         });
     }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task StartAsync(string session)
+    public async Task StartAsync()
     {
         _logger.LogInformation("[Formula 1] Starting Live Timing connection");
 
@@ -70,7 +77,7 @@ public sealed class Formula1: ICategory
             await DisposeConnection();
         }
 
-        var accessToken =  _optionsMonitor.CurrentValue.Formula1AccessToken;
+        var accessToken = _optionsMonitor.CurrentValue.Formula1AccessToken;
         _connection = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl, options =>
             {
@@ -80,6 +87,7 @@ public sealed class Formula1: ICategory
                         "[Formula 1] Using access token {accessToken}",
                         !string.IsNullOrWhiteSpace(accessToken) ? "<redacted>" : "<missing>"
                     );
+
                     return Task.FromResult(accessToken);
                 };
             })
@@ -89,8 +97,15 @@ public sealed class Formula1: ICategory
 
         _connection.Closed += async _ =>
         {
-            _logger.LogInformation("[Formula 1] API connection terminated");
-            await OnSessionFinished();
+            if (_restart)
+            {
+                _restart = false;
+            }
+            else
+            {
+                _logger.LogInformation("[Formula 1] API connection terminated");
+                await OnSessionFinished();
+            }
         };
 
         _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);

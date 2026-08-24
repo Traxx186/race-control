@@ -48,7 +48,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
-builder.Services.AddSingleton<IF1AuthService, F1AuthService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
 
 // Add the supported racing categories
