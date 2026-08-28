@@ -1,3 +1,4 @@
+using RaceControl.Data.Dtos;
 using RaceControl.Database.Entities;
 
 namespace RaceControl.Services;
@@ -13,6 +14,11 @@ public interface ICategoryService
     /// Returns the currently active session, if there is any.
     /// </summary>
     Session? ActiveSession { get; }
+
+    /// <summary>
+    /// List of flag to send to connected clients.
+    /// </summary>
+    public SortedList<DateTime, FlagDataDto> FlagQueue { get; }
 
     /// <summary>
     /// Starts the API connection of the category based on the given session.

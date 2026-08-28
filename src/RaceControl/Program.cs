@@ -47,6 +47,7 @@ builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
+builder.Services.AddHostedService<FlagBroadcastService>();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
 
