@@ -10,6 +10,7 @@ namespace RaceControl.Controllers;
 [Route("[controller]")]
 public class ConfigController(ILogger<ConfigController> logger) : ControllerBase
 {
+    [HttpPost]
     public IActionResult Create(ConfigDto configDto)
     {
         logger.LogInformation("[ConfigController] Setting new configuration.");

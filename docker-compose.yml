@@ -1,0 +1,19 @@
+services:
+  race-control:
+    build: .
+    ports:
+      - 5000:5000
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - 'DATABASE_URL=Host=justinvanderkruit.nl;Port=4442;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Database=${POSTGRES_DB}'
+    volumes:
+      - race-control-data:/race-control/storage/
+    healthcheck:
+      test: ["CMD", "wget", "-no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 1m
+      timeout: 3s
+
+volumes:
+  race-control-data:
