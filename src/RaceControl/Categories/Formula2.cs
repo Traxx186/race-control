@@ -37,7 +37,7 @@ public class Formula2(ILogger<Formula2> logger) : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task StartAsync(string session)
+    public async Task StartAsync()
     {
         logger.LogInformation("[Formula 2] Starting API connection");
         var feeds = new[] {"status"};

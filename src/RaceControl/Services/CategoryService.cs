@@ -38,7 +38,7 @@ public class CategoryService(
         _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.Flag, args.Driver);
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
-        await _activeCategory.StartAsync(_activeSession.Key);
+        await _activeCategory.StartAsync();
     }
 
     /// <summary>

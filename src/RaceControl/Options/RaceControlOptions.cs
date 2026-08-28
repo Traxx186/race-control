@@ -1,7 +1,11 @@
+using System.Text.Json.Nodes;
+
 namespace RaceControl.Options;
 
 public record RaceControlOptions
 {
+    public const string Key = "RaceControl";
+
     public static string ConfigFilePath => GetConfigFilePath();
 
     /// <summary>
@@ -11,16 +15,19 @@ public record RaceControlOptions
     /// </summary>
     public string? Formula1AccessToken { get; set; }
 
-    public static string GetConfigFilePath()
+    private static string GetConfigFilePath()
     {
         var path = Path.Join(Environment.CurrentDirectory, "storage", "config.json");
         if (File.Exists(path))
             return path;
 
-        var baseContent = "{}";
+        var content = new JsonObject
+        {
+            [Key] = new JsonObject()
+        };
 
         Directory.CreateDirectory(Directory.GetParent(path)!.FullName);
-        File.WriteAllText(path, baseContent);
+        File.WriteAllText(path, content.ToJsonString());
 
         return path;
     }

@@ -16,7 +16,6 @@ public sealed class Formula1: ICategory
 
     private readonly ILogger _logger;
     private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
-    private readonly IF1AuthService _f1AuthService;
 
     /// <summary>
     /// Which SignalR topics to subscribe to when connection to the live timing API.
@@ -27,6 +26,11 @@ public sealed class Formula1: ICategory
     /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
     private HubConnection? _connection;
+
+    /// <summary>
+    /// If the connection was restarted because of a config change.
+    /// </summary>
+    private bool _restart;
 
     /// <summary>
     /// <inheritdoc/>
@@ -43,12 +47,10 @@ public sealed class Formula1: ICategory
 
     public Formula1(
         ILogger<Formula1> logger,
-        IOptionsMonitor<RaceControlOptions> options,
-        IF1AuthService f1AuthService)
+        IOptionsMonitor<RaceControlOptions> options)
     {
         _logger = logger;
         _optionsMonitor = options;
-        _f1AuthService = f1AuthService;
 
         _optionsMonitor.OnChange(async _ =>
         {
@@ -56,14 +58,16 @@ public sealed class Formula1: ICategory
                 return;
 
             _logger.LogInformation("[Formula 1] Config changed, restart Live timing");
-            await StartAsync(string.Empty);
+            _restart = true;
+
+            await StartAsync();
         });
     }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task StartAsync(string session)
+    public async Task StartAsync()
     {
         _logger.LogInformation("[Formula 1] Starting Live Timing connection");
 
@@ -73,10 +77,19 @@ public sealed class Formula1: ICategory
             await DisposeConnection();
         }
 
+        var accessToken = _optionsMonitor.CurrentValue.Formula1AccessToken;
         _connection = new HubConnectionBuilder()
             .WithUrl(LiveTimingUrl, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult(_f1AuthService.AccessToken);
+                options.AccessTokenProvider = () =>
+                {
+                    _logger.LogDebug(
+                        "[Formula 1] Using access token {accessToken}",
+                        !string.IsNullOrWhiteSpace(accessToken) ? "<redacted>" : "<missing>"
+                    );
+
+                    return Task.FromResult(accessToken);
+                };
             })
             .ConfigureLogging(logging => logging.AddConsole())
             .WithAutomaticReconnect()
@@ -84,8 +97,15 @@ public sealed class Formula1: ICategory
 
         _connection.Closed += async _ =>
         {
-            _logger.LogInformation("[Formula 1] API connection terminated");
-            await OnSessionFinished();
+            if (_restart)
+            {
+                _restart = false;
+            }
+            else
+            {
+                _logger.LogInformation("[Formula 1] API connection terminated");
+                await OnSessionFinished();
+            }
         };
 
         _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);

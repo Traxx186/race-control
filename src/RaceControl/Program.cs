@@ -21,6 +21,9 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnCh
 builder.Configuration.AddJsonFile(RaceControlOptions.ConfigFilePath, optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
 
+// Load custom configuration options.
+builder.Services.Configure<RaceControlOptions>(builder.Configuration.GetSection(RaceControlOptions.Key));
+
 // Add app key storage & set encryptor configuration
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine("storage", "keys")))
@@ -45,7 +48,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
-builder.Services.AddSingleton<IF1AuthService, F1AuthService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
 
 // Add the supported racing categories

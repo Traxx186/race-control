@@ -22,8 +22,7 @@ public interface ICategory
     /// <summary>
     /// Sets up and starts the live timing service related to the category.
     /// </summary>
-    /// <param name="session">The key of the started session.</param>
-    Task StartAsync(string session);
+    Task StartAsync();
 
     /// <summary>
     /// Closes the connection to the live timing service related to the category.
