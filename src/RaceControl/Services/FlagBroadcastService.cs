@@ -14,9 +14,7 @@ public sealed class FlagBroadcastService(
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
-            {
                 await BroadcastFlag();
-            }
         }
         catch (OperationCanceledException)
         {
@@ -25,8 +23,7 @@ public sealed class FlagBroadcastService(
     }
 
     /// <summary>
-    /// Broadcasts a flag to the connected clients when the enqueue time is more than the latency of the active
-    /// category.
+    /// Broadcasts a flag to the connected clients.
     /// </summary>
     private async Task BroadcastFlag()
     {
@@ -34,12 +31,14 @@ public sealed class FlagBroadcastService(
         if (currentCategory is null)
             return;
 
-        var queryTime = DateTime.UtcNow.AddSeconds(currentCategory.Latency);
-        var flagToBroadcast = categoryService.FlagQueue.FirstOrDefault(q => q.Key >= queryTime).Value;
-        if (flagToBroadcast == null)
+        // Check if there is an entry present in the flag queue where the enqueue time plus the latency of the active
+        // category.
+        var flagToBroadcast = categoryService.FlagQueue.FirstOrDefault(q => q.Key.AddSeconds(currentCategory.Latency) >= DateTime.UtcNow);
+        if (flagToBroadcast.Value == null)
             return;
 
-        logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag}", flagToBroadcast.Flag);
-        await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Flag, flagToBroadcast.Driver);
+        logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag}", flagToBroadcast.Value.Flag);
+        await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Value.Flag, flagToBroadcast.Value.Driver);
+        categoryService.FlagQueue.Remove(flagToBroadcast.Key);
     }
 }
