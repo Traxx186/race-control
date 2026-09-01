@@ -8,15 +8,18 @@ public class RaceControlHub(
     ITrackStatusService trackStatusService,
     ICategoryService categoryService) : Hub<IRaceControlHubClient>
 {
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
         var category = categoryService.ActiveSession?.Category;
         var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
-        var categoryDto = new CategoryDto(category?.Key ?? string.Empty, category?.Latency ?? 0);
 
-        return Task.WhenAll(
-            Clients.Caller.FlagChange(flagDataDto),
-            Clients.Caller.CategoryChange(categoryDto)
-        );
+        if (category != null)
+        {
+            var categoryDto = new CategoryDto(category.Key, category.Latency);
+            await Clients.Caller.CategoryChange(categoryDto);
+        }
+
+        await Task.Delay(category?.Latency ?? 0);
+        await Clients.Caller.FlagChange(flagDataDto);
     }
 }
