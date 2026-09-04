@@ -84,8 +84,10 @@ public sealed class Client(string url, string hub, object[] args)
         while (Running)
         {
             using var connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
+#if DEBUG
             connection.TraceWriter = Console.Out;
             connection.TraceLevel = TraceLevels.All;
+#endif
             connection.CookieContainer = new CookieContainer();
             connection.Received += HandleMessage;
             connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
