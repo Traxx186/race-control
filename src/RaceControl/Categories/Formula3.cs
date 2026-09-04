@@ -9,7 +9,7 @@ namespace RaceControl.Categories;
 
 public class Formula3(ILogger<Formula3> logger) : ICategory
 {
-    private const string LiveTimingUrl = "https://ltss.fiaformula3.com";
+    private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
 
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.

@@ -107,11 +107,7 @@ public sealed class Client(string url, string hub, object[] args)
 
             Log.Information("[SignalR] Connecting to {url}", _url);
             await connection.Start();
-
-            if (_url.Contains("formula1"))
-                await hubProxy.Invoke(method, _args.ToList());
-            else
-                await hubProxy.Invoke(method, _args);
+            await hubProxy.Invoke(method, _args);
 
             Console.Read();
         }

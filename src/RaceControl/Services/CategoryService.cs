@@ -1,10 +1,11 @@
 using RaceControl.Categories;
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
 
 namespace RaceControl.Services;
 
-public class CategoryService(
+public sealed class CategoryService(
     ILogger<CategoryService> logger,
     ITrackStatusService trackStatusService,
     IEnumerable<ICategory> categories) : ICategoryService
@@ -18,6 +19,9 @@ public class CategoryService(
     /// The currently active session.
     /// </summary>
     private Session? _activeSession;
+
+    /// <inheritdoc/>
+    public SortedList<DateTime, FlagDataDto> FlagQueue { get; } = new();
 
     /// <inheritdoc/>
     public bool HasSessionActive => _activeSession != null;
@@ -35,7 +39,7 @@ public class CategoryService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
 
-        _activeCategory!.FlagParsed += async (_, args) => await trackStatusService.SetActiveFlagAsync(args.Flag, args.Driver);
+        _activeCategory!.FlagParsed += (_, args) => EnqueueFlag(args.Flag, args.Driver);
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeCategory.StartAsync();
@@ -49,8 +53,28 @@ public class CategoryService(
         await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 
         logger.LogInformation("[Category Service] Closing the active category");
+        FlagQueue.Clear();
         _activeCategory = null;
         _activeSession = null;
+    }
+
+    /// <summary>
+    /// Adds a new flag to the flag queue.
+    /// </summary>
+    /// <param name="flag">flag to add.</param>
+    /// <param name="driver">related driver.</param>
+    private void EnqueueFlag(Flag flag, int? driver)
+    {
+        if (flag == Flag.None)
+        {
+            logger.LogInformation("[Category Service] Ignore invalid flag");
+            return;
+        }
+
+        var flagData = new FlagDataDto(flag, driver);
+
+        logger.LogInformation("[Category Service] Append flag {flag} to queue", flag);
+        FlagQueue.Add(DateTime.UtcNow, flagData);
     }
 
     /// <summary>
