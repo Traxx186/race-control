@@ -53,6 +53,7 @@ public sealed class CategoryService(
         await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 
         logger.LogInformation("[Category Service] Closing the active category");
+        FlagQueue.Clear();
         _activeCategory = null;
         _activeSession = null;
     }
@@ -64,6 +65,12 @@ public sealed class CategoryService(
     /// <param name="driver">related driver.</param>
     private void EnqueueFlag(Flag flag, int? driver)
     {
+        if (flag == Flag.None)
+        {
+            logger.LogInformation("[Category Service] Ignore invalid flag");
+            return;
+        }
+
         var flagData = new FlagDataDto(flag, driver);
 
         logger.LogInformation("[Category Service] Append flag {flag} to queue", flag);

@@ -33,11 +33,11 @@ public sealed class FlagBroadcastService(
 
         // Check if there is an entry present in the flag queue where the enqueue time plus the latency of the active
         // category.
-        var flagToBroadcast = categoryService.FlagQueue.FirstOrDefault(q => q.Key.AddSeconds(currentCategory.Latency) >= DateTime.UtcNow);
+        var flagToBroadcast = categoryService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(currentCategory.Latency));
         if (flagToBroadcast.Value == null)
             return;
 
-        logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag}", flagToBroadcast.Value.Flag);
+        logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag} with enqueue time of {time}", flagToBroadcast.Value.Flag, flagToBroadcast.Key.ToString("yyyy-MM-dd hh:mm:ss"));
         await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Value.Flag, flagToBroadcast.Value.Driver);
         categoryService.FlagQueue.Remove(flagToBroadcast.Key);
     }

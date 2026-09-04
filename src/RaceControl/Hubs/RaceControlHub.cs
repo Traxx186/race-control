@@ -17,9 +17,9 @@ public class RaceControlHub(
         {
             var categoryDto = new CategoryDto(category.Key, category.Latency);
             await Clients.Caller.CategoryChange(categoryDto);
+            await Task.Delay(category.Latency * 1000);
         }
 
-        await Task.Delay(category?.Latency ?? 0);
         await Clients.Caller.FlagChange(flagDataDto);
     }
 }

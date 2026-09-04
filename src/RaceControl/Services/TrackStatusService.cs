@@ -50,9 +50,8 @@ public sealed class TrackStatusService(
             return;
         }
 
-        // If given flag is the same as the active flag, or the active flag is
-        // None. Do not try to set the given flag.
-        if (flag == ActiveFlag || flag == Flag.None)
+        // If given flag is the same as the active flag, ignore the flag change.
+        if (flag == ActiveFlag)
             return;
 
         var newFlagPrio = FlagPriority.GetValueOrDefault(flag);
