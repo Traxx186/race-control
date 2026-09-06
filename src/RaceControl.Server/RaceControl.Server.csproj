@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PublishSingleFile>true</PublishSingleFile>
+	  <!-- <PublishTrimmed>true</PublishTrimmed>
+    <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
+    <TrimMode>partial</TrimMode> -->
+    <Authors>Traxx186</Authors>
+    <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <AssemblyName>RaceControl.Server</AssemblyName>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <RootNamespace>RaceControl.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNet.SignalR.Client" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Quartz" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Settings.AppSettings" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RaceControl.Data\RaceControl.Data.csproj" />
+    <ProjectReference Include="..\RaceControl.Database\RaceControl.Database.csproj" />
+  </ItemGroup>
+
+</Project>

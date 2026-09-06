@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RaceControl\RaceControl.csproj"/>
+    <ProjectReference Include="..\..\src\RaceControl.Server\RaceControl.Server.csproj" />
   </ItemGroup>
 
 </Project>

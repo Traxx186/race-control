@@ -5,10 +5,10 @@ using Microsoft.Extensions.Options;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
-using RaceControl.Options;
-using RaceControl.Services;
+using RaceControl.Server.Options;
+using RaceControl.Server.Services;
 
-namespace RaceControl.Categories;
+namespace RaceControl.Server.Categories;
 
 public sealed class Formula1: ICategory
 {

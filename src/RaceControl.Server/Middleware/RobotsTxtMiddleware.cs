@@ -1,4 +1,4 @@
-namespace RaceControl.Middleware;
+namespace RaceControl.Server.Middleware;
 
 public class RobotsTxtMiddleware(RequestDelegate next, IWebHostEnvironment env)
 {
@@ -8,7 +8,7 @@ public class RobotsTxtMiddleware(RequestDelegate next, IWebHostEnvironment env)
         {
            var robotTxtInfo = env.ContentRootFileProvider.GetFileInfo("robots.txt");
            var output = await File.ReadAllTextAsync(robotTxtInfo.PhysicalPath);
-           
+
            context.Response.ContentType = "text/plain";
            await context.Response.WriteAsync(output);
         }

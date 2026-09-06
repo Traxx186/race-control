@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RaceControl.Options;
+namespace RaceControl.Server.Options;
 
 public record RaceControlOptions
 {

@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Data.Dtos;
 using RaceControl.Database;
-using RaceControl.Hubs;
-using RaceControl.Services;
+using RaceControl.Server.Hubs;
+using RaceControl.Server.Services;
 
-namespace RaceControl.Jobs;
+namespace RaceControl.Server.Jobs;
 
 public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,

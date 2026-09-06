@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>RaceControl.Data</AssemblyName>
+    <RootNamespace>RaceControl.Data</RootNamespace>
   </PropertyGroup>
 
 </Project>

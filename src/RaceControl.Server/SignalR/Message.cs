@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace RaceControl.SignalR;
+namespace RaceControl.Server.SignalR;
 
 /// <summary>
 /// SignalR message.

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using RaceControl.Data.Dtos;
-using RaceControl.Options;
+using RaceControl.Server.Options;
 
 namespace RaceControl.Controllers;
 

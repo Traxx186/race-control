@@ -1,7 +1,7 @@
 using RaceControl.Data.Dtos;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Services;
+namespace RaceControl.Server.Services;
 
 public interface ICategoryService
 {

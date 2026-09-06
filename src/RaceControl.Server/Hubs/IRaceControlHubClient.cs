@@ -1,6 +1,6 @@
 using RaceControl.Data.Dtos;
 
-namespace RaceControl.Hubs;
+namespace RaceControl.Server.Hubs;
 
 public interface IRaceControlHubClient
 {

@@ -19,7 +19,9 @@ COPY ./ ./
 RUN dotnet restore RaceControl.slnx --runtime linux-musl-x64
 
 # Build and publish a release
-RUN dotnet publish -c Release -o out  \
+RUN dotnet publish RaceControl.Server \
+    -c Release \
+    -o out \
    --runtime linux-musl-x64 \
    --self-contained true
 

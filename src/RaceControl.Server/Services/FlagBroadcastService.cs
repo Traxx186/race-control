@@ -1,4 +1,4 @@
-namespace RaceControl.Services;
+namespace RaceControl.Server.Services;
 
 public sealed class FlagBroadcastService(
     ILogger<FlagBroadcastService> logger,

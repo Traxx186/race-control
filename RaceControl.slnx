@@ -4,5 +4,5 @@
   </Folder>
   <Project Path="src/RaceControl.Data/RaceControl.Data.csproj" />
   <Project Path="src/RaceControl.Database/RaceControl.Database.csproj" />
-  <Project Path="src/RaceControl/RaceControl.csproj" />
+  <Project Path="src/RaceControl.Server/RaceControl.Server.csproj" />
 </Solution>

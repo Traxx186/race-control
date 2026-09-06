@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNet.SignalR.Client;
 using Serilog;
 
-namespace RaceControl.SignalR;
+namespace RaceControl.Server.SignalR;
 
 /// <summary>
 /// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.

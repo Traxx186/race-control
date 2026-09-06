@@ -1,6 +1,6 @@
 using RaceControl.Data.Enums;
 
-namespace RaceControl.Services;
+namespace RaceControl.Server.Services;
 
 public interface ITrackStatusService
 {

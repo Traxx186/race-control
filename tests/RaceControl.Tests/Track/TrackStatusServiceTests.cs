@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RaceControl.Hubs;
-using RaceControl.Services;
+using RaceControl.Server.Hubs;
+using RaceControl.Server.Services;
 
 namespace RaceControl.Tests.Track;
 

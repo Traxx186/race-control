@@ -1,9 +1,9 @@
-using RaceControl.Categories;
+using RaceControl.Server.Categories;
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Services;
+namespace RaceControl.Server.Services;
 
 public sealed class CategoryService(
     ILogger<CategoryService> logger,

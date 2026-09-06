@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>RaceControl.Database</AssemblyName>
+    <RootNamespace>RaceControl.Database</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,6 +1,6 @@
 using RaceControl.Data.Events;
 
-namespace RaceControl.Categories;
+namespace RaceControl.Server.Categories;
 
 public interface ICategory
 {

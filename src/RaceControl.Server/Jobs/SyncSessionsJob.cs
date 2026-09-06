@@ -4,7 +4,7 @@ using RaceControl.Data.Dtos;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Jobs;
+namespace RaceControl.Server.Jobs;
 
 public class SyncSessionsJob(
     RaceControlContext dbContext,

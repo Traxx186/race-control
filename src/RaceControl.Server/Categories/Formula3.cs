@@ -3,9 +3,9 @@ using System.Text.Json.Nodes;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
-using RaceControl.SignalR;
+using RaceControl.Server.SignalR;
 
-namespace RaceControl.Categories;
+namespace RaceControl.Server.Categories;
 
 public class Formula3(ILogger<Formula3> logger) : ICategory
 {

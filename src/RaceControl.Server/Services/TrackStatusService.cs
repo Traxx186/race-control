@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
-using RaceControl.Hubs;
+using RaceControl.Server.Hubs;
 
-namespace RaceControl.Services;
+namespace RaceControl.Server.Services;
 
 public sealed class TrackStatusService(
     ILogger<TrackStatusService> logger,

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using RaceControl.Data.Dtos;
-using RaceControl.Services;
+using RaceControl.Server.Services;
 
-namespace RaceControl.Hubs;
+namespace RaceControl.Server.Hubs;
 
 public class RaceControlHub(
     ITrackStatusService trackStatusService,
