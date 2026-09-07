@@ -8,7 +8,6 @@ using RaceControl.Server.Categories;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Jobs;
 using RaceControl.Server.Middleware;
-using RaceControl.Server.Options;
 using RaceControl.Server.Services;
 using Serilog;
 using Serilog.Settings.Configuration;
@@ -18,11 +17,7 @@ using Serilog.Settings.Configuration;
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.SetBasePath(Environment.CurrentDirectory);
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-builder.Configuration.AddJsonFile(RaceControlOptions.ConfigFilePath, optional: true, reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
-
-// Load custom configuration options.
-builder.Services.Configure<RaceControlOptions>(builder.Configuration.GetSection(RaceControlOptions.Key));
 
 // Add app key storage & set encryptor configuration
 builder.Services.AddDataProtection()
@@ -52,7 +47,6 @@ builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
 
 // Add the supported racing categories
-builder.Services.AddSingleton<ICategory, Formula1>();
 builder.Services.AddSingleton<ICategory, Formula2>();
 builder.Services.AddSingleton<ICategory, Formula3>();
 
@@ -80,7 +74,7 @@ builder.Services.AddQuartz(quartz =>
     );
 });
 
-builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+builder.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 // Create a Web Application object from the Web Application Builder.
 var app = builder.Build();

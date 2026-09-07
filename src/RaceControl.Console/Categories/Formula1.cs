@@ -1,16 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
-using RaceControl.Data.Events;
-using RaceControl.Server.Options;
-using RaceControl.Server.Services;
+using RaceControl.Console.Options;
 
-namespace RaceControl.Server.Categories;
+namespace RaceControl.Console.Categories;
 
-public sealed class Formula1: ICategory
+public sealed class Formula1 : ICategory
 {
     private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 
@@ -31,16 +30,6 @@ public sealed class Formula1: ICategory
     /// If the connection was restarted because of a config change.
     /// </summary>
     private bool _restart;
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public event EventHandler? SessionFinished;
 
     /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
@@ -124,8 +113,6 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Closing API connection");
         await DisposeConnection();
-
-        FlagParsed = null;
     }
 
     /// <summary>
@@ -146,8 +133,7 @@ public sealed class Formula1: ICategory
     /// <param name="driverNumber">The number of the driver for whom the flag is intended.</param>
     private void OnFlagParsed(Flag flag, int? driverNumber = null)
     {
-        var args = new FlagChangedEventArgs { Flag = flag, Driver = driverNumber};
-        FlagParsed?.Invoke(this, args);
+
     }
 
     /// <summary>
@@ -157,9 +143,6 @@ public sealed class Formula1: ICategory
     {
         if (_connection?.State == HubConnectionState.Connected)
             await StopAsync();
-
-        SessionFinished?.Invoke(this, EventArgs.Empty);
-        SessionFinished = null;
     }
 
     /// <summary>
@@ -248,7 +231,7 @@ public sealed class Formula1: ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatusService.TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (TryParseFlag(raceControlMessage.Flag, out var flag))
         {
             _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
@@ -284,5 +267,36 @@ public sealed class Formula1: ICategory
 
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
         await OnSessionFinished();
+    }
+
+    /// <summary>
+    /// Converts the input string to a <see cref="Flag"/>.
+    /// </summary>
+    /// <param name="input">The string representing a flag.</param>
+    /// <param name="flag">
+    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
+    /// Else <code>Flag.None</code> will be returned.
+    /// </param>
+    /// <returns>If the flag could be parsed.</returns>
+    private static bool TryParseFlag(string? input, out Flag flag)
+    {
+        flag = input switch
+        {
+            "BLACK AND WHITE" => Flag.BlackWhite,
+            "BLUE" => Flag.Blue,
+            "CHEQUERED" => Flag.Chequered,
+            "CLEAR" or "GREEN" => Flag.Clear,
+            "CODE 60" => Flag.Code60,
+            "DOUBLE YELLOW" => Flag.DoubleYellow,
+            "FULL COURSE YELLOW" => Flag.Fyc,
+            "RED" => Flag.Red,
+            "SAFETY CAR" => Flag.SafetyCar,
+            "SLIPPERY SURFACE" => Flag.Surface,
+            "VIRTUAL SAFETY CAR" => Flag.Vsc,
+            "YELLOW" => Flag.Yellow,
+            _ => Flag.None
+        };
+
+        return flag != Flag.None;
     }
 }

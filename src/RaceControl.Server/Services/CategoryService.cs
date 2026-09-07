@@ -87,7 +87,6 @@ public sealed class CategoryService(
     {
         category = key switch
         {
-            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
             "f2" => categories.OfType<Formula2>().FirstOrDefault(),
             "f3" => categories.OfType<Formula3>().FirstOrDefault(),
             _ => null

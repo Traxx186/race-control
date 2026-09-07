@@ -16,15 +16,4 @@ public interface ITrackStatusService
     /// <param name="flag">Flag data to be processed.</param>
     /// <param name="driver">The number of the driver for whom the flag is intended.</param>
     Task SetActiveFlagAsync(Flag flag, int? driver = null);
-
-    /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>.
-    /// </summary>
-    /// <param name="input">The string representing a flag.</param>
-    /// <param name="flag">
-    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
-    /// Else <code>Flag.None</code> will be returned.
-    /// </param>
-    /// <returns>If the flag could be parsed.</returns>
-    static bool TryParseFlag(string? input, out Flag flag) => throw new NotImplementedException();
 }

@@ -17,7 +17,7 @@ public class SyncSessionsJob(
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
         var categories = dbContext.Categories.ToArray();
