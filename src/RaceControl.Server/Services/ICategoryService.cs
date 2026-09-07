@@ -1,4 +1,5 @@
 using RaceControl.Data.Dtos;
+using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
 
 namespace RaceControl.Server.Services;
@@ -25,4 +26,11 @@ public interface ICategoryService
     /// </summary>
     /// <param name="session">The session of the category to start.</param>
     Task StartCategoryAsync(Session session);
+
+    /// <summary>
+    /// Adds a new flag to the flag queue.
+    /// </summary>
+    /// <param name="flag">flag to add.</param>
+    /// <param name="driver">related driver.</param>
+    void EnqueueFlag(Flag flag, int? driver);
 }

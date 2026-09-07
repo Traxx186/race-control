@@ -24,47 +24,23 @@ public sealed class Formula1 : ICategory
     /// <summary>
     /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
-    private HubConnection? _connection;
-
-    /// <summary>
-    /// If the connection was restarted because of a config change.
-    /// </summary>
-    private bool _restart;
+    private readonly HubConnection _connection;
 
     /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
 
     public Formula1(
         ILogger<Formula1> logger,
-        IOptionsMonitor<RaceControlOptions> options)
+        IOptionsMonitor<RaceControlOptions> optionsMonitor)
     {
         _logger = logger;
-        _optionsMonitor = options;
+        _optionsMonitor = optionsMonitor;
 
         _optionsMonitor.OnChange(async _ =>
         {
-            if (_connection is null)
-                return;
-
             _logger.LogInformation("[Formula 1] Config changed, restart Live timing");
-            _restart = true;
-
             await StartAsync();
         });
-    }
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public async Task StartAsync()
-    {
-        _logger.LogInformation("[Formula 1] Starting Live Timing connection");
-
-        if (_connection is not null)
-        {
-            _logger.LogWarning("[Formula 1] Connection already active, restarting");
-            await DisposeConnection();
-        }
 
         var accessToken = _optionsMonitor.CurrentValue.Formula1AccessToken;
         _connection = new HubConnectionBuilder()
@@ -84,20 +60,29 @@ public sealed class Formula1 : ICategory
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.Closed += async _ =>
+        _connection.Closed += _ =>
         {
-            if (_restart)
-            {
-                _restart = false;
-            }
-            else
-            {
-                _logger.LogInformation("[Formula 1] API connection terminated");
-                await OnSessionFinished();
-            }
+            _logger.LogInformation("[Formula 1] API connection terminated");
+            return Task.CompletedTask;
         };
 
         _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public async Task StartAsync()
+    {
+        _logger.LogInformation("[Formula 1] Starting Live Timing connection");
+
+        if (_connection.State == HubConnectionState.Connected)
+        {
+            _logger.LogWarning("[Formula 1] Connection already active, restarting");
+            await StopAsync();
+            await Task.Delay(1000);
+        }
+
         await _connection.StartAsync();
 
         _logger.LogInformation("[Formula 1] Subscribe to selected topics");
@@ -112,18 +97,9 @@ public sealed class Formula1 : ICategory
     public async Task StopAsync()
     {
         _logger.LogInformation("[Formula 1] Closing API connection");
-        await DisposeConnection();
-    }
 
-    /// <summary>
-    /// Closes the SignalR connection.
-    /// </summary>
-    private async Task DisposeConnection()
-    {
-        if (_connection is not null)
+        if (_connection.State == HubConnectionState.Connected)
             await _connection!.StopAsync();
-
-        _connection = null;
     }
 
     /// <summary>
@@ -134,15 +110,6 @@ public sealed class Formula1 : ICategory
     private void OnFlagParsed(Flag flag, int? driverNumber = null)
     {
 
-    }
-
-    /// <summary>
-    /// Invokes the SessionFinished event.
-    /// </summary>
-    private async Task OnSessionFinished()
-    {
-        if (_connection?.State == HubConnectionState.Connected)
-            await StopAsync();
     }
 
     /// <summary>
@@ -266,7 +233,7 @@ public sealed class Formula1 : ICategory
         }
 
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
-        await OnSessionFinished();
+        await StopAsync();
     }
 
     /// <summary>

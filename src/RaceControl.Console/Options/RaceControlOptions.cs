@@ -16,6 +16,11 @@ public record RaceControlOptions
     /// </summary>
     public string? Formula1AccessToken { get; set; }
 
+    /// <summary>
+    /// The host where the client will send the parsed race control messages to.
+    /// </summary>
+    public string? BroadcastHost { get; set; }
+
     private static string GetConfigFilePath()
     {
         var xdgConfigDirectory = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
@@ -57,6 +62,6 @@ public record RaceControlOptions
         if (!Directory.Exists(xdgDataDirectory))
             Directory.CreateDirectory(xdgDataDirectory);
 
-        return xdgDataDirectory;
+        return Path.Join(xdgDataDirectory, "race-control");
     }
 }

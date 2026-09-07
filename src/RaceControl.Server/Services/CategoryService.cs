@@ -58,12 +58,8 @@ public sealed class CategoryService(
         _activeSession = null;
     }
 
-    /// <summary>
-    /// Adds a new flag to the flag queue.
-    /// </summary>
-    /// <param name="flag">flag to add.</param>
-    /// <param name="driver">related driver.</param>
-    private void EnqueueFlag(Flag flag, int? driver)
+    /// <inheritdoc/>
+    public void EnqueueFlag(Flag flag, int? driver)
     {
         if (flag == Flag.None)
         {

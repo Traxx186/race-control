@@ -23,8 +23,8 @@ public class RaceControlHub(
         await Clients.Caller.FlagChange(flagDataDto);
     }
 
-    public void SendFlag(FlagDataDto flag)
+    public void SendFlag(FlagDataDto flagData)
     {
-        categoryService.FlagQueue.Add(DateTime.UtcNow, flag);
+        categoryService.EnqueueFlag(flagData.Flag, flagData.Driver);
     }
 }
