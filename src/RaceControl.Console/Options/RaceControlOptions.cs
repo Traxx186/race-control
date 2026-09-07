@@ -23,16 +23,27 @@ public record RaceControlOptions
 
     private static string GetConfigFilePath()
     {
-        var xdgConfigDirectory = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (string.IsNullOrWhiteSpace(xdgConfigDirectory))
+        string? path;
+        if (OperatingSystem.IsWindows())
         {
-            xdgConfigDirectory = Path.Join(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".config"
+            path = Environment.GetFolderPath(
+                Environment.SpecialFolder.ApplicationData,
+                Environment.SpecialFolderOption.Create
             );
         }
+        else
+        {
+            path = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                path = Path.Join(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".config"
+                );
+            }
+        }
 
-        var path = Path.Join(xdgConfigDirectory, "race-control", "config.json");
+        path = Path.Join(path, "race-control", "config.json");
         if (File.Exists(path))
             return path;
 
@@ -49,19 +60,31 @@ public record RaceControlOptions
 
     private static string GetAppStoragePath()
     {
-        var xdgDataDirectory = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-        if (string.IsNullOrWhiteSpace(xdgDataDirectory))
+        string? path;
+        if (OperatingSystem.IsWindows())
         {
-            xdgDataDirectory = Path.Join(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".local",
-                "share"
+            path = Environment.GetFolderPath(
+                Environment.SpecialFolder.ApplicationData,
+                Environment.SpecialFolderOption.Create
             );
         }
+        else
+        {
+            path = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                path = Path.Join(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".local",
+                    "share"
+                );
+            }
+        }
 
-        if (!Directory.Exists(xdgDataDirectory))
-            Directory.CreateDirectory(xdgDataDirectory);
+        path = Path.Join(path, "race-control");
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
 
-        return Path.Join(xdgDataDirectory, "race-control");
+        return path;
     }
 }
