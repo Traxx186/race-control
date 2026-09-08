@@ -19,8 +19,7 @@
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-    <PackageReference Include="Quartz" />
-    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Quartz.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Settings.AppSettings" />
     <PackageReference Include="Serilog.Sinks.Console" />

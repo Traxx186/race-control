@@ -1,5 +1,3 @@
-using RaceControl.Data.Events;
-
 namespace RaceControl.Console.Categories;
 
 public interface ICategory

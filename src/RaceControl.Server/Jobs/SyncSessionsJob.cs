@@ -12,8 +12,6 @@ public class SyncSessionsJob(
     IHttpClientFactory httpClientFactory
     ) : IJob
 {
-    public static readonly JobKey JobKey = new("SyncSessionsJob");
-
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -54,7 +52,7 @@ public class SyncSessionsJob(
         }
 
         dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("[Session Sync] Session data synchronized");
     }
