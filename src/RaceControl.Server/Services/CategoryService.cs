@@ -45,10 +45,8 @@ public sealed class CategoryService(
         await _activeCategory.StartAsync();
     }
 
-    /// <summary>
-    /// Closes the API connection of the active category.
-    /// </summary>
-    private async Task StopActiveCategoryAsync()
+    /// <inheritdoc/>
+    public async Task StopActiveCategoryAsync()
     {
         await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 

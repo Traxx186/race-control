@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RaceControl.Console.Categories;
 using RaceControl.Console.Options;
 using RaceControl.Data.Dtos;
+using RaceControl.Data.Events;
 
 namespace RaceControl.Console.Services;
 
@@ -24,6 +25,9 @@ public class BroadcastService : IHostedService
 
         optionsMonitor.OnChange(async _ =>
         {
+            if (_connection is null)
+                return;
+
             _logger.LogInformation("[Broadcast Service] Config changed, restart Live timing");
 
             if (_connection.State == HubConnectionState.Connected)
@@ -35,9 +39,14 @@ public class BroadcastService : IHostedService
             await _connection.StartAsync();
         });
 
-        var host = optionsMonitor.CurrentValue.BroadcastHost ?? "http://localhost:8080";
+        var host = new UriBuilder( optionsMonitor.CurrentValue.BroadcastHost ?? "http://localhost:8080")
+        {
+            Path = "signalr"
+        };
+
+        _logger.LogInformation("[Broadcast Service] Setting up connection to race control server {uri}", host.ToString());
         _connection = new HubConnectionBuilder()
-            .WithUrl($"{host}/signalr")
+            .WithUrl(host.Uri)
             .WithAutomaticReconnect()
             .Build();
 
@@ -46,9 +55,8 @@ public class BroadcastService : IHostedService
 
     public async Task StartAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("[Broadcast Service] Connecting to server");
-
         await _connection.StartAsync(stoppingToken);
+        _logger.LogInformation("[Broadcast Service] Connected to server");
     }
 
     public async Task StopAsync(CancellationToken stoppingToken)
@@ -75,7 +83,31 @@ public class BroadcastService : IHostedService
         if (category == null)
             return;
 
+        category.FlagParsed += async (_, args) => await HandleFlagParsedEvent(args);
+        category.SessionFinished += async (_, _) => await HandleSessionFinishedEvent();
+
         _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", categoryDto.Key);
         await category.StartAsync();
+    }
+
+    /// <summary>
+    /// Handle the flag parsed event.
+    /// </summary>
+    /// <param name="args">Event args</param>
+    private async Task HandleFlagParsedEvent(FlagChangedEventArgs args)
+    {
+        var flagDataDto = new FlagDataDto(args.Flag, args.Driver);
+
+        _logger.LogInformation("[Broadcast Service] Send flag  {flag} to race control server", flagDataDto.Flag);
+        await _connection.InvokeAsync("SendFlag", flagDataDto);
+    }
+
+    /// <summary>
+    /// Handle the session finished event.
+    /// </summary>
+    private async Task HandleSessionFinishedEvent()
+    {
+        _logger.LogInformation("[Broadcast Service] Send session finished message to race control server");
+        await _connection.InvokeAsync("SessionFinished");
     }
 }

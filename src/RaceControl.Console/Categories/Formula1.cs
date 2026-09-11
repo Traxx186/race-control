@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Console.Options;
+using RaceControl.Data.Events;
 
 namespace RaceControl.Console.Categories;
 
@@ -24,6 +25,16 @@ public sealed class Formula1 : ICategory
     /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
     private readonly HubConnection _connection;
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public event EventHandler? SessionFinished;
 
     /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
@@ -87,7 +98,23 @@ public sealed class Formula1 : ICategory
     /// <param name="driverNumber">The number of the driver for whom the flag is intended.</param>
     private void OnFlagParsed(Flag flag, int? driverNumber = null)
     {
+        var args = new FlagChangedEventArgs { Flag = flag, Driver = driverNumber};
+        FlagParsed?.Invoke(this, args);
+    }
 
+    /// <summary>
+    /// Invokes the SessionFinished event.
+    /// </summary>
+    private async Task OnSessionFinished()
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+            await StopAsync();
+
+        SessionFinished?.Invoke(this, EventArgs.Empty);
+
+        // clear event handlers
+        SessionFinished = null;
+        FlagParsed = null;
     }
 
     /// <summary>
@@ -176,7 +203,7 @@ public sealed class Formula1 : ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (!TryParseFlag(raceControlMessage.Flag, out var flag))
         {
             _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
@@ -211,7 +238,7 @@ public sealed class Formula1 : ICategory
         }
 
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
-        await StopAsync();
+        await OnSessionFinished();
     }
 
     /// <summary>

@@ -6,10 +6,12 @@ namespace RaceControl.Server.Hubs;
 
 public class RaceControlHub(
     ITrackStatusService trackStatusService,
+    ILogger<RaceControlHub> logger,
     ICategoryService categoryService) : Hub<IRaceControlHubClient>
 {
     public override async Task OnConnectedAsync()
     {
+        logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
         var category = categoryService.ActiveSession?.Category;
         var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
 
@@ -25,6 +27,14 @@ public class RaceControlHub(
 
     public void SendFlag(FlagDataDto flagData)
     {
+        logger.LogInformation("[RaceControlHub] Received flag from client");
         categoryService.EnqueueFlag(flagData.Flag, flagData.Driver);
+    }
+
+    public async Task SessionFinalised()
+    {
+        logger.LogInformation("[RaceControlHub] Received stop current category message from client");
+        await categoryService.StopActiveCategoryAsync();
+
     }
 }

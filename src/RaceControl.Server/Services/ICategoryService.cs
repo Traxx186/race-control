@@ -28,6 +28,11 @@ public interface ICategoryService
     Task StartCategoryAsync(Session session);
 
     /// <summary>
+    /// Closes the API connection of the active category.
+    /// </summary>
+    Task StopActiveCategoryAsync();
+
+    /// <summary>
     /// Adds a new flag to the flag queue.
     /// </summary>
     /// <param name="flag">flag to add.</param>
