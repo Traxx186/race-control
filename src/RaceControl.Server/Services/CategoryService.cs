@@ -45,10 +45,8 @@ public sealed class CategoryService(
         await _activeCategory.StartAsync();
     }
 
-    /// <summary>
-    /// Closes the API connection of the active category.
-    /// </summary>
-    private async Task StopActiveCategoryAsync()
+    /// <inheritdoc/>
+    public async Task StopActiveCategoryAsync()
     {
         await trackStatusService.SetActiveFlagAsync(Flag.Clear);
 
@@ -58,12 +56,8 @@ public sealed class CategoryService(
         _activeSession = null;
     }
 
-    /// <summary>
-    /// Adds a new flag to the flag queue.
-    /// </summary>
-    /// <param name="flag">flag to add.</param>
-    /// <param name="driver">related driver.</param>
-    private void EnqueueFlag(Flag flag, int? driver)
+    /// <inheritdoc/>
+    public void EnqueueFlag(Flag flag, int? driver)
     {
         if (flag == Flag.None)
         {
@@ -87,7 +81,6 @@ public sealed class CategoryService(
     {
         category = key switch
         {
-            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
             "f2" => categories.OfType<Formula2>().FirstOrDefault(),
             "f3" => categories.OfType<Formula3>().FirstOrDefault(),
             _ => null

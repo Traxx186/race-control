@@ -14,9 +14,7 @@ public class FetchActiveSessionJob(
     RaceControlContext dbContext,
     ICategoryService categoryService) : IJob
 {
-    public static readonly JobKey JobKey = new("FetchActiveSessionJob");
-
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
         if (categoryService.HasSessionActive)
             return;

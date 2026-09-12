@@ -76,27 +76,4 @@ public sealed class TrackStatusService(
 
         await raceHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
     }
-
-    /// <inheritdoc/>
-    public static bool TryParseFlag(string? input, out Flag flag)
-    {
-        flag = input switch
-        {
-            "BLACK AND WHITE" => Flag.BlackWhite,
-            "BLUE" => Flag.Blue,
-            "CHEQUERED" => Flag.Chequered,
-            "CLEAR" or "GREEN" => Flag.Clear,
-            "CODE 60" => Flag.Code60,
-            "DOUBLE YELLOW" => Flag.DoubleYellow,
-            "FULL COURSE YELLOW" => Flag.Fyc,
-            "RED" => Flag.Red,
-            "SAFETY CAR" => Flag.SafetyCar,
-            "SLIPPERY SURFACE" => Flag.Surface,
-            "VIRTUAL SAFETY CAR" => Flag.Vsc,
-            "YELLOW" => Flag.Yellow,
-            _ => Flag.None
-        };
-
-        return flag != Flag.None;
-    }
 }

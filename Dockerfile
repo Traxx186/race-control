@@ -19,7 +19,7 @@ COPY ./ ./
 RUN dotnet restore RaceControl.slnx --runtime linux-musl-x64
 
 # Build and publish a release
-RUN dotnet publish RaceControl.Server \
+RUN dotnet publish src/RaceControl.Server/RaceControl.Server.csproj \
     -c Release \
     -o out \
    --runtime linux-musl-x64 \
@@ -62,4 +62,4 @@ USER ${USER}
 
 EXPOSE 8080
 
-ENTRYPOINT ["./RaceControl"]
+ENTRYPOINT ["./RaceControl.Server"]

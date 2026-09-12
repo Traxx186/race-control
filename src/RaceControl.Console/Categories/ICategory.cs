@@ -1,0 +1,32 @@
+using RaceControl.Data.Events;
+
+namespace RaceControl.Console.Categories;
+
+public interface ICategory
+{
+    /// <summary>
+    /// If the live timing API is active.
+    /// </summary>
+    bool Connected { get; }
+
+
+    /// <summary>
+    /// Event that gets invoked when the active flag of the category has changed.
+    /// </summary>
+    event EventHandler<FlagChangedEventArgs> FlagParsed;
+
+    /// <summary>
+    /// Event that gets invoked when a session of the category has finished.
+    /// </summary>
+    event EventHandler SessionFinished;
+
+    /// <summary>
+    /// Sets up and starts the live timing service related to the category.
+    /// </summary>
+    Task StartAsync();
+
+    /// <summary>
+    /// Closes the connection to the live timing service related to the category.
+    /// </summary>
+    Task StopAsync();
+}

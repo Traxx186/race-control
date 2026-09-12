@@ -1,21 +1,20 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
+using RaceControl.Console.Options;
 using RaceControl.Data.Events;
-using RaceControl.Server.Options;
-using RaceControl.Server.Services;
 
-namespace RaceControl.Server.Categories;
+namespace RaceControl.Console.Categories;
 
-public sealed class Formula1: ICategory
+public sealed class Formula1 : ICategory
 {
     private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 
     private readonly ILogger _logger;
-    private readonly IOptionsMonitor<RaceControlOptions> _optionsMonitor;
 
     /// <summary>
     /// Which SignalR topics to subscribe to when connection to the live timing API.
@@ -25,12 +24,7 @@ public sealed class Formula1: ICategory
     /// <summary>
     /// The SignalR <see cref="HubConnection"/> connection object.
     /// </summary>
-    private HubConnection? _connection;
-
-    /// <summary>
-    /// If the connection was restarted because of a config change.
-    /// </summary>
-    private bool _restart;
+    private readonly HubConnection _connection;
 
     /// <summary>
     /// <inheritdoc/>
@@ -45,23 +39,23 @@ public sealed class Formula1: ICategory
     /// <inheritdoc/>
     public bool Connected => _connection?.State == HubConnectionState.Connected;
 
-    public Formula1(
-        ILogger<Formula1> logger,
-        IOptionsMonitor<RaceControlOptions> options)
+    public Formula1(ILogger<Formula1> logger)
     {
         _logger = logger;
-        _optionsMonitor = options;
 
-        _optionsMonitor.OnChange(async _ =>
+        _connection = new HubConnectionBuilder()
+            .WithUrl(LiveTimingUrl)
+            .ConfigureLogging(logging => logging.AddConsole())
+            .WithAutomaticReconnect()
+            .Build();
+
+        _connection.Closed += _ =>
         {
-            if (_connection is null)
-                return;
+            _logger.LogInformation("[Formula 1] API connection terminated");
+            return Task.CompletedTask;
+        };
 
-            _logger.LogInformation("[Formula 1] Config changed, restart Live timing");
-            _restart = true;
-
-            await StartAsync();
-        });
+        _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);
     }
 
     /// <summary>
@@ -71,44 +65,13 @@ public sealed class Formula1: ICategory
     {
         _logger.LogInformation("[Formula 1] Starting Live Timing connection");
 
-        if (_connection is not null)
+        if (_connection.State == HubConnectionState.Connected)
         {
             _logger.LogWarning("[Formula 1] Connection already active, restarting");
-            await DisposeConnection();
+            await StopAsync();
+            await Task.Delay(1000);
         }
 
-        var accessToken = _optionsMonitor.CurrentValue.Formula1AccessToken;
-        _connection = new HubConnectionBuilder()
-            .WithUrl(LiveTimingUrl, options =>
-            {
-                options.AccessTokenProvider = () =>
-                {
-                    _logger.LogDebug(
-                        "[Formula 1] Using access token {accessToken}",
-                        !string.IsNullOrWhiteSpace(accessToken) ? "<redacted>" : "<missing>"
-                    );
-
-                    return Task.FromResult(accessToken);
-                };
-            })
-            .ConfigureLogging(logging => logging.AddConsole())
-            .WithAutomaticReconnect()
-            .Build();
-
-        _connection.Closed += async _ =>
-        {
-            if (_restart)
-            {
-                _restart = false;
-            }
-            else
-            {
-                _logger.LogInformation("[Formula 1] API connection terminated");
-                await OnSessionFinished();
-            }
-        };
-
-        _connection.On<string, JsonNode, DateTimeOffset>("feed", HandleMessageAsync);
         await _connection.StartAsync();
 
         _logger.LogInformation("[Formula 1] Subscribe to selected topics");
@@ -123,20 +86,9 @@ public sealed class Formula1: ICategory
     public async Task StopAsync()
     {
         _logger.LogInformation("[Formula 1] Closing API connection");
-        await DisposeConnection();
 
-        FlagParsed = null;
-    }
-
-    /// <summary>
-    /// Closes the SignalR connection.
-    /// </summary>
-    private async Task DisposeConnection()
-    {
-        if (_connection is not null)
+        if (_connection.State == HubConnectionState.Connected)
             await _connection!.StopAsync();
-
-        _connection = null;
     }
 
     /// <summary>
@@ -159,7 +111,10 @@ public sealed class Formula1: ICategory
             await StopAsync();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
+
+        // clear event handlers
         SessionFinished = null;
+        FlagParsed = null;
     }
 
     /// <summary>
@@ -248,7 +203,7 @@ public sealed class Formula1: ICategory
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TrackStatusService.TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (!TryParseFlag(raceControlMessage.Flag, out var flag))
         {
             _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
             return;
@@ -284,5 +239,36 @@ public sealed class Formula1: ICategory
 
         _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
         await OnSessionFinished();
+    }
+
+    /// <summary>
+    /// Converts the input string to a <see cref="Flag"/>.
+    /// </summary>
+    /// <param name="input">The string representing a flag.</param>
+    /// <param name="flag">
+    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
+    /// Else <code>Flag.None</code> will be returned.
+    /// </param>
+    /// <returns>If the flag could be parsed.</returns>
+    private static bool TryParseFlag(string? input, out Flag flag)
+    {
+        flag = input switch
+        {
+            "BLACK AND WHITE" => Flag.BlackWhite,
+            "BLUE" => Flag.Blue,
+            "CHEQUERED" => Flag.Chequered,
+            "CLEAR" or "GREEN" => Flag.Clear,
+            "CODE 60" => Flag.Code60,
+            "DOUBLE YELLOW" => Flag.DoubleYellow,
+            "FULL COURSE YELLOW" => Flag.Fyc,
+            "RED" => Flag.Red,
+            "SAFETY CAR" => Flag.SafetyCar,
+            "SLIPPERY SURFACE" => Flag.Surface,
+            "VIRTUAL SAFETY CAR" => Flag.Vsc,
+            "YELLOW" => Flag.Yellow,
+            _ => Flag.None
+        };
+
+        return flag != Flag.None;
     }
 }
