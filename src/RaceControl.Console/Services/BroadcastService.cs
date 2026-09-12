@@ -15,6 +15,8 @@ public class BroadcastService : IHostedService
     private readonly HubConnection _connection;
     private readonly IEnumerable<ICategory> _categories;
 
+    private ICategory? _currentCategory;
+
     public BroadcastService(
         ILogger<BroadcastService> logger,
         IOptionsMonitor<RaceControlOptions> optionsMonitor,
@@ -74,20 +76,20 @@ public class BroadcastService : IHostedService
     private async Task HandleCategoryChange(CategoryDto categoryDto)
     {
         _logger.LogInformation("[Broadcast Service] Parsing category change message");
-        var category = categoryDto.Key switch
+        _currentCategory = categoryDto.Key switch
         {
             "f1" => _categories.OfType<Formula1>().FirstOrDefault(),
             _ => null
         };
 
-        if (category == null)
+        if (_currentCategory == null)
             return;
 
-        category.FlagParsed += async (_, args) => await HandleFlagParsedEvent(args);
-        category.SessionFinished += async (_, _) => await HandleSessionFinishedEvent();
+        _currentCategory.FlagParsed += async (_, args) => await HandleFlagParsedEvent(args);
+        _currentCategory.SessionFinished += async (_, _) => await HandleSessionFinishedEvent();
 
         _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", categoryDto.Key);
-        await category.StartAsync();
+        await _currentCategory.StartAsync();
     }
 
     /// <summary>
@@ -108,6 +110,6 @@ public class BroadcastService : IHostedService
     private async Task HandleSessionFinishedEvent()
     {
         _logger.LogInformation("[Broadcast Service] Send session finished message to race control server");
-        await _connection.InvokeAsync("SessionFinished");
+        await _connection.InvokeAsync("SessionFinalised");
     }
 }

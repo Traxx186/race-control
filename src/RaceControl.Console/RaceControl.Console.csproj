@@ -4,6 +4,16 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>RaceControl.Console</AssemblyName>
     <RootNamespace>RaceControl.Console</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>race-control</ToolCommandName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Traxx186</Authors>
+    <RepositoryUrl>https://github.com/Traxx186/race-control</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@
     <OutputType>Library</OutputType>
     <AssemblyName>RaceControl.Data</AssemblyName>
     <RootNamespace>RaceControl.Data</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
 </Project>
