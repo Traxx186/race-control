@@ -28,13 +28,12 @@ public class RaceControlHub(
     public void SendFlag(FlagDataDto flagData)
     {
         logger.LogInformation("[RaceControlHub] Received flag from client");
-        categoryService.EnqueueFlag(flagData.Flag, flagData.Driver);
+        categoryService.EnqueueFlag(flagData);
     }
 
     public async Task SessionFinalised()
     {
         logger.LogInformation("[RaceControlHub] Received stop current category message from client");
         await categoryService.StopActiveCategoryAsync();
-
     }
 }

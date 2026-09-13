@@ -35,7 +35,6 @@ public interface ICategoryService
     /// <summary>
     /// Adds a new flag to the flag queue.
     /// </summary>
-    /// <param name="flag">flag to add.</param>
-    /// <param name="driver">related driver.</param>
-    void EnqueueFlag(Flag flag, int? driver);
+    /// <param name="flagData">flag data to add.</param>
+    void EnqueueFlag(FlagDataDto flagData);
 }

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace RaceControl.Controllers;
+namespace RaceControl.Server.Controllers;
 
 public class HomeController(ILogger<HomeController> logger) : Controller
 {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace RaceControl.Controllers;
+namespace RaceControl.Server.Controllers;
 
 public class HealthController : Controller
 {

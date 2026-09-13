@@ -37,29 +37,29 @@ public sealed class TrackStatusService(
     public Flag ActiveFlag { get; private set; } = Flag.Clear;
 
     /// <inheritdoc/>
-    public async Task SetActiveFlagAsync(Flag flag, int? driver = null)
+    public async Task SetActiveFlagAsync(FlagDataDto flagData)
     {
         logger.LogInformation("[Track Status] New flag received");
-        if (OverrideFlags.Contains(flag))
+        if (OverrideFlags.Contains(flagData.Flag))
         {
-            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", flag);
+            logger.LogInformation("[Track Status] Received override flag {flag}, sending flag and updating track status", flagData.Flag);
 
-            ActiveFlag = flag;
-            await raceHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
+            ActiveFlag = flagData.Flag;
+            await raceHubContext.Clients.All.FlagChange(flagData);
 
             return;
         }
 
         // If given flag is the same as the active flag, ignore the flag change.
-        if (flag == ActiveFlag)
+        if (flagData.Flag == ActiveFlag)
             return;
 
-        var newFlagPrio = FlagPriority.GetValueOrDefault(flag);
+        var newFlagPrio = FlagPriority.GetValueOrDefault(flagData.Flag);
         var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag);
-        if (flag == Flag.Clear && newFlagPrio == InformationFlagPriority)
+        if (ActiveFlag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");
-            await raceHubContext.Clients.All.FlagChange(new FlagDataDto(flag, driver));
+            await raceHubContext.Clients.All.FlagChange(flagData);
 
             return;
         }
@@ -72,8 +72,8 @@ public sealed class TrackStatusService(
         }
 
         logger.LogInformation("[Track Status] New received flag with higher priority, updating track status");
-        ActiveFlag = flag;
+        ActiveFlag = flagData.Flag;
 
-        await raceHubContext.Clients.All.FlagChange(new FlagDataDto(ActiveFlag, driver));
+        await raceHubContext.Clients.All.FlagChange(flagData);
     }
 }

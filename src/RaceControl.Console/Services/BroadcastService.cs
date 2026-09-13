@@ -100,7 +100,7 @@ public class BroadcastService : IHostedService
     {
         var flagDataDto = new FlagDataDto(args.Flag, args.Driver);
 
-        _logger.LogInformation("[Broadcast Service] Send flag  {flag} to race control server", flagDataDto.Flag);
+        _logger.LogInformation("[Broadcast Service] Send flag {flag} to race control server", flagDataDto.Flag);
         await _connection.InvokeAsync("SendFlag", flagDataDto);
     }
 

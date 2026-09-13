@@ -38,7 +38,7 @@ public sealed class FlagBroadcastService(
             return;
 
         logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag} with enqueue time of {time}", flagToBroadcast.Value.Flag, flagToBroadcast.Key.ToString("yyyy-MM-dd HH:mm:ss"));
-        await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Value.Flag, flagToBroadcast.Value.Driver);
+        await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Value);
         categoryService.FlagQueue.Remove(flagToBroadcast.Key);
     }
 }

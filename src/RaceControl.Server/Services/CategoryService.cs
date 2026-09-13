@@ -39,7 +39,7 @@ public sealed class CategoryService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
 
-        _activeCategory!.FlagParsed += (_, args) => EnqueueFlag(args.Flag, args.Driver);
+        _activeCategory!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeCategory.StartAsync();
@@ -48,7 +48,7 @@ public sealed class CategoryService(
     /// <inheritdoc/>
     public async Task StopActiveCategoryAsync()
     {
-        await trackStatusService.SetActiveFlagAsync(Flag.Clear);
+        await trackStatusService.SetActiveFlagAsync(new FlagDataDto(Flag.Clear));
 
         logger.LogInformation("[Category Service] Closing the active category");
         FlagQueue.Clear();
@@ -57,17 +57,15 @@ public sealed class CategoryService(
     }
 
     /// <inheritdoc/>
-    public void EnqueueFlag(Flag flag, int? driver)
+    public void EnqueueFlag(FlagDataDto flagData)
     {
-        if (flag == Flag.None)
+        if (flagData.Flag == Flag.None)
         {
             logger.LogInformation("[Category Service] Ignore invalid flag");
             return;
         }
 
-        var flagData = new FlagDataDto(flag, driver);
-
-        logger.LogInformation("[Category Service] Append flag {flag} to queue", flag);
+        logger.LogInformation("[Category Service] Append flag {flag} to queue", flagData.Flag);
         FlagQueue.Add(DateTime.UtcNow, flagData);
     }
 
