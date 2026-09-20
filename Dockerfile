@@ -22,8 +22,8 @@ RUN dotnet restore RaceControl.slnx --runtime linux-musl-x64
 RUN dotnet publish src/RaceControl.Server/RaceControl.Server.csproj \
     -c Release \
     -o out \
-   --runtime linux-musl-x64 \
-   --self-contained true
+    --runtime linux-musl-x64 \
+    --self-contained true
 
 #####################################################################
 ## Final image
