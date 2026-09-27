@@ -47,6 +47,12 @@ class Panel {
             case 'Surface':
                 this.#slipperySurfaceFlag();
                 break;
+            case 'RollingStart':
+                this.#rollingStart();
+                break;
+            case 'StandingStart':
+                this.#standingStart();
+                break;
             default:
                 console.warn(`Flag ${flag} not supported`);
         }
@@ -390,5 +396,115 @@ class Panel {
             this.ctx.reset();
             clearInterval(this.#interval);
         }, 10_000);
+    }
+
+    #standingStart() {
+        const { width, height } = this.canvas;
+
+        this.#interval = setInterval(() => {
+            this.ctx.reset();
+
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 125;
+            this.ctx.strokeRect(0, 0, width, height);
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(250, 0);
+            this.ctx.lineTo(0, 250);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.moveTo(width, 0);
+            this.ctx.lineTo(width - 250, 0);
+            this.ctx.lineTo(width, 250);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.moveTo(width, height);
+            this.ctx.lineTo(width, height - 250);
+            this.ctx.lineTo(width - 250, height);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.moveTo(0, height);
+            this.ctx.lineTo(0, height - 250);
+            this.ctx.lineTo(250, height);
+            this.ctx.fill();
+
+            this.ctx.font = "25em Arial";
+            this.ctx.fillStyle = '#fff';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('SS', Math.floor(width / 2), Math.floor(height / 2));
+
+            setTimeout(() => {
+                this.ctx.reset();
+            }, 350);
+        }, 500);
+
+        setTimeout(() => {
+            this.ctx.reset();
+            clearInterval(this.#interval);
+        }, 30_000);
+    }
+
+    #rollingStart() {
+        const { width, height } = this.canvas;
+
+        this.#interval = setInterval(() => {
+            this.ctx.reset();
+
+            this.ctx.strokeStyle = '#00ff00';
+            this.ctx.lineWidth = 125;
+            this.ctx.strokeRect(0, 0, width, height);
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#00ff00';
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(250, 0);
+            this.ctx.lineTo(0, 250);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#00ff00';
+            this.ctx.moveTo(width, 0);
+            this.ctx.lineTo(width - 250, 0);
+            this.ctx.lineTo(width, 250);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#00ff00';
+            this.ctx.moveTo(width, height);
+            this.ctx.lineTo(width, height - 250);
+            this.ctx.lineTo(width - 250, height);
+            this.ctx.fill();
+
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#00ff00';
+            this.ctx.moveTo(0, height);
+            this.ctx.lineTo(0, height - 250);
+            this.ctx.lineTo(250, height);
+            this.ctx.fill();
+
+            this.ctx.font = "25em Arial";
+            this.ctx.fillStyle = '#fff';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('RS', Math.floor(width / 2), Math.floor(height / 2));
+
+            setTimeout(() => {
+                this.ctx.reset();
+            }, 350);
+        }, 500);
+
+        setTimeout(() => {
+            this.ctx.reset();
+            clearInterval(this.#interval);
+        }, 30_000);
     }
 }

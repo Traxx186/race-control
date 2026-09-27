@@ -16,5 +16,6 @@ public sealed record RaceControlMessageDto(
     string Category,
     string Message,
     string Flag,
+    string Scope,
     string RacingNumber
 );
