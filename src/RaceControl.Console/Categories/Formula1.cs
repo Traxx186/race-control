@@ -187,7 +187,7 @@ public sealed class Formula1 : ICategory
         }
 
         // Checks if the slippery surface flag is shown.
-        if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
+        if (raceControlMessage.Message.Contains("slippery", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
             OnFlagParsed(Flag.Surface);
