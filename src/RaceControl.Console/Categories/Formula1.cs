@@ -195,8 +195,28 @@ public sealed class Formula1 : ICategory
             return;
         }
 
-        // If the message category is not 'Flag', or received clear message, the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
+        // Checks if a standing start announcement is made.
+        if (raceControlMessage.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
+            raceControlMessage.Message.Contains("standing start", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.StandingStart);
+            OnFlagParsed(Flag.StandingStart);
+
+            return;
+        }
+
+        // Checks if a rolling start announcement is made.
+        if (raceControlMessage.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
+            raceControlMessage.Message.Contains("rolling start", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.RollingStart);
+            OnFlagParsed(Flag.RollingStart);
+
+            return;
+        }
+
+        // Skip the message if the message category is related to a flag.
+        if (!raceControlMessage.Category.Equals("flag", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Race control message ignored");
             return;
@@ -257,15 +277,8 @@ public sealed class Formula1 : ICategory
             "BLACK AND WHITE" => Flag.BlackWhite,
             "BLUE" => Flag.Blue,
             "CHEQUERED" => Flag.Chequered,
-            "CLEAR" or "GREEN" => Flag.Clear,
-            "CODE 60" => Flag.Code60,
             "DOUBLE YELLOW" => Flag.DoubleYellow,
-            "FULL COURSE YELLOW" => Flag.Fyc,
-            "RED" => Flag.Red,
-            "SAFETY CAR" => Flag.SafetyCar,
             "SLIPPERY SURFACE" => Flag.Surface,
-            "VIRTUAL SAFETY CAR" => Flag.Vsc,
-            "YELLOW" => Flag.Yellow,
             _ => Flag.None
         };
 
