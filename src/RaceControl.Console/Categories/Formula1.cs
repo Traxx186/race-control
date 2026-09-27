@@ -2,10 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
-using RaceControl.Console.Options;
 using RaceControl.Data.Events;
 
 namespace RaceControl.Console.Categories;
