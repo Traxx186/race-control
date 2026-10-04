@@ -35,7 +35,7 @@ public sealed class Formula1 : ICategory
     public event EventHandler? SessionFinished;
 
     /// <inheritdoc/>
-    public bool Connected => _connection?.State == HubConnectionState.Connected;
+    public bool Connected => _connection.State == HubConnectionState.Connected;
 
     public Formula1(ILogger<Formula1> logger)
     {
@@ -105,7 +105,7 @@ public sealed class Formula1 : ICategory
     /// </summary>
     private async Task OnSessionFinished()
     {
-        if (_connection?.State == HubConnectionState.Connected)
+        if (_connection.State == HubConnectionState.Connected)
             await StopAsync();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
@@ -176,8 +176,8 @@ public sealed class Formula1 : ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
 
-        var raceControlMessages = data.Deserialize<RaceControlMessagesDto>();
-        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessageDto>();
+        var messages = data["Messages"];
+        var raceControlMessage = messages?[0].Deserialize<RaceControlMessageDto>();
         if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");

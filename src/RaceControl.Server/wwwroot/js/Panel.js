@@ -401,6 +401,8 @@ class Panel {
     #standingStart() {
         const { width, height } = this.canvas;
 
+        this.#currentFlag = 'SafetyCar';
+
         this.#interval = setInterval(() => {
             this.ctx.reset();
 
@@ -444,7 +446,13 @@ class Panel {
 
             setTimeout(() => {
                 this.ctx.reset();
-            }, 350);
+
+                this.ctx.font = "25em Arial";
+                this.ctx.fillStyle = '#fff';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('SS', Math.floor(width / 2), Math.floor(height / 2));
+            }, 250);
         }, 500);
 
         setTimeout(() => {
@@ -455,6 +463,8 @@ class Panel {
 
     #rollingStart() {
         const { width, height } = this.canvas;
+
+        this.#currentFlag = 'SafetyCar';
 
         this.#interval = setInterval(() => {
             this.ctx.reset();
@@ -499,7 +509,13 @@ class Panel {
 
             setTimeout(() => {
                 this.ctx.reset();
-            }, 350);
+
+                this.ctx.font = "25em Arial";
+                this.ctx.fillStyle = '#fff';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('RS', Math.floor(width / 2), Math.floor(height / 2));
+            }, 250);
         }, 500);
 
         setTimeout(() => {
