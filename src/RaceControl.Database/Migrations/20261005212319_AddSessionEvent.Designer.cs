@@ -12,8 +12,8 @@ using RaceControl.Database;
 namespace RaceControl.Database.Migrations
 {
     [DbContext(typeof(RaceControlContext))]
-    [Migration("20261005184439_CreateSessionTable")]
-    partial class CreateSessionTable
+    [Migration("20261005212319_AddSessionEvent")]
+    partial class AddSessionEvent
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -65,6 +65,12 @@ namespace RaceControl.Database.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("championship_id");
 
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("event");
+
                     b.Property<int>("Key")
                         .HasColumnType("integer")
                         .HasColumnName("key");
@@ -89,7 +95,7 @@ namespace RaceControl.Database.Migrations
                         .HasName("id_pkey");
 
                     b.HasIndex("ChampionshipId")
-                        .HasDatabaseName("ix_session_championship_id");
+                        .HasDatabaseName("ix_sessions_championship_id");
 
                     b.ToTable("sessions", (string)null);
                 });
@@ -101,7 +107,7 @@ namespace RaceControl.Database.Migrations
                         .HasForeignKey("ChampionshipId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_session_championship");
+                        .HasConstraintName("fk_sessions_championship");
 
                     b.Navigation("Championship");
                 });

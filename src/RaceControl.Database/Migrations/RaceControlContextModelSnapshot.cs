@@ -38,7 +38,7 @@ namespace RaceControl.Database.Migrations
                     b.HasKey("Id")
                         .HasName("id_pkey");
 
-                    b.ToTable("championship", (string)null);
+                    b.ToTable("championships", (string)null);
                 });
 
             modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
@@ -61,6 +61,12 @@ namespace RaceControl.Database.Migrations
                         .IsRequired()
                         .HasColumnType("character varying(32)")
                         .HasColumnName("championship_id");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("event");
 
                     b.Property<int>("Key")
                         .HasColumnType("integer")
@@ -86,9 +92,9 @@ namespace RaceControl.Database.Migrations
                         .HasName("id_pkey");
 
                     b.HasIndex("ChampionshipId")
-                        .HasDatabaseName("ix_session_championship_id");
+                        .HasDatabaseName("ix_sessions_championship_id");
 
-                    b.ToTable("session", (string)null);
+                    b.ToTable("sessions", (string)null);
                 });
 
             modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
@@ -98,7 +104,7 @@ namespace RaceControl.Database.Migrations
                         .HasForeignKey("ChampionshipId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_session_championship");
+                        .HasConstraintName("fk_sessions_championship");
 
                     b.Navigation("Championship");
                 });

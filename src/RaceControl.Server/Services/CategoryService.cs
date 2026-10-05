@@ -34,10 +34,10 @@ public sealed class CategoryService(
     {
         _activeSession ??= session;
 
-        if (!TryGetCategory(_activeSession.CategoryKey, out _activeCategory))
+        if (!TryGetCategory(_activeSession.ChampionshipId, out _activeCategory))
             return;
 
-        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.CategoryKey);
+        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.ChampionshipId);
 
         _activeCategory!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
         _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();

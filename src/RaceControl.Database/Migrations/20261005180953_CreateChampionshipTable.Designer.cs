@@ -40,7 +40,7 @@ namespace RaceControl.Database.Migrations
                     b.HasKey("Id")
                         .HasName("id_pkey");
 
-                    b.ToTable("championship", (string)null);
+                    b.ToTable("championships", (string)null);
                 });
 #pragma warning restore 612, 618
         }

@@ -13,7 +13,7 @@ namespace RaceControl.Database.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "session",
+                name: "sessions",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
@@ -30,16 +30,16 @@ namespace RaceControl.Database.Migrations
                 {
                     table.PrimaryKey("id_pkey", x => x.id);
                     table.ForeignKey(
-                        name: "fk_session_championship",
+                        name: "fk_sessions_championship",
                         column: x => x.championship_id,
-                        principalTable: "championship",
+                        principalTable: "championships",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_session_championship_id",
-                table: "session",
+                name: "ix_sessions_championship_id",
+                table: "sessions",
                 column: "championship_id");
         }
 
@@ -47,7 +47,7 @@ namespace RaceControl.Database.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "session");
+                name: "sessions");
         }
     }
 }

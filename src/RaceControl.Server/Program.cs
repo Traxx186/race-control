@@ -41,10 +41,16 @@ builder.Services.AddSerilog(configuration =>
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
-builder.Services.AddHttpClient();
 builder.Services.AddHostedService<FlagBroadcastService>();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
 builder.Services.AddSingleton<ICategoryService, CategoryService>();
+
+// Create HTTP clients.
+builder.Services.AddHttpClient("Formula1Api", httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://api.formula1.com/");
+    httpClient.DefaultRequestHeaders.Add("locale", "en");
+});
 
 // Add the supported racing categories
 builder.Services.AddSingleton<ICategory, Formula2>();
@@ -61,7 +67,8 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.ScheduleJob<SyncSessionsJob>(trigger => trigger
         .WithIdentity("SyncSessionsJob-trigger")
-        .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
+        .WithCronSchedule("0 * * ? * * *")
+        //.WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 
     quartz.ScheduleJob<FetchActiveSessionJob>(trigger => trigger

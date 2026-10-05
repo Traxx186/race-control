@@ -11,7 +11,7 @@ namespace RaceControl.Database.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "championship",
+                name: "championships",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
@@ -27,7 +27,7 @@ namespace RaceControl.Database.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "championship");
+                name: "championships");
         }
     }
 }
