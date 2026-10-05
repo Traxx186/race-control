@@ -23,16 +23,16 @@ public class FetchActiveSessionJob(
 
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
         var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
-        var session = dbContext.Sessions.Include(session => session.Category)
-            .SingleOrDefault(s => s.Time == searchDate);
+        var session = dbContext.Sessions.Include(session => session.Championship)
+            .SingleOrDefault(s => s.StartTime == searchDate);
 
         // If no session has been found, stop the job.
         if (null == session)
             return;
 
-        logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.CategoryKey);
+        logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", session.ChampionshipId);
 
-        var category = new CategoryDto(Latency: session.Category.Latency, Key: session.CategoryKey);
+        var category = new CategoryDto(Latency: 35, Key: session.ChampionshipId);
         await racHubContext.Clients.All.CategoryChange(category);
         await categoryService.StartCategoryAsync(session);
     }

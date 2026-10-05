@@ -18,21 +18,21 @@ public class SyncSessionsJob(
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
-        var categories = dbContext.Categories.ToArray();
+        var championships = dbContext.Championships.ToArray();
         var currentYear = context.FireTimeUtc.Year;
 
-        foreach (var category in categories)
+        foreach (var championship in championships)
         {
             // Fetch the calendar data of the current category, if no data is found go to the next
             // category.
-            var calendar = await FetchCalendarAsync(category.Key, currentYear);
+            var calendar = await FetchCalendarAsync(championship.Id, currentYear);
             if (null == calendar)
             {
-                logger.LogWarning("[Session Sync] Could not find session data for {key}", category.Key);
+                logger.LogWarning("[Session Sync] Could not find session data for {key}", championship.Id);
                 continue;
             }
 
-            logger.LogInformation("[Session Sync] Check if sessions need to be removed due to cancellations {key}", category.Key);
+            logger.LogInformation("[Session Sync] Check if sessions need to be removed due to cancellations {key}", championship.Id);
             var cancelledRaces = calendar.Races
                 .Where(r => r.Canceled)
                 .ToArray();
@@ -40,15 +40,15 @@ public class SyncSessionsJob(
             if (cancelledRaces.Length > 0)
             {
                 logger.LogInformation("[Session Sync] Remove session of cancelled races");
-                await DeleteSessionsAsync(category, currentYear, cancelledRaces);
+                await DeleteSessionsAsync(championship, currentYear, cancelledRaces);
             }
 
             var notCancelledRaces = calendar.Races
                 .Where(r => !r.Canceled)
                 .ToArray();
 
-            logger.LogInformation("[Session Sync] Update database sessions for {key}", category.Key);
-            UpsertSessions(category, currentYear, notCancelledRaces);
+            logger.LogInformation("[Session Sync] Update database sessions for {key}", championship.Id);
+            UpsertSessions(championship, currentYear, notCancelledRaces);
         }
 
         dbContext.ChangeTracker.DetectChanges();
@@ -75,12 +75,12 @@ public class SyncSessionsJob(
     /// <summary>
     /// Inserts/update session in the database.
     /// </summary>
-    /// <param name="category">The related category of the sessions.</param>
+    /// <param name="championship">The related championship of the sessions.</param>
     /// <param name="year">The season year.</param>
     /// <param name="races">Races where the sessions added/updated.</param>
-    private void UpsertSessions(Category category, int year, CalendarItemDto[] races)
+    private void UpsertSessions(Championship championship, int year, CalendarItemDto[] races)
     {
-        var sessions = races.SelectMany(r =>
+/*        var sessions = races.SelectMany(r =>
             r.Sessions.Select(s => new Session
                 {
                     Id = $"{category.Key}_{year}_{r.Round:00}_{s.Key}",
@@ -107,23 +107,23 @@ public class SyncSessionsJob(
                 dbContext.Sessions.Add(session);
             else
                 existingSession.Time = session.Time;
-        }
+        }*/
     }
 
     /// <summary>
     /// Removes existing sessions from database.
     /// </summary>
-    /// <param name="category">The related category of the sessions.</param>
+    /// <param name="championship">The related championship of the sessions.</param>
     /// <param name="year">The season year.</param>
     /// <param name="races">Races where the sessions will be deleted.</param>
-    private async Task DeleteSessionsAsync(Category category, int year, CalendarItemDto[] races)
+    private async Task DeleteSessionsAsync(Championship championship, int year, CalendarItemDto[] races)
     {
         var sessionKeys = races.SelectMany(r =>
-            r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")
+            r.Sessions.Select(s => $"{championship.Id}_{year}_{r.Round:00}_{s.Key}")
         );
 
-        await dbContext.Sessions
-            .Where(s => sessionKeys.Contains(s.Id))
-            .ExecuteDeleteAsync();
+        //await dbContext.Sessions
+        //    .Where(s => sessionKeys.Contains(s.Id))
+        //    .ExecuteDeleteAsync();
     }
 }
