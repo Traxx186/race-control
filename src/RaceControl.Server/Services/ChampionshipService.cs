@@ -30,6 +30,9 @@ public sealed class ChampionshipService(
     public Session? ActiveSession => _activeSession;
 
     /// <inheritdoc/>
+    public IChampionship? ActiveChampionship => _activeChampionship;
+
+    /// <inheritdoc/>
     public async Task StartCategoryAsync(Session session)
     {
         _activeSession ??= session;
@@ -79,6 +82,7 @@ public sealed class ChampionshipService(
     {
         category = key switch
         {
+            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
             "f2" => categories.OfType<Formula2>().FirstOrDefault(),
             "f3" => categories.OfType<Formula3>().FirstOrDefault(),
             _ => null

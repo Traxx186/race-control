@@ -53,6 +53,7 @@ builder.Services.AddHttpClient("Formula1Api", httpClient =>
 });
 
 // Add the supported racing categories
+builder.Services.AddSingleton<IChampionship, Formula1>();
 builder.Services.AddSingleton<IChampionship, Formula2>();
 builder.Services.AddSingleton<IChampionship, Formula3>();
 

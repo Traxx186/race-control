@@ -12,4 +12,4 @@ public sealed record RaceControlMessageDto(
     string Scope,
     int Sector,
     string Message
-);
+) : ILiveTimingDto;

@@ -31,7 +31,9 @@ public class Formula2(ILogger<Formula2> logger) : IChampionship
     /// </summary>
     public event EventHandler? SessionFinished;
 
+    /// <summary>
     /// <inheritdoc/>
+    /// </summary>
     public bool Connected => _signalR?.Running ?? false;
 
     /// <summary>
@@ -75,6 +77,72 @@ public class Formula2(ILogger<Formula2> logger) : IChampionship
     }
 
     /// <summary>
+    /// <inheritdoc/>
+    /// Formula 2 live timing API doesn't support Race control messages
+    /// </summary>
+    public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
+    {
+        return;
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    {
+        if (!short.TryParse(trackStatusMessage.Value, out var status))
+        {
+            logger.LogError("[Formula 2] Invalid track status message received");
+            return;
+        }
+
+        var flag = status switch
+        {
+            1 => Flag.Clear,
+            2 => Flag.Yellow,
+            4 => Flag.SafetyCar,
+            5 => Flag.Red,
+            6 => Flag.Vsc,
+            _ => Flag.None
+        };
+
+        OnFlagParsed(flag);
+    }
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    public async Task ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    {
+        if (sessionStatusMessage.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("[Formula 2] Session started");
+            OnFlagParsed(Flag.Clear);
+            _hasStarted = true;
+
+            return;
+        }
+
+        if (sessionStatusMessage.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("[Formula 2] Session finished");
+            OnFlagParsed(Flag.Chequered);
+
+            return;
+        }
+
+        if (sessionStatusMessage.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
+        {
+            logger.LogInformation("[Formula 2] Session finalized, closing API connection");
+            await OnSessionFinishedAsync();
+
+            return;
+        }
+
+        logger.LogInformation("[Formula 2] Session feed message ignored");
+    }
+
+    /// <summary>
     /// Invokes the FlagPares event with the required arguments
     /// </summary>
     /// <param name="flag">The parsed flag.</param>
@@ -97,71 +165,36 @@ public class Formula2(ILogger<Formula2> logger) : IChampionship
     }
 
     /// <summary>
-    /// Parses the incoming Tack Feed message to get the current flag of the session.
+    /// Deserialize the incoming Tack Feed message to get the current flag of the session.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     private void HandleTrackFeedMessage(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing track feed message");
 
-        var data = message[1]?.Deserialize<TrackStatusMessageDto>();
-        if (!short.TryParse(data?.Value, out var status))
+        var trackStatusMessage = message[1]?.Deserialize<TrackStatusMessageDto>();
+        if (trackStatusMessage is null)
         {
             logger.LogError("[Formula 2] Invalid track status message received");
             return;
         }
 
-        var flag = status switch
-        {
-            1 => Flag.Clear,
-            2 => Flag.Yellow,
-            4 => Flag.SafetyCar,
-            5 => Flag.Red,
-            6 => Flag.Vsc,
-            _ => Flag.None
-        };
-
-        OnFlagParsed(flag);
+        ParseTrackStatusMessage(trackStatusMessage);
     }
 
     /// <summary>
-    /// Parses the incoming Session Feed message to check if the session is finished.
+    /// Deserialize the incoming Session Feed message to check if the session is finished.
     /// </summary>
     /// <param name="message">Message argument data received from Formula 2 API.</param>
     private async Task HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 2] Parsing session feed message");
-        var data = message[1]?.Deserialize<SessionStatusMessageDto>();
-        if (data is null) {
+        var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageDto>();
+        if (sessionStatusMessage is null) {
             logger.LogError("[Formula 2] Invalid session feed message received");
             return;
         }
 
-        if (data.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.LogInformation("[Formula 2] Session started");
-            OnFlagParsed(Flag.Clear);
-            _hasStarted = true;
-
-            return;
-        }
-
-        if (data.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.LogInformation("[Formula 2] Session finished");
-            OnFlagParsed(Flag.Chequered);
-
-            return;
-        }
-
-        if (data.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
-        {
-            logger.LogInformation("[Formula 2] Session finalized, closing API connection");
-            await OnSessionFinishedAsync();
-
-            return;
-        }
-
-        logger.LogInformation("[Formula 2] Session feed message ignored");
+        await ParseSessionStatusMessageAsync(sessionStatusMessage);
     }
 }

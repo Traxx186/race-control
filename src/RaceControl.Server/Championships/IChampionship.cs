@@ -1,3 +1,4 @@
+using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Events;
 
 namespace RaceControl.Server.Championships;
@@ -28,4 +29,19 @@ public interface IChampionship
     /// Closes the connection to the live timing service related to the category.
     /// </summary>
     Task StopAsync();
+
+    /// <summary>
+    /// Parses the received race control message to relevant flag.
+    /// </summary>
+    void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage);
+
+    /// <summary>
+    /// Parses the received track status message to relevant flag.
+    /// </summary>
+    void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage);
+
+    /// <summary>
+    /// Parses the session status message to relevant action.
+    /// </summary>
+    Task ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage);
 }
