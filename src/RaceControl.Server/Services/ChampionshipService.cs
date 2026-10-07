@@ -1,19 +1,19 @@
-using RaceControl.Server.Categories;
+using RaceControl.Server.Championships;
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
 
 namespace RaceControl.Server.Services;
 
-public sealed class CategoryService(
-    ILogger<CategoryService> logger,
+public sealed class ChampionshipService(
+    ILogger<ChampionshipService> logger,
     ITrackStatusService trackStatusService,
-    IEnumerable<ICategory> categories) : ICategoryService
+    IEnumerable<IChampionship> categories) : IChampionshipService
 {
     /// <summary>
     /// The currently active category.
     /// </summary>
-    private ICategory? _activeCategory;
+    private IChampionship? _activeChampionship;
 
     /// <summary>
     /// The currently active session.
@@ -34,15 +34,15 @@ public sealed class CategoryService(
     {
         _activeSession ??= session;
 
-        if (!TryGetCategory(_activeSession.ChampionshipId, out _activeCategory))
+        if (!TryGetCategory(_activeSession.ChampionshipId, out _activeChampionship))
             return;
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.ChampionshipId);
 
-        _activeCategory!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
-        _activeCategory!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
+        _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
+        _activeChampionship!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
-        await _activeCategory.StartAsync();
+        await _activeChampionship.StartAsync();
     }
 
     /// <inheritdoc/>
@@ -52,7 +52,7 @@ public sealed class CategoryService(
 
         logger.LogInformation("[Category Service] Closing the active category");
         FlagQueue.Clear();
-        _activeCategory = null;
+        _activeChampionship = null;
         _activeSession = null;
     }
 
@@ -75,7 +75,7 @@ public sealed class CategoryService(
     /// <param name="key">Key of the category.</param>
     /// <param name="category">The category object related to the give key.</param>
     /// <returns>If a category object has been found with the given key.</returns>
-    private bool TryGetCategory(string key, out ICategory? category)
+    private bool TryGetCategory(string key, out IChampionship? category)
     {
         category = key switch
         {

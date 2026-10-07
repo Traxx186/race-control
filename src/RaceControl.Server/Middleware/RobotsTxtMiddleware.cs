@@ -7,7 +7,7 @@ public class RobotsTxtMiddleware(RequestDelegate next, IWebHostEnvironment env)
         if (context.Request.Path.StartsWithSegments("/robots.txt"))
         {
            var robotTxtInfo = env.WebRootFileProvider.GetFileInfo("robots.txt");
-           var output = await File.ReadAllTextAsync(robotTxtInfo.PhysicalPath);
+           var output = await File.ReadAllTextAsync(robotTxtInfo.PhysicalPath!);
 
            context.Response.ContentType = "text/plain";
            await context.Response.WriteAsync(output);

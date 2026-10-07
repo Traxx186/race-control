@@ -4,7 +4,7 @@ using RaceControl.Database.Entities;
 
 namespace RaceControl.Server.Services;
 
-public interface ICategoryService
+public interface IChampionshipService
 {
     /// <summary>
     /// If there is already a session active.

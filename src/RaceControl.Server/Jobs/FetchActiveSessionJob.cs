@@ -12,11 +12,11 @@ public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,
     IHubContext<RaceControlHub, IRaceControlHubClient> racHubContext,
     RaceControlContext dbContext,
-    ICategoryService categoryService) : IJob
+    IChampionshipService championshipService) : IJob
 {
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
-        if (categoryService.HasSessionActive)
+        if (championshipService.HasSessionActive)
             return;
 
         logger.LogInformation("[Fetch Session] Searching in database for active session");
@@ -34,6 +34,6 @@ public class FetchActiveSessionJob(
 
         var category = new CategoryDto(Latency: 35, Key: session.ChampionshipId);
         await racHubContext.Clients.All.CategoryChange(category);
-        await categoryService.StartCategoryAsync(session);
+        await championshipService.StartCategoryAsync(session);
     }
 }

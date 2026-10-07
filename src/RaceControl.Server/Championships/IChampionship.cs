@@ -1,8 +1,8 @@
 using RaceControl.Data.Events;
 
-namespace RaceControl.Server.Categories;
+namespace RaceControl.Server.Championships;
 
-public interface ICategory
+public interface IChampionship
 {
     /// <summary>
     /// If the live timing API is active.

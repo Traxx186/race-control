@@ -5,9 +5,9 @@ using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.Server.SignalR;
 
-namespace RaceControl.Server.Categories;
+namespace RaceControl.Server.Championships;
 
-public class Formula3(ILogger<Formula3> logger) : ICategory
+public class Formula3(ILogger<Formula3> logger) : IChampionship
 {
     private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
 

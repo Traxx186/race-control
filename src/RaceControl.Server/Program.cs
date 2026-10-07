@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Database;
-using RaceControl.Server.Categories;
+using RaceControl.Server.Championships;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Jobs;
 using RaceControl.Server.Middleware;
@@ -43,7 +43,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHostedService<FlagBroadcastService>();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
-builder.Services.AddSingleton<ICategoryService, CategoryService>();
+builder.Services.AddSingleton<IChampionshipService, ChampionshipService>();
 
 // Create HTTP clients.
 builder.Services.AddHttpClient("Formula1Api", httpClient =>
@@ -53,8 +53,8 @@ builder.Services.AddHttpClient("Formula1Api", httpClient =>
 });
 
 // Add the supported racing categories
-builder.Services.AddSingleton<ICategory, Formula2>();
-builder.Services.AddSingleton<ICategory, Formula3>();
+builder.Services.AddSingleton<IChampionship, Formula2>();
+builder.Services.AddSingleton<IChampionship, Formula3>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
