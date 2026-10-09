@@ -1,6 +1,6 @@
 using RaceControl.Console.Events;
 
-namespace RaceControl.Console.Categories;
+namespace RaceControl.Console.Championships;
 
 public interface IChampionship
 {

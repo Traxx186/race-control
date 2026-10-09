@@ -39,7 +39,7 @@ namespace RaceControl.Database.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("id_pkey");
+                        .HasName("championships_pkey");
 
                     b.ToTable("championships", (string)null);
                 });
@@ -86,7 +86,7 @@ namespace RaceControl.Database.Migrations
                         .HasColumnName("type");
 
                     b.HasKey("Id")
-                        .HasName("id_pkey");
+                        .HasName("sessions_pkey");
 
                     b.HasIndex("ChampionshipId")
                         .HasDatabaseName("ix_session_championship_id");

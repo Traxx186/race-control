@@ -26,17 +26,15 @@ namespace RaceControl.Database.Migrations
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("id");
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("name");
+                        .HasColumnType("character varying(64)");
 
                     b.HasKey("Id")
-                        .HasName("id_pkey");
+                        .HasName("championships_pkey");
 
                     b.ToTable("championships", (string)null);
                 });
@@ -45,8 +43,7 @@ namespace RaceControl.Database.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
                     NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Id"), null, null, null, null, null, null);
@@ -54,45 +51,37 @@ namespace RaceControl.Database.Migrations
                     b.Property<bool>("Cancelled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("cancelled");
+                        .HasDefaultValue(false);
 
                     b.Property<string>("ChampionshipId")
                         .IsRequired()
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("championship_id");
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Event")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("event");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Key")
-                        .HasColumnType("integer")
-                        .HasColumnName("key");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("name");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_time");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("type");
+                        .HasColumnType("character varying(255)");
 
                     b.HasKey("Id")
-                        .HasName("id_pkey");
+                        .HasName("sessions_pkey");
 
-                    b.HasIndex("ChampionshipId")
-                        .HasDatabaseName("ix_sessions_championship_id");
+                    b.HasIndex("ChampionshipId");
 
                     b.ToTable("sessions", (string)null);
                 });

@@ -85,7 +85,7 @@ public class Formula1(ILogger<Formula1> logger) : IChampionship
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
         if (!TryParseFlag(raceControlMessage.Flag, out var flag))
         {
-            logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
+            logger.LogInformation("[Formula 1] Parsed race control flag message not relevant");
             return;
         }
 

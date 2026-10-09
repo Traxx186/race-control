@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using RaceControl.Console.Categories;
+using RaceControl.Console.Championships;
 using RaceControl.Console.Options;
 using RaceControl.Console.Services;
 using Serilog;

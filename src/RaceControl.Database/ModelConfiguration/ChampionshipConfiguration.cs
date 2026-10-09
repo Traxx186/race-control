@@ -8,7 +8,7 @@ public class ChampionshipConfiguration : IEntityTypeConfiguration<Championship>
 {
     public void Configure(EntityTypeBuilder<Championship> builder)
     {
-        builder.HasKey(e => e.Id).HasName("id_pkey");
+        builder.HasKey(e => e.Id).HasName("championships_pkey");
         builder.ToTable("championships");
 
         builder.Property(e => e.Id)

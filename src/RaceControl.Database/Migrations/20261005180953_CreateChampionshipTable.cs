@@ -19,7 +19,7 @@ namespace RaceControl.Database.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("id_pkey", x => x.id);
+                    table.PrimaryKey("championships_pkey", x => x.id);
                 });
         }
 

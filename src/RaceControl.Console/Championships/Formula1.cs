@@ -4,9 +4,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using RaceControl.Console.Events;
 using RaceControl.Data.Dtos.LiveTimingDtos;
-using RaceControl.Data.Enums;
 
-namespace RaceControl.Console.Categories;
+namespace RaceControl.Console.Championships;
 
 public sealed class Formula1 : IChampionship
 {
@@ -94,6 +93,20 @@ public sealed class Formula1 : IChampionship
     }
 
     /// <summary>
+    /// Invokes the MessageReceived event.
+    /// </summary>
+    private void OnMessageReceived(string topic, ILiveTimingDto message)
+    {
+        var messageArgs = new MessageEventArgs
+        {
+            Topic = topic,
+            Message = message
+        };
+
+        MessageReceived?.Invoke(this, messageArgs);
+    }
+
+    /// <summary>
     /// Forwards the API data for processing with the given topic.
     /// </summary>
     /// <param name="topic">Topic of the incoming message.</param>
@@ -133,13 +146,7 @@ public sealed class Formula1 : IChampionship
             return;
         }
 
-        var messageArgs = new MessageEventArgs
-        {
-            Topic = "TrackStatus",
-            Message = trackStatusMessage
-        };
-
-        MessageReceived?.Invoke(this, messageArgs);
+        OnMessageReceived("TrackStatus", trackStatusMessage);
     }
 
     /// <summary>
@@ -156,13 +163,7 @@ public sealed class Formula1 : IChampionship
             return;
         }
 
-        var messageArgs = new MessageEventArgs
-        {
-            Topic = "RaceControlMessage",
-            Message = raceControlMessage
-        };
-
-        MessageReceived?.Invoke(this, messageArgs);
+        OnMessageReceived("RaceControlMessage", raceControlMessage);
     }
 
     /// <summary>
@@ -174,49 +175,20 @@ public sealed class Formula1 : IChampionship
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var message = data.Deserialize<SessionStatusMessageDto>();
-        if (message is null)
+        var sessionStatusMessage = data.Deserialize<SessionStatusMessageDto>();
+        if (sessionStatusMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid session status message received");
             return;
         }
 
-        if (message.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        _logger.LogDebug(data.ToString());
+        OnMessageReceived("SessionStatus", sessionStatusMessage);
+
+        if (sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
             await OnSessionFinished();
         }
-
-        var messageArgs = new MessageEventArgs
-        {
-            Topic = "SessionStatus",
-            Message = message
-        };
-
-        MessageReceived?.Invoke(this, messageArgs);
-    }
-
-    /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>.
-    /// </summary>
-    /// <param name="input">The string representing a flag.</param>
-    /// <param name="flag">
-    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item. Else
-    /// <code>Flag.None</code> will be returned.
-    /// </param>
-    /// <returns>If the flag could be parsed.</returns>
-    private static bool TryParseFlag(string? input, out Flag flag)
-    {
-        flag = input switch
-        {
-            "BLACK AND WHITE" => Flag.BlackWhite,
-            "BLUE" => Flag.Blue,
-            "CHEQUERED" => Flag.Chequered,
-            "DOUBLE YELLOW" => Flag.DoubleYellow,
-            "SLIPPERY SURFACE" => Flag.Surface,
-            _ => Flag.None
-        };
-
-        return flag != Flag.None;
     }
 }

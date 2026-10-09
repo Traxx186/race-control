@@ -28,7 +28,7 @@ namespace RaceControl.Database.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("id_pkey", x => x.id);
+                    table.PrimaryKey("sessions_pkey", x => x.id);
                     table.ForeignKey(
                         name: "fk_sessions_championship",
                         column: x => x.championship_id,
