@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RaceControl.Console.Categories;
+using RaceControl.Console.Championships;
+using RaceControl.Console.Events;
 using RaceControl.Console.Options;
 using RaceControl.Data.Dtos;
-using RaceControl.Data.Events;
 
 namespace RaceControl.Console.Services;
 
@@ -13,17 +13,17 @@ public class BroadcastService : IHostedService
 {
     private readonly ILogger<BroadcastService> _logger;
     private readonly HubConnection _connection;
-    private readonly IEnumerable<ICategory> _categories;
+    private readonly IEnumerable<IChampionship> _championships;
 
-    private ICategory? _currentCategory;
+    private IChampionship? _currentChampionship;
 
     public BroadcastService(
         ILogger<BroadcastService> logger,
         IOptionsMonitor<RaceControlOptions> optionsMonitor,
-        IEnumerable<ICategory> categories)
+        IEnumerable<IChampionship> championships)
     {
         _logger = logger;
-        _categories = categories;
+        _championships = championships;
 
         optionsMonitor.OnChange(async _ =>
         {
@@ -34,6 +34,9 @@ public class BroadcastService : IHostedService
 
             if (_connection.State == HubConnectionState.Connected)
             {
+                if (_currentChampionship is not null)
+                    await _currentChampionship.StopAsync();
+
                 await _connection.StopAsync();
                 await Task.Delay(5000);
             }
@@ -55,12 +58,20 @@ public class BroadcastService : IHostedService
         _connection.On<CategoryDto>("CategoryChange", HandleCategoryChange);
     }
 
+    /// <summary>
+    /// Connect to the set race control server.
+    /// </summary>
+    /// <param name="stoppingToken">The token to monitor for cancellation requests.</param>
     public async Task StartAsync(CancellationToken stoppingToken)
     {
         await _connection.StartAsync(stoppingToken);
         _logger.LogInformation("[Broadcast Service] Connected to server");
     }
 
+    /// <summary>
+    /// Disconnect from the set race control server.
+    /// </summary>
+    /// <param name="stoppingToken">The token to monitor for cancellation requests.</param>
     public async Task StopAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("[Broadcast Service] Stopping connection to server");
@@ -76,40 +87,44 @@ public class BroadcastService : IHostedService
     private async Task HandleCategoryChange(CategoryDto categoryDto)
     {
         _logger.LogInformation("[Broadcast Service] Parsing category change message");
-        _currentCategory = categoryDto.Key switch
+        _currentChampionship = categoryDto.Key switch
         {
-            "f1" => _categories.OfType<Formula1>().FirstOrDefault(),
+            "f1" => _championships.OfType<Formula1>().FirstOrDefault(),
             _ => null
         };
 
-        if (_currentCategory == null)
+        if (_currentChampionship == null)
             return;
 
-        _currentCategory.FlagParsed += async (_, args) => await HandleFlagParsedEvent(args);
-        _currentCategory.SessionFinished += async (_, _) => await HandleSessionFinishedEvent();
+        _currentChampionship.MessageReceived += async (_, args) => await HandleFlagParsedEvent(args);
 
         _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", categoryDto.Key);
-        await _currentCategory.StartAsync();
+        await _currentChampionship.StartAsync();
     }
 
     /// <summary>
-    /// Handle the flag parsed event.
+    /// Handle the message received event.
     /// </summary>
     /// <param name="args">Event args</param>
-    private async Task HandleFlagParsedEvent(FlagChangedEventArgs args)
+    private async Task HandleFlagParsedEvent(MessageEventArgs args)
     {
-        var flagDataDto = new FlagDataDto(args.Flag, args.Driver);
+        var topic = args.Topic;
+        var data = args.Message;
 
-        _logger.LogInformation("[Broadcast Service] Send flag {flag} to race control server", flagDataDto.Flag);
-        await _connection.InvokeAsync("SendFlag", flagDataDto);
-    }
-
-    /// <summary>
-    /// Handle the session finished event.
-    /// </summary>
-    private async Task HandleSessionFinishedEvent()
-    {
-        _logger.LogInformation("[Broadcast Service] Send session finished message to race control server");
-        await _connection.InvokeAsync("SessionFinalised");
+        _logger.LogInformation("[Broadcast Service] Send message {topic} to race control server", topic);
+        switch (topic)
+        {
+            case "RaceControlMessage":
+                await _connection.InvokeAsync("RaceControlMessage", data);
+                break;
+            case "SessionStatus":
+                await _connection.InvokeAsync("SessionStatus", data);
+                break;
+            case "TrackStatus":
+                await _connection.InvokeAsync("TrackStatusMessage", data);
+                break;
+            default:
+                throw new ArgumentException($"Topic {topic} is not supported");
+        }
     }
 }

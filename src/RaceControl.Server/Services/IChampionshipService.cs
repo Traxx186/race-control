@@ -1,10 +1,11 @@
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
+using RaceControl.Server.Championships;
 
 namespace RaceControl.Server.Services;
 
-public interface ICategoryService
+public interface IChampionshipService
 {
     /// <summary>
     /// If there is already a session active.
@@ -15,6 +16,11 @@ public interface ICategoryService
     /// Returns the currently active session, if there is any.
     /// </summary>
     Session? ActiveSession { get; }
+
+    /// <summary>
+    /// The currently active category.
+    /// </summary>
+    IChampionship? ActiveChampionship { get; }
 
     /// <summary>
     /// List of flag to send to connected clients.

@@ -14,11 +14,8 @@ public sealed class TrackStatusService(
     /// <summary>
     /// Flag with their given priority. Flags with priority 0 are information flags
     /// </summary>
-    private static readonly Dictionary<Flag, short> FlagPriority = new()
+    private static readonly Dictionary<Flag, int> FlagPriority = new()
     {
-        { Flag.BlackWhite, InformationFlagPriority },
-        { Flag.Blue, InformationFlagPriority },
-        { Flag.Surface, InformationFlagPriority },
         { Flag.Yellow, 2 },
         { Flag.DoubleYellow, 3 },
         { Flag.Vsc, 4 },
@@ -54,8 +51,8 @@ public sealed class TrackStatusService(
         if (flagData.Flag == ActiveFlag)
             return;
 
-        var newFlagPrio = FlagPriority.GetValueOrDefault(flagData.Flag);
-        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag);
+        var newFlagPrio = FlagPriority.GetValueOrDefault(flagData.Flag, 0);
+        var currentFlagPrio = FlagPriority.GetValueOrDefault(ActiveFlag, 0);
         if (ActiveFlag == Flag.Clear && newFlagPrio == InformationFlagPriority)
         {
             logger.LogInformation("[Track Status] Received information flag, sending flag data but not updating track status");

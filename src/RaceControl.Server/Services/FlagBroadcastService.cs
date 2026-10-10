@@ -2,7 +2,7 @@ namespace RaceControl.Server.Services;
 
 public sealed class FlagBroadcastService(
     ILogger<FlagBroadcastService> logger,
-    ICategoryService categoryService,
+    IChampionshipService championshipService,
     ITrackStatusService trackStatusService)
     : BackgroundService
 {
@@ -27,18 +27,18 @@ public sealed class FlagBroadcastService(
     /// </summary>
     private async Task BroadcastFlag()
     {
-        var currentCategory = categoryService.ActiveSession?.Category;
-        if (currentCategory is null)
+        var currentChampionship = championshipService.ActiveSession?.Championship;
+        if (currentChampionship is null)
             return;
 
         // Check if there is an entry present in the flag queue where the enqueue time plus the latency of the active
         // category.
-        var flagToBroadcast = categoryService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(currentCategory.Latency));
+        var flagToBroadcast = championshipService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(35));
         if (flagToBroadcast.Value == null)
             return;
 
         logger.LogInformation("[Flag Broadcast Service] Broadcasting flag {flag} with enqueue time of {time}", flagToBroadcast.Value.Flag, flagToBroadcast.Key.ToString("yyyy-MM-dd HH:mm:ss"));
         await trackStatusService.SetActiveFlagAsync(flagToBroadcast.Value);
-        categoryService.FlagQueue.Remove(flagToBroadcast.Key);
+        championshipService.FlagQueue.Remove(flagToBroadcast.Key);
     }
 }

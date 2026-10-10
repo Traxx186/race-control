@@ -1,39 +1,46 @@
 using Microsoft.AspNetCore.SignalR;
 using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Server.Services;
 
 namespace RaceControl.Server.Hubs;
 
 public class RaceControlHub(
-    ITrackStatusService trackStatusService,
     ILogger<RaceControlHub> logger,
-    ICategoryService categoryService) : Hub<IRaceControlHubClient>
+    ITrackStatusService trackStatusService,
+    IChampionshipService championshipService) : Hub<IRaceControlHubClient>
 {
     public override async Task OnConnectedAsync()
     {
         logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
-        var category = categoryService.ActiveSession?.Category;
+        var championship = championshipService.ActiveSession?.Championship;
         var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
 
-        if (category != null)
+        if (championship != null)
         {
-            var categoryDto = new CategoryDto(category.Key, category.Latency);
+            var categoryDto = new CategoryDto(championship.Id, 35);
             await Clients.Caller.CategoryChange(categoryDto);
-            await Task.Delay(category.Latency * 1000);
+            await Task.Delay(35_000);
         }
 
         await Clients.Caller.FlagChange(flagDataDto);
     }
 
-    public void SendFlag(FlagDataDto flagData)
+    public void SessionStatus(SessionStatusMessageDto sessionStatusMessage)
     {
-        logger.LogInformation("[RaceControlHub] Received flag from client");
-        categoryService.EnqueueFlag(flagData);
+        logger.LogInformation("[RaceControlHub] Received session status message from client");
+        championshipService.ActiveChampionship?.ParseSessionStatusMessageAsync(sessionStatusMessage);
     }
 
-    public async Task SessionFinalised()
+    public void RaceControlMessage(RaceControlMessageDto raceControlMessage)
     {
-        logger.LogInformation("[RaceControlHub] Received stop current category message from client");
-        await categoryService.StopActiveCategoryAsync();
+        logger.LogInformation("[RaceControlHub] Received race control message from client");
+        championshipService.ActiveChampionship?.ParseRaceControlMessage(raceControlMessage);
+    }
+
+    public void TrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    {
+        logger.LogInformation("[RaceControlHub] Received track status message from client");
+        championshipService.ActiveChampionship?.ParseTrackStatusMessage(trackStatusMessage);
     }
 }

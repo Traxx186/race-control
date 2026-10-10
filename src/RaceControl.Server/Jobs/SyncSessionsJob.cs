@@ -1,4 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Quartz;
 using RaceControl.Data.Dtos;
 using RaceControl.Database;
@@ -13,42 +15,34 @@ public class SyncSessionsJob(
     ) : IJob
 {
     /// <summary>
+    /// JSON Serialization options relevant for the F1 calendar API.
+    /// </summary>
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
+    /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
-        var categories = dbContext.Categories.ToArray();
-        var currentYear = context.FireTimeUtc.Year;
 
-        foreach (var category in categories)
+        var championships = dbContext.Championships.ToArray();
+        foreach (var championship in championships)
         {
-            // Fetch the calendar data of the current category, if no data is found go to the next
-            // category.
-            var calendar = await FetchCalendarAsync(category.Key, currentYear);
-            if (null == calendar)
+            var sessions = championship.Id switch
             {
-                logger.LogWarning("[Session Sync] Could not find session data for {key}", category.Key);
-                continue;
-            }
+                "f1" => await FetchF1SessionsAsync(),
+                "f2" => await FetchUpcomingF2EventSessionsAsync(),
+                _ => []
+            };
 
-            logger.LogInformation("[Session Sync] Check if sessions need to be removed due to cancellations {key}", category.Key);
-            var cancelledRaces = calendar.Races
-                .Where(r => r.Canceled)
-                .ToArray();
+            logger.LogInformation("[Session Sync] Update database sessions for {key}", championship.Id);
 
-            if (cancelledRaces.Length > 0)
-            {
-                logger.LogInformation("[Session Sync] Remove session of cancelled races");
-                await DeleteSessionsAsync(category, currentYear, cancelledRaces);
-            }
-
-            var notCancelledRaces = calendar.Races
-                .Where(r => !r.Canceled)
-                .ToArray();
-
-            logger.LogInformation("[Session Sync] Update database sessions for {key}", category.Key);
-            UpsertSessions(category, currentYear, notCancelledRaces);
+            sessions.ForEach(session => session.Championship = championship);
+            UpsertSessions(championship, sessions);
         }
 
         dbContext.ChangeTracker.DetectChanges();
@@ -58,72 +52,81 @@ public class SyncSessionsJob(
     }
 
     /// <summary>
-    /// Gets the sessions info for the given category
+    /// Gets all the session in the current Formula 1 season using the official Formula 1 API.
     /// </summary>
-    /// <param name="category">The category to fetch the data for.</param>
-    /// <param name="year">The year of the season.</param>
-    /// <returns>The fetched data.</returns>
-    private async Task<CalendarDto?> FetchCalendarAsync(string category, int year)
+    /// <returns>List of <see cref="Session"/> in the current season.</returns>
+    private async Task<List<Session>> FetchF1SessionsAsync()
     {
-        logger.LogInformation("[Session Sync] Fetching calendar data for {key}", category);
-        using var client = httpClientFactory.CreateClient();
+        var sessions = new List<Session>();
+        var httpClient = httpClientFactory.CreateClient("Formula1Api");
+        httpClient.DefaultRequestHeaders.Add("apiKey", Environment.GetEnvironmentVariable("APIKEY_F1API"));
 
-        var url = $"https://raw.githubusercontent.com/sportstimes/f1/main/_db/{category}/{year}.json";
-        return await client.GetFromJsonAsync<CalendarDto>(url);
+        logger.LogInformation("[Session Sync] Fetch Formula 1 events");
+        var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/editorial-eventlisting/events");
+        var events = data?["events"].Deserialize<EventDto[]>(JsonOptions) ?? [];
+
+        logger.LogInformation("[Session Sync] Fetch sessions for each Formula 1 event");
+        foreach (var e in events)
+        {
+            var eventData = await httpClient.GetFromJsonAsync<JsonObject>($"/v1/event-tracker/meeting/{e.MeetingKey}");
+            var eventSessions = eventData?["meetingContext"]?["timetables"].Deserialize<SessionDto[]>(JsonOptions) ?? [];
+
+            sessions.AddRange(eventSessions.Select(session => new Session
+            {
+                Event = e.MeetingName,
+                Name = session.Description,
+                Key = session.MeetingSessionKey,
+                Type = session.SessionType,
+                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+            }));
+        }
+
+        return sessions;
+    }
+
+    /// <summary>
+    /// Gets the upcoming Formula 2 event sessions from the official Formula 1 API.
+    /// </summary>
+    /// <returns>List of <see cref="Session"/> in the upcoming event.</returns>
+    private async Task<List<Session>> FetchUpcomingF2EventSessionsAsync()
+    {
+        var httpClient = httpClientFactory.CreateClient("Formula1Api");
+        httpClient.DefaultRequestHeaders.Add("apiKey", Environment.GetEnvironmentVariable("APIKEY_F2API"));
+
+        logger.LogInformation("[Session Sync] Fetch upcoming Formula 2 event");
+        var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/core-event-tracker/f2");
+        var eventInfo = data?["race"].Deserialize<EventDto>(JsonOptions);
+        var eventSessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions) ?? [];
+
+        return eventSessions.Select(session => new Session
+        {
+            Event = eventInfo!.MeetingName,
+            Name = session.Description,
+            Key = session.MeetingSessionKey,
+            Type = session.SessionType,
+            StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+        })
+        .ToList();
     }
 
     /// <summary>
     /// Inserts/update session in the database.
     /// </summary>
-    /// <param name="category">The related category of the sessions.</param>
-    /// <param name="year">The season year.</param>
-    /// <param name="races">Races where the sessions added/updated.</param>
-    private void UpsertSessions(Category category, int year, CalendarItemDto[] races)
+    /// <param name="championship">The related championship of the sessions.</param>
+    /// <param name="sessions">The sessions to update/insert.</param>
+    private void UpsertSessions(Championship championship, List<Session> sessions)
     {
-        var sessions = races.SelectMany(r =>
-            r.Sessions.Select(s => new Session
-                {
-                    Id = $"{category.Key}_{year}_{r.Round:00}_{s.Key}",
-                    CategoryKey = category.Key,
-                    Category = category,
-                    Name = r.Name,
-                    Key = s.Key,
-                    Round = r.Round,
-                    Time = s.Value
-                }
-            )
-        );
-
         foreach (var session in sessions)
         {
-            // Query for a session of the given category, session name, session key and session year
-            var sessionId = $"{category.Key}_{year}_{session.Round:00}_{session.Key}";
             var existingSession = dbContext.Sessions
-                .SingleOrDefault(s => s.Id == sessionId);
+                .SingleOrDefault(s => s.Key == session.Key && s.ChampionshipId == championship.Id);
 
             // If no session is found in the database, add the new session. Otherwise, the old session
             // will be updated with the session time.
             if (null == existingSession)
                 dbContext.Sessions.Add(session);
             else
-                existingSession.Time = session.Time;
+                existingSession.StartTime = session.StartTime;
         }
-    }
-
-    /// <summary>
-    /// Removes existing sessions from database.
-    /// </summary>
-    /// <param name="category">The related category of the sessions.</param>
-    /// <param name="year">The season year.</param>
-    /// <param name="races">Races where the sessions will be deleted.</param>
-    private async Task DeleteSessionsAsync(Category category, int year, CalendarItemDto[] races)
-    {
-        var sessionKeys = races.SelectMany(r =>
-            r.Sessions.Select(s => $"{category.Key}_{year}_{r.Round:00}_{s.Key}")
-        );
-
-        await dbContext.Sessions
-            .Where(s => sessionKeys.Contains(s.Id))
-            .ExecuteDeleteAsync();
     }
 }

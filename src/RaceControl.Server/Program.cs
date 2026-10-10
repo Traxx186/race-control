@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Database;
-using RaceControl.Server.Categories;
+using RaceControl.Server.Championships;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Jobs;
 using RaceControl.Server.Middleware;
@@ -41,14 +41,21 @@ builder.Services.AddSerilog(configuration =>
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
-builder.Services.AddHttpClient();
 builder.Services.AddHostedService<FlagBroadcastService>();
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
-builder.Services.AddSingleton<ICategoryService, CategoryService>();
+builder.Services.AddSingleton<IChampionshipService, ChampionshipService>();
+
+// Create HTTP clients.
+builder.Services.AddHttpClient("Formula1Api", httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://api.formula1.com/");
+    httpClient.DefaultRequestHeaders.Add("locale", "en");
+});
 
 // Add the supported racing categories
-builder.Services.AddSingleton<ICategory, Formula2>();
-builder.Services.AddSingleton<ICategory, Formula3>();
+builder.Services.AddSingleton<IChampionship, Formula1>();
+builder.Services.AddSingleton<IChampionship, Formula2>();
+builder.Services.AddSingleton<IChampionship, Formula3>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
@@ -61,6 +68,7 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.ScheduleJob<SyncSessionsJob>(trigger => trigger
         .WithIdentity("SyncSessionsJob-trigger")
+        //.WithCronSchedule("0 * * ? * * *")
         .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 

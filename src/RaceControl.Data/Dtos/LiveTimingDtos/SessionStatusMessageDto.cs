@@ -7,4 +7,4 @@ public sealed record SessionStatusMessageDto(
     string Status,
     string Value,
     string Started
-);
+) : ILiveTimingDto;

@@ -7,4 +7,4 @@ public sealed record TrackStatusMessageDto(
     string Status,
     string Message,
     string Value
-);
+) : ILiveTimingDto;

@@ -2,15 +2,12 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using RaceControl.Console.Events;
 using RaceControl.Data.Dtos.LiveTimingDtos;
-using RaceControl.Data.Enums;
-using RaceControl.Console.Options;
-using RaceControl.Data.Events;
 
-namespace RaceControl.Console.Categories;
+namespace RaceControl.Console.Championships;
 
-public sealed class Formula1 : ICategory
+public sealed class Formula1 : IChampionship
 {
     private const string LiveTimingUrl = "https://livetiming.formula1.com/signalrcore";
 
@@ -29,15 +26,7 @@ public sealed class Formula1 : ICategory
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public event EventHandler<FlagChangedEventArgs>? FlagParsed;
-
-    /// <summary>
-    /// <inheritdoc/>
-    /// </summary>
-    public event EventHandler? SessionFinished;
-
-    /// <inheritdoc/>
-    public bool Connected => _connection?.State == HubConnectionState.Connected;
+    public event EventHandler<MessageEventArgs>? MessageReceived;
 
     public Formula1(ILogger<Formula1> logger)
     {
@@ -92,33 +81,33 @@ public sealed class Formula1 : ICategory
     }
 
     /// <summary>
-    /// Invokes the FlagPares event with the required arguments
-    /// </summary>
-    /// <param name="flag">The parsed flag.</param>
-    /// <param name="driverNumber">The number of the driver for whom the flag is intended.</param>
-    private void OnFlagParsed(Flag flag, int? driverNumber = null)
-    {
-        var args = new FlagChangedEventArgs { Flag = flag, Driver = driverNumber};
-        FlagParsed?.Invoke(this, args);
-    }
-
-    /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
     private async Task OnSessionFinished()
     {
-        if (_connection?.State == HubConnectionState.Connected)
+        if (_connection.State == HubConnectionState.Connected)
             await StopAsync();
 
-        SessionFinished?.Invoke(this, EventArgs.Empty);
-
         // clear event handlers
-        SessionFinished = null;
-        FlagParsed = null;
+        MessageReceived = null;
     }
 
     /// <summary>
-    /// Checks which function needs to be called based on the given topic.
+    /// Invokes the MessageReceived event.
+    /// </summary>
+    private void OnMessageReceived(string topic, ILiveTimingDto message)
+    {
+        var messageArgs = new MessageEventArgs
+        {
+            Topic = topic,
+            Message = message
+        };
+
+        MessageReceived?.Invoke(this, messageArgs);
+    }
+
+    /// <summary>
+    /// Forwards the API data for processing with the given topic.
     /// </summary>
     /// <param name="topic">Topic of the incoming message.</param>
     /// <param name="data">Date of the incoming message.</param>
@@ -151,23 +140,13 @@ public sealed class Formula1 : ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
         var trackStatusMessage = data.Deserialize<TrackStatusMessageDto>();
-        if (!short.TryParse(trackStatusMessage?.Status, out var status))
+        if (trackStatusMessage is null)
         {
             _logger.LogError("[Formula 1] Invalid track status message received");
             return;
         }
 
-        var flag = status switch
-        {
-            1 => Flag.Clear,
-            2 => Flag.Yellow,
-            4 => Flag.SafetyCar,
-            5 => Flag.Red,
-            6 => Flag.Vsc,
-            _ => Flag.None
-        };
-
-        OnFlagParsed(flag);
+        OnMessageReceived("TrackStatus", trackStatusMessage);
     }
 
     /// <summary>
@@ -177,42 +156,14 @@ public sealed class Formula1 : ICategory
     private void HandleRaceControlMessages(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
-
-        var raceControlMessages = data.Deserialize<RaceControlMessagesDto>();
-        var raceControlMessage = raceControlMessages?.Messages[0].Deserialize<RaceControlMessageDto>();
+        var raceControlMessage = data["Messages"]?[0].Deserialize<RaceControlMessageDto>();
         if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");
             return;
         }
 
-        // Checks if the slippery surface flag is shown.
-        if (raceControlMessage.Message.Contains("slippery", StringComparison.CurrentCultureIgnoreCase))
-        {
-            _logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
-            OnFlagParsed(Flag.Surface);
-
-            return;
-        }
-
-        // If the message category is not 'Flag', or received clear message, the message can be ignored.
-        if (raceControlMessage is not { Category: "Flag" } or { Flag: "CLEAR" })
-        {
-            _logger.LogInformation("[Formula 1] Race control message ignored");
-            return;
-        }
-
-        // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TryParseFlag(raceControlMessage.Flag, out var flag))
-        {
-            _logger.LogWarning("[Formula 1] Could not parse flag '{flag}'", raceControlMessage.Flag);
-            return;
-        }
-
-        if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
-            driver = 0;
-
-        OnFlagParsed(flag, driver == 0 ? null : driver);
+        OnMessageReceived("RaceControlMessage", raceControlMessage);
     }
 
     /// <summary>
@@ -224,51 +175,20 @@ public sealed class Formula1 : ICategory
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var message = data.Deserialize<SessionStatusMessageDto>();
-        if (message is null)
+        var sessionStatusMessage = data.Deserialize<SessionStatusMessageDto>();
+        if (sessionStatusMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid session status message received");
             return;
         }
 
-        if (!message.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        _logger.LogInformation(data.ToString());
+        OnMessageReceived("SessionStatus", sessionStatusMessage);
+
+        if (sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogInformation("[Formula 1] Session status message ignored");
-            return;
+            _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
+            await OnSessionFinished();
         }
-
-        _logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
-        await OnSessionFinished();
-    }
-
-    /// <summary>
-    /// Converts the input string to a <see cref="Flag"/>.
-    /// </summary>
-    /// <param name="input">The string representing a flag.</param>
-    /// <param name="flag">
-    /// When this method returns <see langword="true"/>, the related <see cref="Flag"/> item.
-    /// Else <code>Flag.None</code> will be returned.
-    /// </param>
-    /// <returns>If the flag could be parsed.</returns>
-    private static bool TryParseFlag(string? input, out Flag flag)
-    {
-        flag = input switch
-        {
-            "BLACK AND WHITE" => Flag.BlackWhite,
-            "BLUE" => Flag.Blue,
-            "CHEQUERED" => Flag.Chequered,
-            "CLEAR" or "GREEN" => Flag.Clear,
-            "CODE 60" => Flag.Code60,
-            "DOUBLE YELLOW" => Flag.DoubleYellow,
-            "FULL COURSE YELLOW" => Flag.Fyc,
-            "RED" => Flag.Red,
-            "SAFETY CAR" => Flag.SafetyCar,
-            "SLIPPERY SURFACE" => Flag.Surface,
-            "VIRTUAL SAFETY CAR" => Flag.Vsc,
-            "YELLOW" => Flag.Yellow,
-            _ => Flag.None
-        };
-
-        return flag != Flag.None;
     }
 }

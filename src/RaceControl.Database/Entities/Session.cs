@@ -1,20 +1,15 @@
 namespace RaceControl.Database.Entities;
 
-public class Session 
+public class Session
 {
-    public string Id { get; set; }
-    
+    public int Id { get; set; }
+    public string Event { get; set; }
     public string Name { get; set; }
-    
-    public string Key { get; set; }
-    
-    public DateTime Time { get; set; }
-    
-    public int Round { get; set; }
+    public int Key { get; set; }
+    public string Type { get; set; }
+    public DateTime StartTime { get; set; }
+    public bool Cancelled { get; set; }
+    public string ChampionshipId { get; set; }
 
-    public string CategoryKey { get; set; }
-    
-    public Category Category { get; set; }
+    public Championship Championship { get; set; }
 }
-
-public record PatchSessionLatency(int Latency);

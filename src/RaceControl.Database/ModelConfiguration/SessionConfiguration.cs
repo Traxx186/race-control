@@ -8,31 +8,31 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
     {
-        builder.HasKey(e => e.Id).HasName("session_pkey");
-        builder.ToTable("session");
+        builder.HasKey(e => e.Id).HasName("sessions_pkey");
+        builder.ToTable("sessions");
 
         builder.Property(e => e.Id)
-            .HasMaxLength(255)
-            .HasColumnName("id");
-
-        builder.Property(e => e.CategoryKey)
-            .HasMaxLength(32)
-            .HasColumnName("category_key");
-
-        builder.Property(e => e.Key)
-            .HasMaxLength(32)
-            .HasColumnName("key");
+            .HasIdentityOptions();
 
         builder.Property(e => e.Name)
-            .HasMaxLength(64)
-            .HasColumnName("name");
+            .HasMaxLength(255)
+            .IsRequired();
 
-        builder.Property(e => e.Time)
-            .HasColumnName("time");
+        builder.Property(e => e.Event)
+            .HasMaxLength(255)
+            .IsRequired();
 
-        builder.HasOne(d => d.Category)
-            .WithMany(p => p.Sessions)
-            .HasForeignKey(d => d.CategoryKey)
-            .HasConstraintName("fk_session_category");
+        builder.Property(e => e.Type)
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder.Property(e => e.Cancelled)
+            .HasDefaultValue(false);
+
+        builder.HasOne(s => s.Championship)
+            .WithMany(c => c.Sessions)
+            .HasForeignKey(s => s.ChampionshipId)
+            .HasConstraintName("fk_sessions_championship")
+            .IsRequired();
     }
 }

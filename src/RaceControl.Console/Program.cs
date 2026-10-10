@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using RaceControl.Console.Categories;
+using RaceControl.Console.Championships;
 using RaceControl.Console.Options;
 using RaceControl.Console.Services;
 using Serilog;
@@ -19,7 +19,7 @@ builder.Services.Configure<RaceControlOptions>(builder.Configuration.GetSection(
 builder.Services.AddHostedService<BroadcastService>();
 
 // Add the supported racing categories.
-builder.Services.AddSingleton<ICategory, Formula1>();
+builder.Services.AddSingleton<IChampionship, Formula1>();
 
 // Configure Serilog
 builder.Services.AddSerilog(configuration =>
