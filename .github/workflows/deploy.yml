@@ -36,6 +36,7 @@ jobs:
           dotnet ef migrations bundle
           --self-contained
           --target-runtime linux-x64
+          --project ./src/RaceControl.Server
 
       - name: Upload EF Migrations Bundle Artifact
         uses: actions/upload-artifact@v7
