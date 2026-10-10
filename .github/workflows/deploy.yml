@@ -1,9 +1,10 @@
 name: Deploy project
 
 on:
-  release:
-    types:
-      - published
+  push:
+#  release:
+#    types:
+#      - published
 
 env:
   REGISTRY: ghcr.io
@@ -49,14 +50,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+#      - name: Build and push Docker image
+#        id: build-and-push
+#        uses: docker/build-push-action@v7
+#        with:
+#          context: .
+#          file: Dockerfile
+#          push: ${{ github.event_name != 'pull_request' }}
+#          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -76,6 +77,6 @@ jobs:
           chmod +x ./artifacts/efbundle/efbundle
           ./artifacts/efbundle/efbundle --connection "${{ secrets.DATABASE_CONNECTIONSTRING }}"
 
-      - name: Deploy to Coolify
-        run: |
-          curl --request POST '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'
+#      - name: Deploy to Coolify
+#        run: |
+#          curl --request POST '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'

@@ -182,7 +182,7 @@ public sealed class Formula1 : IChampionship
             return;
         }
 
-        _logger.LogDebug(data.ToString());
+        _logger.LogInformation(data.ToString());
         OnMessageReceived("SessionStatus", sessionStatusMessage);
 
         if (sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))

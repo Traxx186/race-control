@@ -127,13 +127,21 @@ public class Formula1(ILogger<Formula1> logger) : IChampionship
     {
         logger.LogInformation("[Formula 1] Parsing session status message");
 
+        if (sessionStatusMessage.Status.Equals("started", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("[Formula 1] Session started");
+            OnFlagParsed(Flag.Clear);
+
+            return Task.CompletedTask;
+        }
+
         if (!sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session status message ignored");
             return Task.CompletedTask;
         }
 
-        logger.LogInformation("[Formula 1] Session finalised, stopping live timing");
+        logger.LogInformation("[Formula 1] Session finalised");
         OnSessionFinished();
 
         return Task.CompletedTask;
