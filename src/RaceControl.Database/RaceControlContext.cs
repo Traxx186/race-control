@@ -10,7 +10,6 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
     public DbSet<Event> Events { get; init; }
     public DbSet<Session> Sessions { get; init; }
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new ChampionshipConfiguration());

@@ -39,7 +39,7 @@ public class SyncSessionsJob(
                     await FetchF1SessionsAsync(championship);
                     break;
                 case "f2":
-                    await FetchUpcomingF2EventSessionsAsync();
+                    await FetchUpcomingF2EventSessionsAsync(championship);
                     break;
                 default:
                     logger.LogWarning("[Session Sync] No sync script for championship {championship}",  championship.Id);
@@ -53,7 +53,6 @@ public class SyncSessionsJob(
     /// <summary>
     /// Gets all the session in the current Formula 1 season using the official Formula 1 API.
     /// </summary>
-    /// <returns>List of <see cref="Session"/> in the current season.</returns>
     private async Task FetchF1SessionsAsync(Championship championship)
     {
         var sessions = new List<Session>();
@@ -102,8 +101,7 @@ public class SyncSessionsJob(
     /// <summary>
     /// Gets the upcoming Formula 2 event sessions from the official Formula 1 API.
     /// </summary>
-    /// <returns>List of <see cref="Session"/> in the upcoming event.</returns>
-    private async Task FetchUpcomingF2EventSessionsAsync()
+    private async Task FetchUpcomingF2EventSessionsAsync(Championship championship)
     {
         var httpClient = httpClientFactory.CreateClient("Formula1Api");
         httpClient.DefaultRequestHeaders.Add("apiKey", Environment.GetEnvironmentVariable("APIKEY_F2API"));
@@ -111,17 +109,42 @@ public class SyncSessionsJob(
         logger.LogInformation("[Session Sync] Fetch upcoming Formula 2 event");
         var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/core-event-tracker/f2");
         var eventInfo = data?["race"].Deserialize<EventDto>(JsonOptions);
-        var eventSessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions) ?? [];
+        if (eventInfo is null)
+        {
+            logger.LogInformation("[Session Sync] No upcoming Formula 2 event, skip sync");
+            return;
+        }
 
-        // return eventSessions.Select(session => new Session
-        // {
-        //     //Event = eventInfo!.MeetingName,
-        //     Name = session.Description,
-        //     Key = session.MeetingSessionKey,
-        //     Type = session.SessionType,
-        //     StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
-        // })
-        // .ToList();
+        logger.LogInformation("[Session Sync] Found upcoming Formula 2 event, sync event data");
+        var @event = new Event
+        {
+            Championship = championship,
+            Name = eventInfo.MeetingName,
+            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.ToString() ?? string.Empty,
+            Location = eventInfo.MeetingLocation,
+            StartTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
+            EndTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
+        };
+
+        await UpsertEvents([@event]);
+        dbContext.ChangeTracker.DetectChanges();
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("[Session Sync] Sync sessions for Formula 2 event");
+        var sessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions)?
+            .Select(session => new Session
+            {
+                Event = @event,
+                Name = session.ShortName,
+                Key = session.MeetingSessionKey,
+                Type = session.SessionType,
+                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+            })
+            .ToList() ?? [];
+
+        await UpsertSessions(sessions);
+        dbContext.ChangeTracker.DetectChanges();
+        await dbContext.SaveChangesAsync();
     }
 
 
