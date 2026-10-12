@@ -55,7 +55,7 @@ public class BroadcastService : IHostedService
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.On<CategoryDto>("CategoryChange", HandleCategoryChange);
+        _connection.On<ChampionshipDto>("CategoryChange", HandleCategoryChange);
     }
 
     /// <summary>
@@ -83,11 +83,11 @@ public class BroadcastService : IHostedService
     /// <summary>
     /// Connect to the correct live timing parser based on the active category.
     /// </summary>
-    /// <param name="categoryDto">Active category.</param>
-    private async Task HandleCategoryChange(CategoryDto categoryDto)
+    /// <param name="championshipDto">Active category.</param>
+    private async Task HandleCategoryChange(ChampionshipDto championshipDto)
     {
         _logger.LogInformation("[Broadcast Service] Parsing category change message");
-        _currentChampionship = categoryDto.Key switch
+        _currentChampionship = championshipDto.Key switch
         {
             "f1" => _championships.OfType<Formula1>().FirstOrDefault(),
             _ => null
@@ -98,7 +98,7 @@ public class BroadcastService : IHostedService
 
         _currentChampionship.MessageReceived += async (_, args) => await HandleFlagParsedEvent(args);
 
-        _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", categoryDto.Key);
+        _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", championshipDto.Key);
         await _currentChampionship.StartAsync();
     }
 

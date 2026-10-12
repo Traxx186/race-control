@@ -18,7 +18,7 @@ public class RaceControlHub(
 
         if (championship != null)
         {
-            var categoryDto = new CategoryDto(championship.Id, 35);
+            var categoryDto = new ChampionshipDto(championship.Id, 35);
             await Clients.Caller.CategoryChange(categoryDto);
             await Task.Delay(35_000);
         }
