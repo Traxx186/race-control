@@ -41,7 +41,7 @@ public class SyncSessionsJob(
 
             logger.LogInformation("[Session Sync] Update database sessions for {key}", championship.Id);
 
-            sessions.ForEach(session => session.Championship = championship);
+            //sessions.ForEach(session => session.Championship = championship);
             UpsertSessions(championship, sessions);
         }
 
@@ -73,7 +73,7 @@ public class SyncSessionsJob(
 
             sessions.AddRange(eventSessions.Select(session => new Session
             {
-                Event = e.MeetingName,
+                //Event = e.MeetingName,
                 Name = session.Description,
                 Key = session.MeetingSessionKey,
                 Type = session.SessionType,
@@ -100,7 +100,7 @@ public class SyncSessionsJob(
 
         return eventSessions.Select(session => new Session
         {
-            Event = eventInfo!.MeetingName,
+            //Event = eventInfo!.MeetingName,
             Name = session.Description,
             Key = session.MeetingSessionKey,
             Type = session.SessionType,
@@ -119,7 +119,7 @@ public class SyncSessionsJob(
         foreach (var session in sessions)
         {
             var existingSession = dbContext.Sessions
-                .SingleOrDefault(s => s.Key == session.Key && s.ChampionshipId == championship.Id);
+                .SingleOrDefault(s => s.Key == session.Key);
 
             // If no session is found in the database, add the new session. Otherwise, the old session
             // will be updated with the session time.

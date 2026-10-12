@@ -13,7 +13,7 @@ public class RaceControlHub(
     public override async Task OnConnectedAsync()
     {
         logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
-        var championship = championshipService.ActiveSession?.Championship;
+        var championship = championshipService.ActiveSession?.Event.Championship;
         var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
 
         if (championship != null)

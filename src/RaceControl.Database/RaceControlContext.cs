@@ -12,6 +12,7 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new ChampionshipConfiguration());
+        modelBuilder.ApplyConfiguration(new EventConfiguration());
         modelBuilder.ApplyConfiguration(new SessionConfiguration());
     }
 }

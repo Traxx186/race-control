@@ -8,14 +8,14 @@ public class ChampionshipConfiguration : IEntityTypeConfiguration<Championship>
 {
     public void Configure(EntityTypeBuilder<Championship> builder)
     {
-        builder.HasKey(e => e.Id).HasName("championships_pkey");
+        builder.HasKey(c => c.Id).HasName("championships_pkey");
         builder.ToTable("championships");
 
-        builder.Property(e => e.Id)
+        builder.Property(c => c.Id)
             .IsRequired()
             .HasMaxLength(32);
 
-        builder.Property(e => e.Name)
+        builder.Property(c => c.Name)
             .IsRequired()
             .HasMaxLength(64);
     }

@@ -10,6 +10,8 @@ public sealed class ChampionshipService(
     ITrackStatusService trackStatusService,
     IEnumerable<IChampionship> categories) : IChampionshipService
 {
+    public const int Latency = 35;
+
     /// <summary>
     /// The currently active category.
     /// </summary>
@@ -37,10 +39,10 @@ public sealed class ChampionshipService(
     {
         _activeSession ??= session;
 
-        if (!TryGetCategory(_activeSession.ChampionshipId, out _activeChampionship))
+        if (!TryGetChampionship(_activeSession.Event.ChampionshipId, out _activeChampionship))
             return;
 
-        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.ChampionshipId);
+        logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.Event.ChampionshipId);
 
         _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
         _activeChampionship!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
@@ -78,7 +80,7 @@ public sealed class ChampionshipService(
     /// <param name="key">Key of the category.</param>
     /// <param name="category">The category object related to the give key.</param>
     /// <returns>If a category object has been found with the given key.</returns>
-    private bool TryGetCategory(string key, out IChampionship? category)
+    private bool TryGetChampionship(string key, out IChampionship? category)
     {
         category = key switch
         {

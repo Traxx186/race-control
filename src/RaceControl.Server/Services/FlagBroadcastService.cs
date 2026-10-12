@@ -27,7 +27,7 @@ public sealed class FlagBroadcastService(
     /// </summary>
     private async Task BroadcastFlag()
     {
-        var currentChampionship = championshipService.ActiveSession?.Championship;
+        var currentChampionship = championshipService.ActiveSession?.Event.Championship;
         if (currentChampionship is null)
             return;
 
