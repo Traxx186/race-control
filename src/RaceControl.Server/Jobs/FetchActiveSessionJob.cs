@@ -23,7 +23,7 @@ public class FetchActiveSessionJob(
 
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
         var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
-        var session = dbContext.Sessions.Include(session => session.Event)
+        var session = dbContext.Sessions.Include(session => session.Event.Championship)
             .SingleOrDefault(s => s.StartTime == searchDate);
 
         // If no session has been found, stop the job.
