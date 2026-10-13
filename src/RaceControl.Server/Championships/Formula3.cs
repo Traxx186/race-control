@@ -7,9 +7,14 @@ using RaceControl.Server.SignalR;
 
 namespace RaceControl.Server.Championships;
 
-public class Formula3(ILogger<Formula3> logger) : IChampionship
+public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : IChampionship
 {
     private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
+
+    /// <summary>
+    /// Which SignalR feeds to subscribe to when connection to the live timing API.
+    /// </summary>
+    private static readonly string[] Feeds = ["status"];
 
     /// <summary>
     /// The SignalR <see cref="Client"/> connection object.
@@ -20,6 +25,11 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
     /// If the session has actually started.
     /// </summary>
     private bool _hasStarted;
+
+    /// <summary>
+    /// The global CancellationToken.
+    /// </summary>
+    private readonly CancellationToken _cancellationToken = cts.Token;
 
     /// <summary>
     /// <inheritdoc/>
@@ -42,27 +52,26 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
     public async Task StartAsync()
     {
         logger.LogInformation("[Formula 3] Starting API connection");
-        var feeds = new[] {"status"};
 
         _signalR = new Client(
             LiveTimingUrl,
             "streaming",
-            ["F3", feeds],
             new Version(2, 1),
             "/streaming"
         );
 
-        _signalR.Error += async _ => await OnSessionFinishedAsync();
-        _signalR.AddHandler("Streaming", "trackfeed", HandleTrackFeedMessage);
-        _signalR.AddHandler("Streaming", "sessionfeed", async message => await HandleSessionFeedMessageAsync(message));
+        _signalR.Error += _ => OnSessionFinishedAsync();
+        _signalR.On<JsonArray>("trackfeed", HandleTrackFeedMessage);
+        _signalR.On<JsonArray>("sessionfeed", HandleSessionFeedMessageAsync);
 
-        await _signalR.StartAsync("JoinFeeds");
+        await _signalR.StartAsync(_cancellationToken);
+        await _signalR.InvokeAsync("JoinFeeds", _cancellationToken, "F3", Feeds);
     }
 
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task StopAsync()
+    public void Stop()
     {
         FlagParsed = null;
 
@@ -72,7 +81,7 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
         logger.LogInformation("[Formula 3] Closing API connection");
         _hasStarted = false;
 
-        await _signalR!.StopAsync();
+        _signalR!.Stop();
         _signalR = null;
     }
 
@@ -112,7 +121,7 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public async Task ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
     {
         if (sessionStatusMessage.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
@@ -134,7 +143,7 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
         if (sessionStatusMessage.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
         {
             logger.LogInformation("[Formula 3] Session finalized, closing API connection");
-            await OnSessionFinishedAsync();
+            OnSessionFinishedAsync();
 
             return;
         }
@@ -156,9 +165,9 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    private async Task OnSessionFinishedAsync()
+    private void OnSessionFinishedAsync()
     {
-        await StopAsync();
+        Stop();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
         SessionFinished = null;
@@ -187,7 +196,7 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
     /// </summary>
     /// <param name="message">Message argument data received from Formula 3 API.</param>
 
-    private async Task HandleSessionFeedMessageAsync(JsonArray message)
+    private void HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 3] Parsing session feed message");
         var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageDto>();
@@ -196,6 +205,6 @@ public class Formula3(ILogger<Formula3> logger) : IChampionship
             return;
         }
 
-        await ParseSessionStatusMessageAsync(sessionStatusMessage);
+        ParseSessionStatusMessageAsync(sessionStatusMessage);
     }
 }

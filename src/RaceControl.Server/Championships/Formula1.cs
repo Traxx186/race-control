@@ -4,12 +4,17 @@ using RaceControl.Data.Events;
 
 namespace RaceControl.Server.Championships;
 
-public class Formula1(ILogger<Formula1> logger) : IChampionship
+public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : IChampionship
 {
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
     public bool Connected => true;
+
+    /// <summary>
+    /// The global CancellationToken.
+    /// </summary>
+    private readonly CancellationToken _cancellationToken = cts.Token;
 
     /// <summary>
     /// <inheritdoc/>
@@ -34,9 +39,9 @@ public class Formula1(ILogger<Formula1> logger) : IChampionship
     /// <inheritdoc/>
     /// Live timing is handled by client module.
     /// </summary>
-    public Task StopAsync()
+    public void Stop()
     {
-        return Task.CompletedTask;
+        return;
     }
 
     /// <summary>
@@ -123,7 +128,7 @@ public class Formula1(ILogger<Formula1> logger) : IChampionship
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public Task ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
     {
         logger.LogInformation("[Formula 1] Parsing session status message");
 
@@ -132,19 +137,17 @@ public class Formula1(ILogger<Formula1> logger) : IChampionship
             logger.LogInformation("[Formula 1] Session started");
             OnFlagParsed(Flag.Clear);
 
-            return Task.CompletedTask;
+            return;
         }
 
         if (!sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session status message ignored");
-            return Task.CompletedTask;
+            return;
         }
 
         logger.LogInformation("[Formula 1] Session finalised");
         OnSessionFinished();
-
-        return Task.CompletedTask;
     }
 
     /// <summary>

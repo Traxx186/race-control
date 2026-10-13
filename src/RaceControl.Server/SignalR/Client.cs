@@ -9,17 +9,12 @@ namespace RaceControl.Server.SignalR;
 /// <summary>
 /// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.
 /// </summary>
-public sealed class Client(string url, string hub, object[] args)
+public sealed class Client(string url, string hub) : IDisposable
 {
     /// <summary>
     /// The url to connect to.
     /// </summary>
     private readonly string _url = url;
-
-    /// <summary>
-    /// Subscription arguments.
-    /// </summary>
-    private readonly object[] _args = args;
 
     /// <summary>
     /// The hub name.
@@ -47,6 +42,11 @@ public sealed class Client(string url, string hub, object[] args)
     private HubConnection? _connection;
 
     /// <summary>
+    /// Proxy of the connected hub.
+    /// </summary>
+    private IHubProxy? _proxy;
+
+    /// <summary>
     /// List of handlers.
     /// </summary>
     private readonly List<(string, string, Action<JsonArray>)> _handlers = [];
@@ -58,59 +58,31 @@ public sealed class Client(string url, string hub, object[] args)
 
     public event Action<Exception>? Error;
 
-    public Client(string url, string hub, object[] args, Version version)
-        : this(url, hub, args)
+    public Client(string url, string hub, Version version)
+        : this(url, hub)
     {
           _version = version;
+
+          InitHubConnection();
     }
 
-    public Client(string url, string hub, object[] args, Version version, string customEndpoint)
-        : this(url, hub, args, version)
+    public Client(string url, string hub, Version version, string customEndpoint)
+        : this(url, hub, version)
     {
         _customEndpoint = customEndpoint;
         _useDefaultEndpoint = false;
+
+        InitHubConnection();
     }
 
     /// <summary>
-    /// Sets up, connects and processes incoming messages to the given SignalR server.
+    /// Connects to the given SignalR server.
     /// </summary>
-    public async Task StartAsync(string method)
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        var uriBuilder = new UriBuilder(_url);
-        if (!_useDefaultEndpoint)
-            uriBuilder.Path = _customEndpoint;
+        Log.Information("[SignalR] Connecting to {url}", _url);
 
-        Running = true;
-        while (Running)
-        {
-            using var connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
-#if DEBUG
-            connection.TraceWriter = Console.Out;
-            connection.TraceLevel = TraceLevels.All;
-#endif
-            connection.CookieContainer = new CookieContainer();
-            connection.Received += HandleMessage;
-            connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
-            connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
-
-            connection.Error += e =>
-            {
-                Log.Error("[SignalR] Error occured: {error}", e.Message);
-                Error?.Invoke(e);
-            };
-
-            if (null != _version)
-                connection.Protocol = _version;
-
-            var hubProxy = connection.CreateHubProxy(_hub);
-            _connection = connection;
-
-            Log.Information("[SignalR] Connecting to {url}", _url);
-            await connection.Start();
-            await hubProxy.Invoke(method, _args);
-
-            Console.Read();
-        }
+        await Task.WhenAny(_connection.Start(), Task.Delay(Timeout.Infinite, cancellationToken));
     }
 
     /// <summary>
@@ -121,6 +93,42 @@ public sealed class Client(string url, string hub, object[] args)
     /// <param name="handler">Function that will be executed.</param>
     public void AddHandler(string hub, string method, Action<JsonArray> handler) =>
         _handlers.Add((hub, method, handler));
+
+    public IDisposable On(string method, Action handler) => _proxy.On(method, handler);
+    public IDisposable On<T>(string method, Action<T> handler) => _proxy.On(method, handler);
+
+    /// <summary>
+    /// Disconnects the SignalR client.
+    /// </summary>
+    public void Stop()
+    {
+        Dispose();
+    }
+
+    public async Task InvokeAsync(string method, CancellationToken cancellationToken = default,
+        params object[] args)
+    {
+        ThrowIfNotConnected();
+
+        // Invoke the given method. If cancellation token is called when the invocation is still in progress, it will
+        // be terminated.
+        var invokeTask = _proxy.Invoke(method, args);
+        await Task.WhenAny(invokeTask, Task.Delay(Timeout.Infinite, cancellationToken));
+    }
+
+    /// <summary>
+    /// Disposes the SignalR client.
+    /// </summary>
+    public void Dispose()
+    {
+        Log.Information("[SignalR] Disconnecting client");
+
+        _connection?.Stop();
+        _connection?.Dispose();
+        _connection = null;
+
+        Running = false;
+    }
 
     /// <summary>
     /// Checks if the incoming message can be used to call a handler.
@@ -139,14 +147,44 @@ public sealed class Client(string url, string hub, object[] args)
     }
 
     /// <summary>
-    /// Disconnects the SignalR client.
+    /// Initialize the SignalR connection hub object.
     /// </summary>
-    public async Task StopAsync()
+    private void InitHubConnection()
     {
-        await Task.Run(() => _connection?.Stop());
+        var uriBuilder = new UriBuilder(_url);
+        if (!_useDefaultEndpoint)
+            uriBuilder.Path = _customEndpoint;
 
-        Log.Information("[SignalR] Client disconnected");
-        _connection = null;
-        Running = false;
+        _connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
+        _connection.CookieContainer = new CookieContainer();
+        _connection.Received += HandleMessage;
+        _connection.Closed += () => Log.Information("[SignalR] Hub connection closed");
+        _connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
+        _connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
+        _connection.Error += e =>
+        {
+            Log.Error("[SignalR] Error occured: {error}", e.Message);
+            Error?.Invoke(e);
+        };
+
+#if DEBUG
+        _connection.TraceWriter = Console.Out;
+        _connection.TraceLevel = TraceLevels.All;
+#endif
+
+        if (null != _version)
+            _connection.Protocol = _version;
+
+        _proxy = _connection.CreateHubProxy(_hub);
+    }
+
+    /// <summary>
+    /// Throw a <see cref="InvalidOperationException"/> if the SignalR client is not connected to a server.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    private void ThrowIfNotConnected()
+    {
+        if (_connection is null || _connection.State != ConnectionState.Connected)
+            throw new InvalidOperationException($"HubConnection is not connected, expected Connected.");
     }
 }
