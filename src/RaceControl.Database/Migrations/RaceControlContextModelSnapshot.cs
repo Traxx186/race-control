@@ -2,7 +2,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RaceControl.Database;
@@ -12,11 +11,9 @@ using RaceControl.Database;
 namespace RaceControl.Database.Migrations
 {
     [DbContext(typeof(RaceControlContext))]
-    [Migration("20261005184439_CreateSessionTable")]
-    partial class CreateSessionTable
+    partial class RaceControlContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,6 +41,56 @@ namespace RaceControl.Database.Migrations
                     b.ToTable("championships", (string)null);
                 });
 
+            modelBuilder.Entity("RaceControl.Database.Entities.Event", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Id"), null, null, null, null, null, null);
+
+                    b.Property<string>("ChampionshipId")
+                        .IsRequired()
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("championship_id");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("MeetingKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("meeting_key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_time");
+
+                    b.HasKey("Id")
+                        .HasName("events_pkey");
+
+                    b.HasIndex("ChampionshipId")
+                        .HasDatabaseName("ix_events_championship_id");
+
+                    b.ToTable("events", (string)null);
+                });
+
             modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
                 {
                     b.Property<int>("Id")
@@ -60,10 +107,9 @@ namespace RaceControl.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("cancelled");
 
-                    b.Property<string>("ChampionshipId")
-                        .IsRequired()
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("championship_id");
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_id");
 
                     b.Property<int>("Key")
                         .HasColumnType("integer")
@@ -88,25 +134,42 @@ namespace RaceControl.Database.Migrations
                     b.HasKey("Id")
                         .HasName("sessions_pkey");
 
-                    b.HasIndex("ChampionshipId")
-                        .HasDatabaseName("ix_session_championship_id");
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_sessions_event_id");
 
                     b.ToTable("sessions", (string)null);
                 });
 
-            modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
+            modelBuilder.Entity("RaceControl.Database.Entities.Event", b =>
                 {
                     b.HasOne("RaceControl.Database.Entities.Championship", "Championship")
-                        .WithMany("Sessions")
+                        .WithMany("Events")
                         .HasForeignKey("ChampionshipId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_session_championship");
+                        .HasConstraintName("fk_events_championship");
 
                     b.Navigation("Championship");
                 });
 
+            modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
+                {
+                    b.HasOne("RaceControl.Database.Entities.Event", "Event")
+                        .WithMany("Sessions")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_event");
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("RaceControl.Database.Entities.Championship", b =>
+                {
+                    b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("RaceControl.Database.Entities.Event", b =>
                 {
                     b.Navigation("Sessions");
                 });

@@ -6,5 +6,5 @@ public interface IRaceControlHubClient
 {
     Task FlagChange(FlagDataDto flagData);
 
-    Task CategoryChange(CategoryDto categoryDto);
+    Task CategoryChange(ChampionshipDto championshipDto);
 }

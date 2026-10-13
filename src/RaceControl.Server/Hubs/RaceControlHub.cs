@@ -13,14 +13,14 @@ public class RaceControlHub(
     public override async Task OnConnectedAsync()
     {
         logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
-        var championship = championshipService.ActiveSession?.Championship;
+        var championship = championshipService.ActiveSession?.Event.Championship;
         var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
 
         if (championship != null)
         {
-            var categoryDto = new CategoryDto(championship.Id, 35);
+            var categoryDto = new ChampionshipDto(championship.Id, ChampionshipService.Latency);
             await Clients.Caller.CategoryChange(categoryDto);
-            await Task.Delay(35_000);
+            await Task.Delay(ChampionshipService.Latency * 1000);
         }
 
         await Clients.Caller.FlagChange(flagDataDto);

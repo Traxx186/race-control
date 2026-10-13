@@ -27,13 +27,13 @@ public sealed class FlagBroadcastService(
     /// </summary>
     private async Task BroadcastFlag()
     {
-        var currentChampionship = championshipService.ActiveSession?.Championship;
+        var currentChampionship = championshipService.ActiveSession?.Event.Championship;
         if (currentChampionship is null)
             return;
 
         // Check if there is an entry present in the flag queue where the enqueue time plus the latency of the active
         // category.
-        var flagToBroadcast = championshipService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(35));
+        var flagToBroadcast = championshipService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(ChampionshipService.Latency));
         if (flagToBroadcast.Value == null)
             return;
 

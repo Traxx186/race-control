@@ -4,9 +4,19 @@ namespace RaceControl.Database.Entities;
 
 public class Championship
 {
+    /// <summary>
+    /// Unique identifier of the championship.
+    /// </summary>
     public string Id { get; set; }
+
+    /// <summary>
+    /// The name of the championship.
+    /// </summary>
     public string Name { get; set; }
 
+    /// <summary>
+    /// The related <see cref="Event"/> of the championship.
+    /// </summary>
     [JsonIgnore]
-    public ICollection<Session> Sessions { get; } = new List<Session>();
+    public ICollection<Event> Events { get; } = new List<Event>();
 }

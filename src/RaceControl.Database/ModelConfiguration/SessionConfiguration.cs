@@ -8,31 +8,31 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 {
     public void Configure(EntityTypeBuilder<Session> builder)
     {
-        builder.HasKey(e => e.Id).HasName("sessions_pkey");
+        builder.HasKey(s => s.Id).HasName("sessions_pkey");
         builder.ToTable("sessions");
 
-        builder.Property(e => e.Id)
+        builder.Property(s => s.Id)
             .HasIdentityOptions();
 
-        builder.Property(e => e.Name)
+        builder.Property(s => s.Name)
             .HasMaxLength(255)
             .IsRequired();
 
-        builder.Property(e => e.Event)
+        builder.Property(s => s.Type)
             .HasMaxLength(255)
             .IsRequired();
 
-        builder.Property(e => e.Type)
-            .HasMaxLength(255)
+        builder.Property(s => s.StartTime)
             .IsRequired();
 
-        builder.Property(e => e.Cancelled)
+        builder.Property(s => s.Cancelled)
             .HasDefaultValue(false);
 
-        builder.HasOne(s => s.Championship)
-            .WithMany(c => c.Sessions)
-            .HasForeignKey(s => s.ChampionshipId)
-            .HasConstraintName("fk_sessions_championship")
+        builder.HasOne(s => s.Event)
+            .WithMany(e => e.Sessions)
+            .HasForeignKey(s => s.EventId)
+            .HasConstraintName("fk_sessions_event")
+            .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
     }
 }
