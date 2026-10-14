@@ -10,8 +10,6 @@ public sealed class ChampionshipService(
     ITrackStatusService trackStatusService,
     IEnumerable<IChampionship> categories) : IChampionshipService
 {
-    public const int Latency = 35;
-
     /// <summary>
     /// The currently active category.
     /// </summary>

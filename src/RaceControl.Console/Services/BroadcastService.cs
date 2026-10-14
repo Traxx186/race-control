@@ -87,7 +87,7 @@ public class BroadcastService : IHostedService
     private async Task HandleCategoryChange(ChampionshipDto championshipDto)
     {
         _logger.LogInformation("[Broadcast Service] Parsing category change message");
-        _currentChampionship = championshipDto.Key switch
+        _currentChampionship = championshipDto.Id switch
         {
             "f1" => _championships.OfType<Formula1>().FirstOrDefault(),
             _ => null
@@ -98,7 +98,7 @@ public class BroadcastService : IHostedService
 
         _currentChampionship.MessageReceived += async (_, args) => await HandleFlagParsedEvent(args);
 
-        _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", championshipDto.Key);
+        _logger.LogInformation("[Broadcast Service] Starting live timing service for category {category}", championshipDto.Id);
         await _currentChampionship.StartAsync();
     }
 

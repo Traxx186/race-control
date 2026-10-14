@@ -18,5 +18,8 @@ public class ChampionshipConfiguration : IEntityTypeConfiguration<Championship>
         builder.Property(c => c.Name)
             .IsRequired()
             .HasMaxLength(64);
+
+        builder.Property(c => c.Latency)
+            .HasDefaultValue(35);
     }
 }

@@ -6,5 +6,6 @@ public sealed record SessionDto(
     string StartTime,
     string GmtOffset,
     string SessionType,
-    int MeetingSessionKey
+    int MeetingSessionKey,
+    bool Cancelled = false
 );

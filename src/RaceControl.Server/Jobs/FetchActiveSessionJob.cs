@@ -33,7 +33,7 @@ public class FetchActiveSessionJob(
         var championshipId = session.Event.ChampionshipId;
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", championshipId);
 
-        var category = new ChampionshipDto(Latency: ChampionshipService.Latency, Key: championshipId);
+        var category = new ChampionshipDto(championshipId, session.Event.Championship.Name);
         await racHubContext.Clients.All.CategoryChange(category);
         await championshipService.StartCategoryAsync(session);
     }

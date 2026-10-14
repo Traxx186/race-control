@@ -33,7 +33,10 @@ public sealed class FlagBroadcastService(
 
         // Check if there is an entry present in the flag queue where the enqueue time plus the latency of the active
         // category.
-        var flagToBroadcast = championshipService.FlagQueue.FirstOrDefault(q => DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(ChampionshipService.Latency));
+        var flagToBroadcast = championshipService.FlagQueue
+            .FirstOrDefault(q =>
+                DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(currentChampionship.Latency));
+
         if (flagToBroadcast.Value == null)
             return;
 
