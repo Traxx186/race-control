@@ -126,6 +126,7 @@ public class SyncSessionsJob(
             EndTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
         };
 
+        // Add/update upcoming event in the database.
         await UpsertEvents([@event]);
         dbContext.ChangeTracker.DetectChanges();
         await dbContext.SaveChangesAsync();
@@ -142,6 +143,7 @@ public class SyncSessionsJob(
             })
             .ToList() ?? [];
 
+        // Add/update sessions of the upcoming event in the database.
         await UpsertSessions(sessions);
         dbContext.ChangeTracker.DetectChanges();
         await dbContext.SaveChangesAsync();

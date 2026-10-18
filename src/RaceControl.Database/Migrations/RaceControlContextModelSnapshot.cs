@@ -29,6 +29,12 @@ namespace RaceControl.Database.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("id");
 
+                    b.Property<int>("Latency")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(35)
+                        .HasColumnName("latency");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)

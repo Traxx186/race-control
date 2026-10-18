@@ -12,6 +12,8 @@ using RaceControl.Server.Services;
 using Serilog;
 using Serilog.Settings.Configuration;
 
+var tokenSource = new CancellationTokenSource();
+
 // Create a new WebApplication builder and load Environment Variables and the appsettings.json file
 // into the configuration.
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -42,6 +44,7 @@ builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHostedService<FlagBroadcastService>();
+builder.Services.AddSingleton(tokenSource);
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();
 builder.Services.AddSingleton<IChampionshipService, ChampionshipService>();
 
@@ -68,13 +71,13 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.ScheduleJob<SyncSessionsJob>(trigger => trigger
         .WithIdentity("SyncSessionsJob-trigger")
-        .WithCronSchedule("0 * * ? * * *")
-        // .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
+        //.WithCronSchedule("0 * * ? * * *")
+        .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 
     quartz.ScheduleJob<FetchActiveSessionJob>(trigger => trigger
         .WithIdentity("FetchActiveSessionJob-trigger")
-        .WithCronSchedule("0 * * ? * SUN,MON,THU,FRI,SAT *")
+        .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT,MON *")
     );
 });
 
@@ -86,6 +89,9 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseRobotsTxt(app.Environment);
 
+// Add App lifetime events
+app.Lifetime.ApplicationStopping.Register(tokenSource.Cancel);
+
 // Map controller & related web data
 app.MapControllers();
 app.MapRazorPages();
@@ -94,6 +100,13 @@ app.MapStaticAssets();
 
 // Map SignalR Hubs to app
 app.MapHub<RaceControlHub>("/signalr");
+
+// Add Cancel press event.
+Console.CancelKeyPress += (_, eventArgs) =>
+{
+    tokenSource.Cancel();
+    eventArgs.Cancel = true;
+};
 
 app.Logger.LogInformation("[Race Control] Starting Application");
 await app.RunAsync();

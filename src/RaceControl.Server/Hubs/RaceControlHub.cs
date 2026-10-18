@@ -18,9 +18,9 @@ public class RaceControlHub(
 
         if (championship != null)
         {
-            var categoryDto = new ChampionshipDto(championship.Id, ChampionshipService.Latency);
-            await Clients.Caller.CategoryChange(categoryDto);
-            await Task.Delay(ChampionshipService.Latency * 1000);
+            var categoryDto = new ChampionshipDto(championship.Id, championship.Name);
+            await Clients.Caller.ChampionshipChange(categoryDto);
+            await Task.Delay(championship.Latency * 1000);
         }
 
         await Clients.Caller.FlagChange(flagDataDto);

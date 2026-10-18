@@ -3,9 +3,9 @@ namespace RaceControl.Data.Dtos;
 /// <summary>
 /// A DTO representing data relevant when a championship has changed.
 /// </summary>
-/// <param name="Key">The key of the active championchip.</param>
-/// <param name="Latency">The TV latency of the active category.</param>
+/// /// <param name="Id">The identifier of the championship.</param>
+/// <param name="Name">The display name of the championship.</param>
 public sealed record ChampionshipDto(
-    string Key,
-    int Latency
+    string Id,
+    string Name
 );

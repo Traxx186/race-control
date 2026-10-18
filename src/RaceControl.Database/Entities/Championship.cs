@@ -15,6 +15,11 @@ public class Championship
     public string Name { get; set; }
 
     /// <summary>
+    /// The broadcast latency of the championship. Only used internally.
+    /// </summary>
+    public int Latency { get; set; } = 35;
+
+    /// <summary>
     /// The related <see cref="Event"/> of the championship.
     /// </summary>
     [JsonIgnore]

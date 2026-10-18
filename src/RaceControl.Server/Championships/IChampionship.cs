@@ -28,7 +28,7 @@ public interface IChampionship
     /// <summary>
     /// Closes the connection to the live timing service related to the category.
     /// </summary>
-    Task StopAsync();
+    void Stop();
 
     /// <summary>
     /// Parses the received race control message to relevant flag.
@@ -43,5 +43,5 @@ public interface IChampionship
     /// <summary>
     /// Parses the session status message to relevant action.
     /// </summary>
-    Task ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage);
+    void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage);
 }
