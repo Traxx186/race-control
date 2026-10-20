@@ -10,8 +10,8 @@ namespace RaceControl.Server.Jobs;
 
 public class FetchActiveSessionJob(
     ILogger<SyncSessionsJob> logger,
-    IHubContext<RaceControlHub, IRaceControlHubClient> racHubContext,
-    RaceControlContext dbContext,
+    IHubContext<RaceControlHub, IRaceControlHubClient> raceControlHubContext,
+    RaceControlContext raceControlContext,
     IChampionshipService championshipService) : IJob
 {
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
@@ -23,7 +23,7 @@ public class FetchActiveSessionJob(
 
         var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
         var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
-        var session = dbContext.Sessions.Include(session => session.Event.Championship)
+        var session = raceControlContext.Sessions.Include(session => session.Event.Championship)
             .SingleOrDefault(s => s.StartTime == searchDate);
 
         // If no session has been found, stop the job.
@@ -34,7 +34,7 @@ public class FetchActiveSessionJob(
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", championshipId);
 
         var category = new ChampionshipDto(championshipId, session.Event.Championship.Name);
-        await racHubContext.Clients.All.ChampionshipChange(category);
+        await raceControlHubContext.Clients.All.ChampionshipChange(category);
         await championshipService.StartCategoryAsync(session);
     }
 }

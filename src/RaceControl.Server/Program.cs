@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Server.Championships;
+using RaceControl.Server.Controllers.OData;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Jobs;
 using RaceControl.Server.Middleware;
@@ -39,10 +41,18 @@ builder.Services.AddSerilog(configuration =>
         )
 );
 
-// Load controllers, signalr hubs and services to the web application.
+// Load normal & OData controllers
+builder.Services.AddControllers().AddOData(options =>
+    options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(null)
+        .AddRouteComponents(
+            routePrefix: "odata",
+            model: EdmModelConfig.GetEdmModel()
+        )
+    );
+
+// Load signalr hubs and services to the web application.
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
-builder.Services.AddControllers();
 builder.Services.AddHostedService<FlagBroadcastService>();
 builder.Services.AddSingleton(tokenSource);
 builder.Services.AddSingleton<ITrackStatusService, TrackStatusService>();

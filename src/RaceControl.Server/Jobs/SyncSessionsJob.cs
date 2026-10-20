@@ -10,7 +10,7 @@ using RaceControl.Database.Entities;
 namespace RaceControl.Server.Jobs;
 
 public class SyncSessionsJob(
-    RaceControlContext dbContext,
+    RaceControlContext raceControlContext,
     ILogger<SyncSessionsJob> logger,
     IHttpClientFactory httpClientFactory
     ) : IJob
@@ -30,7 +30,7 @@ public class SyncSessionsJob(
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
 
-        var championships = dbContext.Championships.ToArray();
+        var championships = raceControlContext.Championships.ToArray();
         foreach (var championship in championships)
         {
             switch(championship.Id)
@@ -74,8 +74,8 @@ public class SyncSessionsJob(
             .ToList() ?? [];
 
         await UpsertEvents(events);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Fetch sessions for each Formula 1 event");
         foreach (var e in events)
@@ -94,8 +94,8 @@ public class SyncSessionsJob(
         }
 
         await UpsertSessions(sessions);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -128,8 +128,8 @@ public class SyncSessionsJob(
 
         // Add/update upcoming event in the database.
         await UpsertEvents([@event]);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Sync sessions for Formula 2 event");
         var sessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions)?
@@ -145,8 +145,8 @@ public class SyncSessionsJob(
 
         // Add/update sessions of the upcoming event in the database.
         await UpsertSessions(sessions);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
     }
 
 
@@ -159,7 +159,7 @@ public class SyncSessionsJob(
         foreach (var @event in events)
         {
             // Try to update an existing event.
-            var affectedRows = await dbContext.Events
+            var affectedRows = await raceControlContext.Events
                 .Where(e => e.MeetingKey == @event.MeetingKey && e.ChampionshipId == @event.Championship.Id)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(e => e.Name, @event.Name)
@@ -169,7 +169,7 @@ public class SyncSessionsJob(
 
             // If no event could be updated, add the new event to the database.
             if (affectedRows == 0)
-                dbContext.Events.Add(@event);
+                raceControlContext.Events.Add(@event);
         }
     }
 
@@ -181,11 +181,11 @@ public class SyncSessionsJob(
     {
         foreach (var session in sessions)
         {
-            session.Event = dbContext.Events
+            session.Event = raceControlContext.Events
                 .Single(e => e.MeetingKey == session.Event.MeetingKey && e.ChampionshipId == session.Event.Championship.Id);
 
             // Try to update an existing session.
-            var affectedRows = await dbContext.Sessions
+            var affectedRows = await raceControlContext.Sessions
                 .Where(s => s.Key == session.Key && s.EventId == session.Event.Id)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(s => s.Name, session.Name)
@@ -193,7 +193,7 @@ public class SyncSessionsJob(
 
             // If no session could be updated, add the new session to the database.
             if (affectedRows == 0)
-                dbContext.Sessions.Add(session);
+                raceControlContext.Sessions.Add(session);
         }
     }
 }
