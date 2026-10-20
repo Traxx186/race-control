@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
@@ -50,6 +51,9 @@ builder.Services.AddControllers().AddOData(options =>
         )
     );
 
+// Configure automapper
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program));
+
 // Load signalr hubs and services to the web application.
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
@@ -81,7 +85,7 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.ScheduleJob<SyncSessionsJob>(trigger => trigger
         .WithIdentity("SyncSessionsJob-trigger")
-        //.WithCronSchedule("0 * * ? * * *")
+        // .WithCronSchedule("0 * * ? * * *")
         .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 

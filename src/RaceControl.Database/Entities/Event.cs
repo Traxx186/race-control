@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace RaceControl.Database.Entities;
 
 public class Event
@@ -35,7 +33,7 @@ public class Event
     public DateTime EndTime { get; set; }
 
     /// <summary>
-    /// The identifier of the parent championship.
+    /// The identifier of the parent Championship.
     /// </summary>
     public string ChampionshipId { get; set; }
 
@@ -45,9 +43,8 @@ public class Event
     public Championship Championship { get; set; }
 
     /// <summary>
-    /// The related <see cref="Session"/> of the event.
+    /// The related <see cref="Session"/> of the Event.
     /// </summary>
-    [JsonIgnore]
     public ICollection<Session> Sessions { get; } = new List<Session>();
 
 }

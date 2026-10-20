@@ -33,7 +33,12 @@ public class FetchActiveSessionJob(
         var championshipId = session.Event.ChampionshipId;
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", championshipId);
 
-        var category = new ChampionshipDto(championshipId, session.Event.Championship.Name);
+        var category = new ChampionshipDto
+        {
+            Id = championshipId,
+            Name = session.Event.Championship.Name,
+        };
+
         await raceControlHubContext.Clients.All.ChampionshipChange(category);
         await championshipService.StartCategoryAsync(session);
     }

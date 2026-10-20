@@ -61,15 +61,15 @@ public class SyncSessionsJob(
 
         logger.LogInformation("[Session Sync] Fetch Formula 1 events");
         var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/editorial-eventlisting/events");
-        var events = data?["events"].Deserialize<EventDto[]>(JsonOptions)?
-            .Select(e => new Event
+        var listedEvents = data?["events"]?.AsArray() ?? [];
+        var events = listedEvents.Select(e => new Event
             {
                 Championship = championship,
-                Name = e.MeetingName,
-                MeetingKey = e.MeetingKey,
-                Location = e.MeetingLocation,
-                StartTime = DateTime.ParseExact($"{e.MeetingStartDate}{e.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
-                EndTime = DateTime.ParseExact($"{e.MeetingStartDate}{e.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = e!["meetingName"]!.GetValue<string>(),
+                MeetingKey = e["meetingKey"]!.GetValue<string>(),
+                Location = e["meetingLocation"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{e["meetingStartDate"]}{e["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
+                EndTime = DateTime.ParseExact($"{e["meetingEndDate"]}{e["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
             .ToList() ?? [];
 
@@ -81,15 +81,15 @@ public class SyncSessionsJob(
         foreach (var e in events)
         {
             var eventData = await httpClient.GetFromJsonAsync<JsonObject>($"/v1/event-tracker/meeting/{e.MeetingKey}");
-            var eventSessions = eventData?["meetingContext"]?["timetables"].Deserialize<SessionDto[]>(JsonOptions) ?? [];
+            var eventSessions = eventData?["meetingContext"]?["timetables"]?.AsArray() ?? [];
 
             sessions.AddRange(eventSessions.Select(session => new Session
             {
                 Event = e,
-                Name = session.Description,
-                Key = session.MeetingSessionKey,
-                Type = session.SessionType,
-                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = session!["description"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{session["startTime"]}{session["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             }));
         }
 
@@ -108,7 +108,7 @@ public class SyncSessionsJob(
 
         logger.LogInformation("[Session Sync] Fetch upcoming Formula 2 event");
         var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/core-event-tracker/f2");
-        var eventInfo = data?["race"].Deserialize<EventDto>(JsonOptions);
+        var eventInfo = data?["race"];
         if (eventInfo is null)
         {
             logger.LogInformation("[Session Sync] No upcoming Formula 2 event, skip sync");
@@ -119,11 +119,11 @@ public class SyncSessionsJob(
         var @event = new Event
         {
             Championship = championship,
-            Name = eventInfo.MeetingName,
-            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.ToString() ?? string.Empty,
-            Location = eventInfo.MeetingLocation,
-            StartTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
-            EndTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
+            Name = eventInfo["meetingName"]!.GetValue<string>(),
+            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.GetValue<string>() ?? string.Empty,
+            Location = eventInfo["meetingLocation"]!.GetValue<string>(),
+            StartTime = DateTime.ParseExact(eventInfo["meetingStartDate"]!.GetValue<string>(), "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
+            EndTime = DateTime.ParseExact(eventInfo["meetingEndDate"]!.GetValue<string>(), "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
         };
 
         // Add/update upcoming event in the database.
@@ -132,14 +132,14 @@ public class SyncSessionsJob(
         await raceControlContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Sync sessions for Formula 2 event");
-        var sessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions)?
-            .Select(session => new Session
+        var eventSessions = data?["race"]?["meetingSessions"]?.AsArray() ?? [];
+        var sessions = eventSessions.Select(session => new Session
             {
                 Event = @event,
-                Name = session.ShortName,
-                Key = session.MeetingSessionKey,
-                Type = session.SessionType,
-                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = session!["shortName"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{session["startTime"]}{session["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
             .ToList() ?? [];
 
@@ -148,7 +148,6 @@ public class SyncSessionsJob(
         raceControlContext.ChangeTracker.DetectChanges();
         await raceControlContext.SaveChangesAsync();
     }
-
 
     /// <summary>
     /// Inserts/update events in the database.

@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
@@ -8,7 +9,8 @@ namespace RaceControl.Server.Hubs;
 public class RaceControlHub(
     ILogger<RaceControlHub> logger,
     ITrackStatusService trackStatusService,
-    IChampionshipService championshipService) : Hub<IRaceControlHubClient>
+    IChampionshipService championshipService,
+    IMapper mapper) : Hub<IRaceControlHubClient>
 {
     public override async Task OnConnectedAsync()
     {
@@ -18,8 +20,7 @@ public class RaceControlHub(
 
         if (championship != null)
         {
-            var categoryDto = new ChampionshipDto(championship.Id, championship.Name);
-            await Clients.Caller.ChampionshipChange(categoryDto);
+            await Clients.Caller.ChampionshipChange(mapper.Map<ChampionshipDto>(championship));
             await Task.Delay(championship.Latency * 1000);
         }
 

@@ -8,32 +8,32 @@ public class Session
     public int Id { get; set; }
 
     /// <summary>
-    /// The name of the session.
+    /// The name of the Session.
     /// </summary>
     public string Name { get; set; }
 
     /// <summary>
-    /// The session key.
+    /// The Session key.
     /// </summary>
     public int Key { get; set; }
 
     /// <summary>
-    /// The session Type.
+    /// The Session Type.
     /// </summary>
     public string Type { get; set; }
 
     /// <summary>
-    /// Start time of the session in UTC.
+    /// Start time of the Session in UTC.
     /// </summary>
     public DateTime StartTime { get; set; }
 
     /// <summary>
-    /// If the session is canceled, is set manually.
+    /// If the Session is canceled, is set manually.
     /// </summary>
     public bool Cancelled { get; set; }
 
     /// <summary>
-    /// The identifier of the parent event.
+    /// The identifier of the parent event of the Session.
     /// </summary>
     public int EventId { get; set; }
 
