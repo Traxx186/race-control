@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RaceControl.Data.Dtos;
 
-public sealed class SessionDto()
+public sealed class SessionDto
 {
     /// <summary>
     /// The identifier of the Event.
@@ -34,4 +34,9 @@ public sealed class SessionDto()
     /// If the Session is canceled, is set manually.
     /// </summary>
     public bool Cancelled { get; set; }
+
+    /// <summary>
+    /// The parent <see cref="EventDto"/>.
+    /// </summary>
+    public EventDto Event { get; set; }
 }

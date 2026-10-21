@@ -6,7 +6,7 @@ namespace RaceControl.Data.Dtos;
 /// <summary>
 /// A DTO representing data relevant when a flag changed.
 /// </summary>
-public sealed class FlagDataDto()
+public sealed class FlagDataDto
 {
     /// <summary>
     /// The current flag in a session.

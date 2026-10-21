@@ -2,7 +2,7 @@ using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using RaceControl.Data.Dtos;
 
-namespace RaceControl.Server.Controllers.OData;
+namespace RaceControl.Server;
 
 public static class EdmModelConfig
 {

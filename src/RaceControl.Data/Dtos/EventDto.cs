@@ -6,7 +6,7 @@ namespace RaceControl.Data.Dtos;
 /// <summary>
 /// A DTO representing relevant event data.
 /// </summary>
-public sealed class EventDto()
+public sealed class EventDto
 {
     /// <summary>
     /// The identifier of the Event.
@@ -46,12 +46,12 @@ public sealed class EventDto()
     public string? GmtOffset { get; set; }
 
     /// <summary>
-    /// The parent <see cref="Championship"/>.
+    /// The parent <see cref="ChampionshipDto"/>.
     /// </summary>
     public ChampionshipDto Championship { get; set; }
 
     /// <summary>
-    /// Sessions linked to the Event.
+    /// <see cref="SessionDto"/> linked to the Event.
     /// </summary>
     public ICollection<SessionDto> Sessions { get; set; } = new List<SessionDto>();
 
