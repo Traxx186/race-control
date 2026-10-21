@@ -46,6 +46,11 @@ public sealed class EventDto()
     public string? GmtOffset { get; set; }
 
     /// <summary>
+    /// The parent <see cref="Championship"/>.
+    /// </summary>
+    public ChampionshipDto Championship { get; set; }
+
+    /// <summary>
     /// Sessions linked to the Event.
     /// </summary>
     public ICollection<SessionDto> Sessions { get; set; } = new List<SessionDto>();
