@@ -21,7 +21,7 @@ public class FetchActiveSessionJob(
 
         logger.LogInformation("[Fetch Session] Searching in database for active session");
 
-        var signalTime = DateTime.Now.AddMinutes(5).ToUniversalTime();
+        var signalTime = DateTime.UtcNow.AddMinutes(5);
         var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
         var session = raceControlContext.Sessions.Include(session => session.Event.Championship)
             .SingleOrDefault(s => s.StartTime == searchDate);
