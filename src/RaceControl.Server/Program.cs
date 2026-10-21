@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
@@ -44,7 +43,7 @@ builder.Services.AddSerilog(configuration =>
 
 // Load normal & OData controllers
 builder.Services.AddControllers().AddOData(options =>
-    options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(null)
+    options.EnableQueryFeatures()
         .AddRouteComponents(
             routePrefix: "odata",
             model: EdmModelConfig.GetEdmModel()
@@ -52,7 +51,7 @@ builder.Services.AddControllers().AddOData(options =>
     );
 
 // Configure automapper
-builder.Services.AddAutoMapper(cfg => { }, typeof(Program));
+builder.Services.AddAutoMapper(_ => { }, typeof(Program));
 
 // Load signalr hubs and services to the web application.
 builder.Services.AddSignalR();

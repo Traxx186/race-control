@@ -1,7 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RaceControl.Data.Dtos;
 
-public class SessionDto()
+public sealed class SessionDto()
 {
+    /// <summary>
+    /// The identifier of the Event.
+    /// </summary>
+    [Key]
+    public int Id { get; set; }
+
     /// <summary>
     /// The name of the Session.
     /// </summary>
@@ -20,7 +28,7 @@ public class SessionDto()
     /// <summary>
     /// Start time of the Session in UTC.
     /// </summary>
-    public string StartTime { get; set; }
+    public DateTime StartTime { get; set; }
 
     /// <summary>
     /// If the Session is canceled, is set manually.

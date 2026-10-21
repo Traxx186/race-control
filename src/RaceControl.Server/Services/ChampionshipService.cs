@@ -42,7 +42,7 @@ public sealed class ChampionshipService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.Event.ChampionshipId);
 
-        _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
+        _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto { Flag = args.Flag, Driver = args.Driver });
         _activeChampionship!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeChampionship.StartAsync();
@@ -51,7 +51,7 @@ public sealed class ChampionshipService(
     /// <inheritdoc/>
     public async Task StopActiveCategoryAsync()
     {
-        await trackStatusService.SetActiveFlagAsync(new FlagDataDto(Flag.Clear));
+        await trackStatusService.SetActiveFlagAsync(new FlagDataDto { Flag = Flag.Clear });
 
         logger.LogInformation("[Category Service] Closing the active category");
         FlagQueue.Clear();

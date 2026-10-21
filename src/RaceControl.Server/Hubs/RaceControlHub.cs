@@ -16,7 +16,7 @@ public class RaceControlHub(
     {
         logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
         var championship = championshipService.ActiveSession?.Event.Championship;
-        var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
+        var flagDataDto = new FlagDataDto { Flag = trackStatusService.ActiveFlag };
 
         if (championship != null)
         {

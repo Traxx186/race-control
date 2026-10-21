@@ -68,10 +68,10 @@ public class SyncSessionsJob(
                 Name = e!["meetingName"]!.GetValue<string>(),
                 MeetingKey = e["meetingKey"]!.GetValue<string>(),
                 Location = e["meetingLocation"]!.GetValue<string>(),
-                StartTime = DateTime.ParseExact($"{e["meetingStartDate"]}{e["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
-                EndTime = DateTime.ParseExact($"{e["meetingEndDate"]}{e["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                StartTime = DateTime.ParseExact($"{e["meetingStartDate"]!.GetValue<string>()}{e["gmtOffset"]!.GetValue<string>()}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
+                EndTime = DateTime.ParseExact($"{e["meetingEndDate"]!.GetValue<string>()}{e["gmtOffset"]!.GetValue<string>()}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
-            .ToList() ?? [];
+            .ToList();
 
         await UpsertEvents(events);
         raceControlContext.ChangeTracker.DetectChanges();
@@ -141,7 +141,7 @@ public class SyncSessionsJob(
                 Type = session["sessionType"]!.GetValue<string>(),
                 StartTime = DateTime.ParseExact($"{session["startTime"]}{session["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
-            .ToList() ?? [];
+            .ToList();
 
         // Add/update sessions of the upcoming event in the database.
         await UpsertSessions(sessions);

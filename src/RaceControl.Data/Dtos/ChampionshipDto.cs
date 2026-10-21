@@ -1,13 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RaceControl.Data.Dtos;
 
 /// <summary>
 /// A DTO representing relevant championship data.
 /// </summary>
-public class ChampionshipDto
+public sealed class ChampionshipDto()
 {
     /// <summary>
     /// The identifier of the Championship.
     /// </summary>
+    [Key]
     public required string Id { get; set; }
 
     /// <summary>

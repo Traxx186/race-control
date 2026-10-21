@@ -6,9 +6,16 @@ namespace RaceControl.Data.Dtos;
 /// <summary>
 /// A DTO representing data relevant when a flag changed.
 /// </summary>
-/// <param name="Flag">The new active flag in a session.</param>
-/// <param name="Driver">The number of the driver for whom the flag is intended.</param>
-public sealed record FlagDataDto(
-    Flag Flag,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Driver = null
-);
+public sealed class FlagDataDto()
+{
+    /// <summary>
+    /// The current flag in a session.
+    /// </summary>
+    public Flag Flag { get; set; }
+
+    /// <summary>
+    /// The number of the driver for whom the flag is intended.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Driver { get; set; } = null;
+}
