@@ -2,7 +2,9 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Results;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.EntityFrameworkCore;
 using RaceControl.Data.Dtos;
 using RaceControl.Database;
 
@@ -18,18 +20,21 @@ public class ChampionshipsController(ILogger<ChampionshipsController> logger, Ra
         logger.LogInformation("[OData] Requesting registered championships");
 
         return raceControlContext.Championships
-            .ProjectTo<ChampionshipDto>(mapper.ConfigurationProvider);
+            .ProjectTo<ChampionshipDto>(mapper.ConfigurationProvider)
+            .AsSplitQuery();
     }
 
     [HttpGet]
     [EnableQuery]
-    public ActionResult<ChampionshipDto> Get([FromRoute] string key)
+    public SingleResult<ChampionshipDto> Get([FromRoute] string key)
     {
-        logger.LogInformation("[OData] Requesting registered championship with id {id}", key);
-        var championship = raceControlContext.Championships.SingleOrDefault(championship => championship.Id == key);
-        if (championship is null)
-            return NotFound();
+        logger.LogInformation("[OData] Requesting registered championship with id {key}", key);
 
-        return mapper.Map<ChampionshipDto>(championship);
+        var query = raceControlContext.Championships
+            .Where(c => c.Id == key)
+            .ProjectTo<ChampionshipDto>(mapper.ConfigurationProvider)
+            .AsSplitQuery();
+
+        return SingleResult.Create(query);
     }
 }
