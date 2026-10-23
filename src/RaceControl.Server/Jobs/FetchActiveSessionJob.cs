@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Database;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Services;
@@ -33,13 +34,13 @@ public class FetchActiveSessionJob(
         var championshipId = session.Event.ChampionshipId;
         logger.LogInformation("[Fetch Session] Session found with key {key}, starting category service", championshipId);
 
-        var category = new ChampionshipDto
+        var championshipDto = new ChampionshipSignalrDto
         {
             Id = championshipId,
             Name = session.Event.Championship.Name,
         };
 
-        await raceControlHubContext.Clients.All.ChampionshipChange(category);
+        await raceControlHubContext.Clients.All.ChampionshipChange(championshipDto);
         await championshipService.StartCategoryAsync(session);
     }
 }

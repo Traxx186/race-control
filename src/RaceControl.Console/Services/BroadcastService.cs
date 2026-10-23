@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using RaceControl.Console.Championships;
 using RaceControl.Console.Events;
 using RaceControl.Console.Options;
-using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 
 namespace RaceControl.Console.Services;
 
@@ -55,7 +55,7 @@ public class BroadcastService : IHostedService
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.On<ChampionshipDto>("CategoryChange", HandleCategoryChange);
+        _connection.On<ChampionshipSignalrDto>("ChampionshipChange", HandleCategoryChange);
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public class BroadcastService : IHostedService
     /// Connect to the correct live timing parser based on the active category.
     /// </summary>
     /// <param name="championshipDto">Active category.</param>
-    private async Task HandleCategoryChange(ChampionshipDto championshipDto)
+    private async Task HandleCategoryChange(ChampionshipSignalrDto championshipDto)
     {
         _logger.LogInformation("[Broadcast Service] Parsing category change message");
         _currentChampionship = championshipDto.Id switch

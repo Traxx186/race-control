@@ -1,5 +1,4 @@
-using RaceControl.Data.Dtos;
-using RaceControl.Data.Enums;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Database.Entities;
 using RaceControl.Server.Championships;
 
@@ -25,7 +24,7 @@ public interface IChampionshipService
     /// <summary>
     /// List of flag to send to connected clients.
     /// </summary>
-    public SortedList<DateTime, FlagDataDto> FlagQueue { get; }
+    public SortedList<DateTime, FlagDataSignalrDto> FlagQueue { get; }
 
     /// <summary>
     /// Starts the API connection of the category based on the given session.
@@ -42,5 +41,5 @@ public interface IChampionshipService
     /// Adds a new flag to the flag queue.
     /// </summary>
     /// <param name="flagData">flag data to add.</param>
-    void EnqueueFlag(FlagDataDto flagData);
+    void EnqueueFlag(FlagDataSignalrDto flagData);
 }
