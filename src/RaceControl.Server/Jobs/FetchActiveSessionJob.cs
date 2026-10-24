@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
-using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Database;
 using RaceControl.Server.Hubs;

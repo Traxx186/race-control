@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
-using RaceControl.Data.Dtos;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
