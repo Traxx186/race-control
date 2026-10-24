@@ -162,7 +162,7 @@ public sealed class Formula1 : IChampionship
             _logger.LogWarning("[Formula 1] Invalid race control message received");
             return;
         }
-
+        _logger.LogInformation(data["Messages"]?[0].ToString());
         OnMessageReceived("RaceControlMessage", raceControlMessage);
     }
 
@@ -182,6 +182,7 @@ public sealed class Formula1 : IChampionship
             return;
         }
 
+        _logger.LogInformation(data.ToString());
         OnMessageReceived("SessionStatus", sessionStatusMessage);
 
         if (sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
