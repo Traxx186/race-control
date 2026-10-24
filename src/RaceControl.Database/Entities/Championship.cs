@@ -1,27 +1,24 @@
-using System.Text.Json.Serialization;
-
 namespace RaceControl.Database.Entities;
 
 public class Championship
 {
     /// <summary>
-    /// Unique identifier of the championship.
+    /// Unique identifier of the Championship.
     /// </summary>
     public string Id { get; set; }
 
     /// <summary>
-    /// The name of the championship.
+    /// The name of the Championship.
     /// </summary>
     public string Name { get; set; }
 
     /// <summary>
-    /// The broadcast latency of the championship. Only used internally.
+    /// The broadcast latency of the Championship. Only used internally.
     /// </summary>
     public int Latency { get; set; } = 35;
 
     /// <summary>
-    /// The related <see cref="Event"/> of the championship.
+    /// The related <see cref="Event"/> of the Championship.
     /// </summary>
-    [JsonIgnore]
     public ICollection<Event> Events { get; } = new List<Event>();
 }

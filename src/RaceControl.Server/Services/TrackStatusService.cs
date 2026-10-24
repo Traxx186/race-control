@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
-using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Data.Enums;
 using RaceControl.Server.Hubs;
 
@@ -34,7 +34,7 @@ public sealed class TrackStatusService(
     public Flag ActiveFlag { get; private set; } = Flag.Clear;
 
     /// <inheritdoc/>
-    public async Task SetActiveFlagAsync(FlagDataDto flagData)
+    public async Task SetActiveFlagAsync(FlagDataSignalrDto flagData)
     {
         logger.LogInformation("[Track Status] New flag received");
         if (OverrideFlags.Contains(flagData.Flag))

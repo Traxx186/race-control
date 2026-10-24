@@ -1,4 +1,4 @@
-using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Data.Enums;
 
 namespace RaceControl.Server.Services;
@@ -15,5 +15,5 @@ public interface ITrackStatusService
     /// but the flag data will not be saved.
     /// </summary>
     /// <param name="flagData">Flag data to be processed.</param>
-    Task SetActiveFlagAsync(FlagDataDto flagData);
+    Task SetActiveFlagAsync(FlagDataSignalrDto flagData);
 }
