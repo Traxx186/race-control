@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+      day: wednesday
+    groups:
+      dotnet-sdk:
+        patterns:
+          - "*"
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: wednesday
+    groups:
+      nuget:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: wednesday
+    groups:
+      composer:
+        patterns:
+          - "*"
+    labels:
+      - dependencies

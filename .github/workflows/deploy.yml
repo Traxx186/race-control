@@ -24,8 +24,6 @@ jobs:
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10
 
       - name: Install EF tool
         run: dotnet tool install --global dotnet-ef
