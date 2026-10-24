@@ -9,6 +9,8 @@ updates:
       dotnet-sdk:
         patterns:
           - "*"
+    labels:
+      - dependencies
   - package-ecosystem: nuget
     directory: /
     schedule:
