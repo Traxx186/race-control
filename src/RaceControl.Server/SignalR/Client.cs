@@ -9,17 +9,17 @@ namespace RaceControl.Server.SignalR;
 /// <summary>
 /// A SignalR client wrapper to easily connect to a SignalR server with the correct hub and args.
 /// </summary>
-public sealed class Client(string url, string hub) : IDisposable
+public sealed class Client : IDisposable
 {
     /// <summary>
     /// The url to connect to.
     /// </summary>
-    private readonly string _url = url;
+    private readonly string _url;
 
     /// <summary>
     /// The hub name.
     /// </summary>
-    private readonly string _hub = hub;
+    private readonly string _hub;
 
     /// <summary>
     /// The protocol version to be used
@@ -58,12 +58,18 @@ public sealed class Client(string url, string hub) : IDisposable
 
     public event Action<Exception>? Error;
 
+    public Client(string url, string hub)
+    {
+        _url = url;
+        _hub = hub;
+
+        InitHubConnection();
+    }
+
     public Client(string url, string hub, Version version)
         : this(url, hub)
     {
           _version = version;
-
-          InitHubConnection();
     }
 
     public Client(string url, string hub, Version version, string customEndpoint)
@@ -71,8 +77,6 @@ public sealed class Client(string url, string hub) : IDisposable
     {
         _customEndpoint = customEndpoint;
         _useDefaultEndpoint = false;
-
-        InitHubConnection();
     }
 
     /// <summary>
@@ -82,7 +86,7 @@ public sealed class Client(string url, string hub) : IDisposable
     {
         Log.Information("[SignalR] Connecting to {url}", _url);
 
-        await Task.WhenAny(_connection.Start(), Task.Delay(Timeout.Infinite, cancellationToken));
+        await Task.WhenAny(_connection!.Start(), Task.Delay(Timeout.Infinite, cancellationToken));
     }
 
     /// <summary>
@@ -112,7 +116,7 @@ public sealed class Client(string url, string hub) : IDisposable
 
         // Invoke the given method. If cancellation token is called when the invocation is still in progress, it will
         // be terminated.
-        var invokeTask = _proxy.Invoke(method, args);
+        var invokeTask = _proxy!.Invoke(method, args);
         await Task.WhenAny(invokeTask, Task.Delay(Timeout.Infinite, cancellationToken));
     }
 
@@ -185,6 +189,6 @@ public sealed class Client(string url, string hub) : IDisposable
     private void ThrowIfNotConnected()
     {
         if (_connection is null || _connection.State != ConnectionState.Connected)
-            throw new InvalidOperationException($"HubConnection is not connected, expected Connected.");
+            throw new InvalidOperationException("HubConnection is not connected, expected Connected.");
     }
 }

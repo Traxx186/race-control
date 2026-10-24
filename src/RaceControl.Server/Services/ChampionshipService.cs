@@ -1,7 +1,7 @@
-using RaceControl.Server.Championships;
-using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Data.Enums;
 using RaceControl.Database.Entities;
+using RaceControl.Server.Championships;
 
 namespace RaceControl.Server.Services;
 
@@ -21,7 +21,7 @@ public sealed class ChampionshipService(
     private Session? _activeSession;
 
     /// <inheritdoc/>
-    public SortedList<DateTime, FlagDataDto> FlagQueue { get; } = new();
+    public SortedList<DateTime, FlagDataSignalrDto> FlagQueue { get; } = new();
 
     /// <inheritdoc/>
     public bool HasSessionActive => _activeSession != null;
@@ -42,7 +42,7 @@ public sealed class ChampionshipService(
 
         logger.LogInformation("[Category Service] Starting API connection for session with key {key}", _activeSession.Event.ChampionshipId);
 
-        _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataDto(args.Flag, args.Driver));
+        _activeChampionship!.FlagParsed += (_, args) => EnqueueFlag(new FlagDataSignalrDto { Flag = args.Flag, Driver = args.Driver });
         _activeChampionship!.SessionFinished += async (_, _) => await StopActiveCategoryAsync();
 
         await _activeChampionship.StartAsync();
@@ -51,7 +51,7 @@ public sealed class ChampionshipService(
     /// <inheritdoc/>
     public async Task StopActiveCategoryAsync()
     {
-        await trackStatusService.SetActiveFlagAsync(new FlagDataDto(Flag.Clear));
+        await trackStatusService.SetActiveFlagAsync(new FlagDataSignalrDto { Flag = Flag.Clear });
 
         logger.LogInformation("[Category Service] Closing the active category");
         FlagQueue.Clear();
@@ -60,7 +60,7 @@ public sealed class ChampionshipService(
     }
 
     /// <inheritdoc/>
-    public void EnqueueFlag(FlagDataDto flagData)
+    public void EnqueueFlag(FlagDataSignalrDto flagData)
     {
         if (flagData.Flag == Flag.None)
         {

@@ -1,10 +1,10 @@
-using RaceControl.Data.Dtos;
+using RaceControl.Data.Dtos.Signalr;
 
 namespace RaceControl.Server.Hubs;
 
 public interface IRaceControlHubClient
 {
-    Task FlagChange(FlagDataDto flagData);
+    Task FlagChange(FlagDataSignalrDto flagData);
 
-    Task ChampionshipChange(ChampionshipDto championshipDto);
+    Task ChampionshipChange(ChampionshipSignalrDto championshipDto);
 }

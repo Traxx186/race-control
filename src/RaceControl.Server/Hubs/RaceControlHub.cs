@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
-using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
+using RaceControl.Data.Dtos.Signalr;
 using RaceControl.Server.Services;
 
 namespace RaceControl.Server.Hubs;
@@ -14,12 +14,12 @@ public class RaceControlHub(
     {
         logger.LogInformation("[RaceControlHub] New client connected, send flag data & current category if present");
         var championship = championshipService.ActiveSession?.Event.Championship;
-        var flagDataDto = new FlagDataDto(trackStatusService.ActiveFlag);
+        var flagDataDto = new FlagDataSignalrDto { Flag = trackStatusService.ActiveFlag };
 
         if (championship != null)
         {
-            var categoryDto = new ChampionshipDto(championship.Id, championship.Name);
-            await Clients.Caller.ChampionshipChange(categoryDto);
+            var championShip = new ChampionshipSignalrDto { Id = championship.Id, Name = championship.Name };
+            await Clients.Caller.ChampionshipChange(championShip);
             await Task.Delay(championship.Latency * 1000);
         }
 

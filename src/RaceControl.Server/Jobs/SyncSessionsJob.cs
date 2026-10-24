@@ -3,14 +3,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
-using RaceControl.Data.Dtos;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
 
 namespace RaceControl.Server.Jobs;
 
 public class SyncSessionsJob(
-    RaceControlContext dbContext,
+    RaceControlContext raceControlContext,
     ILogger<SyncSessionsJob> logger,
     IHttpClientFactory httpClientFactory
     ) : IJob
@@ -30,7 +29,7 @@ public class SyncSessionsJob(
     {
         logger.LogInformation("[Session Sync] Synchronizing session data with racing calendars");
 
-        var championships = dbContext.Championships.ToArray();
+        var championships = raceControlContext.Championships.ToArray();
         foreach (var championship in championships)
         {
             switch(championship.Id)
@@ -61,41 +60,41 @@ public class SyncSessionsJob(
 
         logger.LogInformation("[Session Sync] Fetch Formula 1 events");
         var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/editorial-eventlisting/events");
-        var events = data?["events"].Deserialize<EventDto[]>(JsonOptions)?
-            .Select(e => new Event
+        var listedEvents = data?["events"]?.AsArray() ?? [];
+        var events = listedEvents.Select(e => new Event
             {
                 Championship = championship,
-                Name = e.MeetingName,
-                MeetingKey = e.MeetingKey,
-                Location = e.MeetingLocation,
-                StartTime = DateTime.ParseExact($"{e.MeetingStartDate}{e.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
-                EndTime = DateTime.ParseExact($"{e.MeetingStartDate}{e.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = e!["meetingName"]!.GetValue<string>(),
+                MeetingKey = e["meetingKey"]!.GetValue<string>(),
+                Location = e["meetingLocation"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{e["meetingStartDate"]!.GetValue<string>()}{e["gmtOffset"]!.GetValue<string>()}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime(),
+                EndTime = DateTime.ParseExact($"{e["meetingEndDate"]!.GetValue<string>()}{e["gmtOffset"]!.GetValue<string>()}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
-            .ToList() ?? [];
+            .ToList();
 
         await UpsertEvents(events);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Fetch sessions for each Formula 1 event");
         foreach (var e in events)
         {
             var eventData = await httpClient.GetFromJsonAsync<JsonObject>($"/v1/event-tracker/meeting/{e.MeetingKey}");
-            var eventSessions = eventData?["meetingContext"]?["timetables"].Deserialize<SessionDto[]>(JsonOptions) ?? [];
+            var eventSessions = eventData?["meetingContext"]?["timetables"]?.AsArray() ?? [];
 
             sessions.AddRange(eventSessions.Select(session => new Session
             {
                 Event = e,
-                Name = session.Description,
-                Key = session.MeetingSessionKey,
-                Type = session.SessionType,
-                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = session!["description"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{session["startTime"]}{session["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             }));
         }
 
         await UpsertSessions(sessions);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -108,7 +107,7 @@ public class SyncSessionsJob(
 
         logger.LogInformation("[Session Sync] Fetch upcoming Formula 2 event");
         var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/core-event-tracker/f2");
-        var eventInfo = data?["race"].Deserialize<EventDto>(JsonOptions);
+        var eventInfo = data?["race"];
         if (eventInfo is null)
         {
             logger.LogInformation("[Session Sync] No upcoming Formula 2 event, skip sync");
@@ -119,36 +118,35 @@ public class SyncSessionsJob(
         var @event = new Event
         {
             Championship = championship,
-            Name = eventInfo.MeetingName,
-            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.ToString() ?? string.Empty,
-            Location = eventInfo.MeetingLocation,
-            StartTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
-            EndTime = DateTime.ParseExact($"{eventInfo.MeetingStartDate}{eventInfo.GmtOffset}", "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
+            Name = eventInfo["meetingName"]!.GetValue<string>(),
+            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.GetValue<string>() ?? string.Empty,
+            Location = eventInfo["meetingLocation"]!.GetValue<string>(),
+            StartTime = DateTime.ParseExact(eventInfo["meetingStartDate"]!.GetValue<string>(), "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
+            EndTime = DateTime.ParseExact(eventInfo["meetingEndDate"]!.GetValue<string>(), "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime()
         };
 
         // Add/update upcoming event in the database.
         await UpsertEvents([@event]);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
 
         logger.LogInformation("[Session Sync] Sync sessions for Formula 2 event");
-        var sessions = data?["race"]?["meetingSessions"].Deserialize<SessionDto[]>(JsonOptions)?
-            .Select(session => new Session
+        var eventSessions = data?["race"]?["meetingSessions"]?.AsArray() ?? [];
+        var sessions = eventSessions.Select(session => new Session
             {
                 Event = @event,
-                Name = session.ShortName,
-                Key = session.MeetingSessionKey,
-                Type = session.SessionType,
-                StartTime = DateTime.ParseExact($"{session.StartTime}{session.GmtOffset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
+                Name = session!["shortName"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = DateTime.ParseExact($"{session["startTime"]}{session["gmtOffset"]}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture).ToUniversalTime()
             })
-            .ToList() ?? [];
+            .ToList();
 
         // Add/update sessions of the upcoming event in the database.
         await UpsertSessions(sessions);
-        dbContext.ChangeTracker.DetectChanges();
-        await dbContext.SaveChangesAsync();
+        raceControlContext.ChangeTracker.DetectChanges();
+        await raceControlContext.SaveChangesAsync();
     }
-
 
     /// <summary>
     /// Inserts/update events in the database.
@@ -159,7 +157,7 @@ public class SyncSessionsJob(
         foreach (var @event in events)
         {
             // Try to update an existing event.
-            var affectedRows = await dbContext.Events
+            var affectedRows = await raceControlContext.Events
                 .Where(e => e.MeetingKey == @event.MeetingKey && e.ChampionshipId == @event.Championship.Id)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(e => e.Name, @event.Name)
@@ -169,7 +167,7 @@ public class SyncSessionsJob(
 
             // If no event could be updated, add the new event to the database.
             if (affectedRows == 0)
-                dbContext.Events.Add(@event);
+                raceControlContext.Events.Add(@event);
         }
     }
 
@@ -181,11 +179,11 @@ public class SyncSessionsJob(
     {
         foreach (var session in sessions)
         {
-            session.Event = dbContext.Events
+            session.Event = raceControlContext.Events
                 .Single(e => e.MeetingKey == session.Event.MeetingKey && e.ChampionshipId == session.Event.Championship.Id);
 
             // Try to update an existing session.
-            var affectedRows = await dbContext.Sessions
+            var affectedRows = await raceControlContext.Sessions
                 .Where(s => s.Key == session.Key && s.EventId == session.Event.Id)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(s => s.Name, session.Name)
@@ -193,7 +191,7 @@ public class SyncSessionsJob(
 
             // If no session could be updated, add the new session to the database.
             if (affectedRows == 0)
-                dbContext.Sessions.Add(session);
+                raceControlContext.Sessions.Add(session);
         }
     }
 }
