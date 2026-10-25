@@ -15,5 +15,9 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
         modelBuilder.ApplyConfiguration(new ChampionshipConfiguration());
         modelBuilder.ApplyConfiguration(new EventConfiguration());
         modelBuilder.ApplyConfiguration(new SessionConfiguration());
+        modelBuilder.ApplyConfiguration(new RaceControlMessageConfiguration());
+
+        modelBuilder.HasPostgresEnum<MessageCategory>();
+        modelBuilder.HasPostgresEnum<MessageScope>();
     }
 }
