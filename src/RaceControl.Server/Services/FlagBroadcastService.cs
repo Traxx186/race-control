@@ -35,7 +35,7 @@ public sealed class FlagBroadcastService(
         // category.
         var flagToBroadcast = championshipService.FlagQueue
             .FirstOrDefault(q =>
-                DateTime.UtcNow - q.Key >= TimeSpan.FromSeconds(currentChampionship.Latency));
+                DateTime.UtcNow - q.Key >= currentChampionship.Latency);
 
         if (flagToBroadcast.Value == null)
             return;

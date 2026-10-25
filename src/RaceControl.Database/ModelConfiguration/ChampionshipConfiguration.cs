@@ -20,6 +20,6 @@ public class ChampionshipConfiguration : IEntityTypeConfiguration<Championship>
             .HasMaxLength(64);
 
         builder.Property(c => c.Latency)
-            .HasDefaultValue(35);
+            .HasDefaultValue(new TimeSpan(0, 0, 35));
     }
 }

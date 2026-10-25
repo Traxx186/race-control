@@ -22,7 +22,7 @@ public class RaceControlHub(
         {
             var championShip = new ChampionshipSignalrDto { Id = championship.Id, Name = championship.Name };
             await Clients.Caller.ChampionshipChange(championShip);
-            await Task.Delay(championship.Latency * 1000);
+            await Task.Delay(championship.Latency);
         }
 
         await Clients.Caller.FlagChange(flagDataDto);

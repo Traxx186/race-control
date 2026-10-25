@@ -15,7 +15,7 @@ public class Championship
     /// <summary>
     /// The broadcast latency of the Championship. Only used internally.
     /// </summary>
-    public int Latency { get; set; } = 35;
+    public TimeSpan Latency { get; set; } = new(0, 0, 35);
 
     /// <summary>
     /// The related <see cref="Event"/> of the Championship.
