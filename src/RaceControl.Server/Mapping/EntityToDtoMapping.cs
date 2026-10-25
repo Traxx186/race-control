@@ -11,5 +11,6 @@ public class EntityToDtoMapping : Profile
         CreateMap<Championship, ChampionshipDto>();
         CreateMap<Event, EventDto>();
         CreateMap<Session, SessionDto>();
+        CreateMap<RaceControlMessage, RaceControlMessageDto>();
     }
 }

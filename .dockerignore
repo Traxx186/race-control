@@ -7,6 +7,7 @@
 .vscode
 .idea
 .git
+.github
 
 # Local build results
 **/[b|B]in/

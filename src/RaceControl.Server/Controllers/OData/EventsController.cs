@@ -10,10 +10,13 @@ using RaceControl.Database;
 
 namespace RaceControl.Server.Controllers.OData;
 
-public class EventsController(ILogger<EventsController> logger, RaceControlContext raceControlContext, IMapper mapper) : ODataController
+public class EventsController(
+    ILogger<EventsController> logger,
+    RaceControlContext raceControlContext,
+    IMapper mapper) : ODataController
 {
     [HttpGet]
-    [EnableQuery]
+    [EnableQuery(PageSize = 100)]
     public IQueryable<EventDto> Get()
     {
         logger.LogInformation("[OData] Requesting registered events");

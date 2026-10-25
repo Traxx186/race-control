@@ -42,4 +42,8 @@ public class Session
     /// </summary>
     public Event Event { get; set; }
 
+    /// <summary>
+    /// The related <see cref="RaceControlMessage"/> of the Event.
+    /// </summary>
+    public ICollection<RaceControlMessage> RaceControlMessages { get; set; } = new List<RaceControlMessage>();
 }

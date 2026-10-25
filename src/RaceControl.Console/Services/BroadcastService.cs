@@ -115,13 +115,13 @@ public class BroadcastService : IHostedService
         switch (topic)
         {
             case "RaceControlMessage":
-                await _connection.InvokeAsync("RaceControlMessage", data);
+                await _connection.InvokeAsync("SendRaceControlMessage", data);
                 break;
             case "SessionStatus":
-                await _connection.InvokeAsync("SessionStatus", data);
+                await _connection.InvokeAsync("SendSessionStatus", data);
                 break;
             case "TrackStatus":
-                await _connection.InvokeAsync("TrackStatusMessage", data);
+                await _connection.InvokeAsync("SendTrackStatusMessage", data);
                 break;
             default:
                 throw new ArgumentException($"Topic {topic} is not supported");

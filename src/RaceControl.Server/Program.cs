@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using RaceControl.Database;
+using RaceControl.Database.Entities;
 using RaceControl.Server;
 using RaceControl.Server.Championships;
 using RaceControl.Server.Hubs;
@@ -46,7 +47,7 @@ builder.Services.AddControllers()
     .AddOData(options =>
     {
         options.TimeZone = TimeZoneInfo.Utc;
-        options.EnableQueryFeatures().AddRouteComponents(routePrefix: "odata", model: EdmModelConfig.GetEdmModel());
+        options.EnableQueryFeatures(100).AddRouteComponents(routePrefix: "odata", model: EdmModelConfig.GetEdmModel());
     });
 
 // Configure automapper
@@ -74,7 +75,12 @@ builder.Services.AddSingleton<IChampionship, Formula3>();
 
 // Create the database connection and add the app database context to the services
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
-    .UseNpgsql(builder.Configuration["DATABASE_URL"])
+    .UseNpgsql(builder.Configuration["DATABASE_URL"], optionsBuilder =>
+    {
+        optionsBuilder.MigrationsAssembly("RaceControl.Database");
+        optionsBuilder.MapEnum<MessageCategory>();
+        optionsBuilder.MapEnum<MessageScope>();
+    })
     .UseSnakeCaseNamingConvention()
 );
 
@@ -89,8 +95,8 @@ builder.Services.AddQuartz(quartz =>
 
     quartz.ScheduleJob<FetchActiveSessionJob>(trigger => trigger
         .WithIdentity("FetchActiveSessionJob-trigger")
-        // .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT,MON *")
-        .WithCronSchedule("0 * * ? * * *")
+        .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT,MON *")
+        // .WithCronSchedule("0 * * ? * * *")
     );
 });
 
