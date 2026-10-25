@@ -9,6 +9,7 @@ public class RaceControlContext(DbContextOptions<RaceControlContext> options) : 
     public DbSet<Championship> Championships { get; init; }
     public DbSet<Event> Events { get; init; }
     public DbSet<Session> Sessions { get; init; }
+    public DbSet<RaceControlMessage> RacesControlMessages { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

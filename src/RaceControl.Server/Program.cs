@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Quartz;
 using RaceControl.Database;
 using RaceControl.Database.Entities;
@@ -75,12 +74,13 @@ builder.Services.AddSingleton<IChampionship, Formula2>();
 builder.Services.AddSingleton<IChampionship, Formula3>();
 
 // Create the database connection and add the app database context to the services
-var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration["DATABASE_URL"]);
-dataSourceBuilder.MapEnum<MessageCategory>();
-dataSourceBuilder.MapEnum<MessageScope>();
-
 builder.Services.AddDbContextPool<RaceControlContext>(opts => opts
-    .UseNpgsql(dataSourceBuilder.Build())
+    .UseNpgsql(builder.Configuration["DATABASE_URL"], optionsBuilder =>
+    {
+        optionsBuilder.MigrationsAssembly("RaceControl.Database");
+        optionsBuilder.MapEnum<MessageCategory>();
+        optionsBuilder.MapEnum<MessageScope>();
+    })
     .UseSnakeCaseNamingConvention()
 );
 

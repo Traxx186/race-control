@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RaceControl.Database;
+using RaceControl.Database.Entities;
 
 #nullable disable
 
@@ -17,9 +18,11 @@ namespace RaceControl.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "message_category", new[] { "car_event", "drs", "flag", "other", "safety_car", "session_status" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "message_scope", new[] { "driver", "sector", "track" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("RaceControl.Database.Entities.Championship", b =>
@@ -97,6 +100,64 @@ namespace RaceControl.Database.Migrations
                     b.ToTable("events", (string)null);
                 });
 
+            modelBuilder.Entity("RaceControl.Database.Entities.RaceControlMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Id"), null, null, null, null, null, null);
+
+                    b.Property<MessageCategory>("Category")
+                        .HasColumnType("message_category")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<int?>("DriverNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("driver_number");
+
+                    b.Property<string>("Flag")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("flag");
+
+                    b.Property<int?>("Lap")
+                        .HasColumnType("integer")
+                        .HasColumnName("lap");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("message");
+
+                    b.Property<MessageScope?>("Scope")
+                        .HasColumnType("message_scope")
+                        .HasColumnName("scope");
+
+                    b.Property<int?>("Sector")
+                        .HasColumnType("integer")
+                        .HasColumnName("sector");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("session_id");
+
+                    b.HasKey("Id")
+                        .HasName("race_control_messages_pkey");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_race_control_messages_session_id");
+
+                    b.ToTable("race_control_messages", (string)null);
+                });
+
             modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
                 {
                     b.Property<int>("Id")
@@ -158,6 +219,18 @@ namespace RaceControl.Database.Migrations
                     b.Navigation("Championship");
                 });
 
+            modelBuilder.Entity("RaceControl.Database.Entities.RaceControlMessage", b =>
+                {
+                    b.HasOne("RaceControl.Database.Entities.Session", "Session")
+                        .WithMany("RaceControlMessages")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_race_control_messages_session");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
                 {
                     b.HasOne("RaceControl.Database.Entities.Event", "Event")
@@ -178,6 +251,11 @@ namespace RaceControl.Database.Migrations
             modelBuilder.Entity("RaceControl.Database.Entities.Event", b =>
                 {
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("RaceControl.Database.Entities.Session", b =>
+                {
+                    b.Navigation("RaceControlMessages");
                 });
 #pragma warning restore 612, 618
         }

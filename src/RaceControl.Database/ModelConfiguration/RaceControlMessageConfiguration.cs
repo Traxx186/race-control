@@ -8,27 +8,31 @@ public class RaceControlMessageConfiguration : IEntityTypeConfiguration<RaceCont
 {
     public void Configure(EntityTypeBuilder<RaceControlMessage> builder)
     {
-        builder.HasKey(c => c.Id).HasName("race_control_messages_pkey");
+        builder.HasKey(rcm => rcm.Id).HasName("race_control_messages_pkey");
         builder.ToTable("race_control_messages");
 
-        builder.Property(c => c.Id)
+        builder.Property(rcm => rcm.Id)
             .HasIdentityOptions();
 
-        builder.Property(c => c.SessionId)
+        builder.Property(rcm => rcm.SessionId)
             .IsRequired();
 
-        builder.Property(c => c.Date)
+        builder.Property(rcm => rcm.Date)
             .IsRequired();
 
-        builder.Property(c => c.Category)
+        builder.Property(rcm => rcm.Category)
+            .HasColumnType("message_category")
             .IsRequired();
 
-        builder.Property(c => c.Message)
+        builder.Property(rcm => rcm.Message)
             .IsRequired()
             .HasMaxLength(4000);
 
-        builder.Property(c => c.Flag)
+        builder.Property(rcm => rcm.Flag)
             .HasMaxLength(255);
+
+        builder.Property(rcm => rcm.Scope)
+            .HasColumnType("message_scope");
 
         builder.HasOne(r => r.Session)
             .WithMany(s => s.RaceControlMessages)
