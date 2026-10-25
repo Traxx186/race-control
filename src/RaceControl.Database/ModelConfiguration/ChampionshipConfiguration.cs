@@ -21,5 +21,8 @@ public class ChampionshipConfiguration : IEntityTypeConfiguration<Championship>
 
         builder.Property(c => c.Latency)
             .HasDefaultValue(new TimeSpan(0, 0, 35));
+
+        builder.Property(c => c.SearchOffset)
+            .HasDefaultValue(new TimeSpan(0, 5, 0));
     }
 }

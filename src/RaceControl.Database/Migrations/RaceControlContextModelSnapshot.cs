@@ -44,6 +44,12 @@ namespace RaceControl.Database.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("name");
 
+                    b.Property<TimeSpan>("SearchOffset")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("interval")
+                        .HasDefaultValue(new TimeSpan(0, 0, 5, 0, 0))
+                        .HasColumnName("search_offset");
+
                     b.HasKey("Id")
                         .HasName("championships_pkey");
 
