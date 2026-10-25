@@ -47,7 +47,7 @@ builder.Services.AddControllers()
     .AddOData(options =>
     {
         options.TimeZone = TimeZoneInfo.Utc;
-        options.EnableQueryFeatures().AddRouteComponents(routePrefix: "odata", model: EdmModelConfig.GetEdmModel());
+        options.EnableQueryFeatures(100).AddRouteComponents(routePrefix: "odata", model: EdmModelConfig.GetEdmModel());
     });
 
 // Configure automapper
@@ -95,8 +95,8 @@ builder.Services.AddQuartz(quartz =>
 
     quartz.ScheduleJob<FetchActiveSessionJob>(trigger => trigger
         .WithIdentity("FetchActiveSessionJob-trigger")
-        // .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT,MON *")
-        .WithCronSchedule("0 * * ? * * *")
+        .WithCronSchedule("0 * * ? * SUN,THU,FRI,SAT,MON *")
+        // .WithCronSchedule("0 * * ? * * *")
     );
 });
 

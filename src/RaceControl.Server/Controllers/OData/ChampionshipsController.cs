@@ -11,8 +11,10 @@ using RaceControl.Database;
 
 namespace RaceControl.Server.Controllers.OData;
 
-public partial class ChampionshipsController(ILogger<ChampionshipsController> logger, RaceControlContext raceControlContext, IMapper mapper)
-    : ODataController
+public partial class ChampionshipsController(
+    ILogger<ChampionshipsController> logger,
+    RaceControlContext raceControlContext,
+    IMapper mapper) : ODataController
 {
     [GeneratedRegex(@"[^\w\.@-]", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex SanitizeInputRegex();

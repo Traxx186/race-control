@@ -39,4 +39,10 @@ public sealed class SessionDto
     /// The parent <see cref="EventDto"/>.
     /// </summary>
     public EventDto Event { get; set; }
+
+    /// <summary>
+    /// <see cref="RaceControlMessageDto"/> linked to the Event.
+    /// </summary>
+    public ICollection<RaceControlMessageDto> RaceControlMessages { get; set; } = new List<RaceControlMessageDto>();
+
 }

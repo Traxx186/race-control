@@ -12,6 +12,7 @@ public static class EdmModelConfig
         builder.EntitySet<ChampionshipDto>("Championships");
         builder.EntitySet<EventDto>("Events");
         builder.EntitySet<SessionDto>("Sessions");
+        builder.EntitySet<RaceControlMessageDto>("RaceControlMessages");
 
         return builder.GetEdmModel();
     }
