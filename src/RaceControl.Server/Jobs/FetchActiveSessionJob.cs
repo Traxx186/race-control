@@ -21,10 +21,11 @@ public class FetchActiveSessionJob(
 
         logger.LogInformation("[Fetch Session] Searching in database for active session");
 
-        var signalTime = DateTime.UtcNow.AddMinutes(5);
-        var searchDate = new DateTime(signalTime.Year, signalTime.Month, signalTime.Day, signalTime.Hour, signalTime.Minute, 0, DateTimeKind.Utc);
-        var session = raceControlContext.Sessions.Include(session => session.Event.Championship)
-            .SingleOrDefault(s => s.StartTime == searchDate);
+        var nowUtc = DateTime.UtcNow;
+        var searchDate = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, nowUtc.Minute, 0, nowUtc.Kind);
+        var session = raceControlContext.Sessions
+            .Include(session => session.Event.Championship)
+            .SingleOrDefault(s => (s.StartTime - s.Event.Championship.SearchOffset) == searchDate);
 
         // If no session has been found, stop the job.
         if (null == session)
