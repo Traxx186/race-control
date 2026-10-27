@@ -32,10 +32,10 @@ namespace RaceControl.Database.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("id");
 
-                    b.Property<int>("Latency")
+                    b.Property<TimeSpan>("Latency")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(35)
+                        .HasColumnType("interval")
+                        .HasDefaultValue(new TimeSpan(0, 0, 0, 35, 0))
                         .HasColumnName("latency");
 
                     b.Property<string>("Name")
@@ -43,6 +43,12 @@ namespace RaceControl.Database.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("name");
+
+                    b.Property<TimeSpan>("SearchOffset")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("interval")
+                        .HasDefaultValue(new TimeSpan(0, 0, 5, 0, 0))
+                        .HasColumnName("search_offset");
 
                     b.HasKey("Id")
                         .HasName("championships_pkey");

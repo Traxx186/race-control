@@ -15,7 +15,12 @@ public class Championship
     /// <summary>
     /// The broadcast latency of the Championship. Only used internally.
     /// </summary>
-    public int Latency { get; set; } = 35;
+    public TimeSpan Latency { get; set; } = new(0, 0, 35);
+
+    /// <summary>
+    /// The time offset used in searching an active session for the championship.
+    /// </summary>
+    public TimeSpan SearchOffset { get; set; } = new(0, 5, 0);
 
     /// <summary>
     /// The related <see cref="Event"/> of the Championship.
