@@ -10,8 +10,8 @@ namespace RaceControl.Server.Championships;
 
 public class Formula1(
     ILogger<Formula1> logger,
-    CancellationTokenSource cts,
-    IHttpClientFactory httpClientFactory) : IChampionship
+    IHttpClientFactory httpClientFactory,
+    CancellationTokenSource cts) : IChampionship
 {
     /// <inheritdoc/>
     public bool Connected => true;
