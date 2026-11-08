@@ -8,7 +8,7 @@ namespace RaceControl.Server.Services;
 public sealed class ChampionshipService(
     ILogger<ChampionshipService> logger,
     ITrackStatusService trackStatusService,
-    IEnumerable<IChampionship> categories) : IChampionshipService
+    IEnumerable<IChampionship> championships) : IChampionshipService
 {
     /// <summary>
     /// The currently active category.
@@ -82,9 +82,9 @@ public sealed class ChampionshipService(
     {
         category = key switch
         {
-            "f1" => categories.OfType<Formula1>().FirstOrDefault(),
-            "f2" => categories.OfType<Formula2>().FirstOrDefault(),
-            "f3" => categories.OfType<Formula3>().FirstOrDefault(),
+            "f1" => championships.OfType<Formula1>().FirstOrDefault(),
+            "f2" => championships.OfType<Formula2>().FirstOrDefault(),
+            "f3" => championships.OfType<Formula3>().FirstOrDefault(),
             _ => null
         };
 

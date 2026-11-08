@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.Server.SignalR;
+using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -150,6 +152,12 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
 
         logger.LogInformation("[Formula 3] Session feed message ignored");
     }
+
+    public async Task<Dictionary<EventDto, SessionDto[]>> FetchRaceCalendarAsync()
+    {
+        return new Dictionary<EventDto, SessionDto[]>();
+    }
+
 
     /// <summary>
     /// Invokes the FlagPares event with the required arguments

@@ -1,14 +1,19 @@
+using System.Globalization;
+using System.Text.Json.Nodes;
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
+using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
-public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : IChampionship
+public class Formula1(
+    ILogger<Formula1> logger,
+    CancellationTokenSource cts,
+    IHttpClientFactory httpClientFactory) : IChampionship
 {
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public bool Connected => true;
 
     /// <summary>
@@ -16,37 +21,27 @@ public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : I
     /// </summary>
     private readonly CancellationToken _cancellationToken = cts.Token;
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public event EventHandler? SessionFinished;
 
-    /// <summary>
     /// <inheritdoc/>
     /// Live timing is handled by client module.
-    /// </summary>
     public Task StartAsync()
     {
         return Task.CompletedTask;
     }
 
-    /// <summary>
     /// <inheritdoc/>
     /// Live timing is handled by client module.
-    /// </summary>
     public void Stop()
     {
         return;
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
     {
         logger.LogInformation("[Formula 1] Parsing race control message");
@@ -100,9 +95,7 @@ public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : I
         OnFlagParsed(flag, driver == 0 ? null : driver);
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
     {
         logger.LogInformation("[Formula 1] Parsing track status message");
@@ -125,9 +118,7 @@ public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : I
         OnFlagParsed(flag);
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
     {
         logger.LogInformation("[Formula 1] Parsing session status message");
@@ -148,6 +139,46 @@ public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : I
 
         logger.LogInformation("[Formula 1] Session finalised");
         OnSessionFinished();
+    }
+
+    /// <inheritdoc/>
+    public async Task<Dictionary<EventDto, SessionDto[]>> FetchRaceCalendarAsync()
+    {
+        var events = new Dictionary<EventDto, SessionDto[]>();
+        var httpClient = httpClientFactory.CreateClient("Formula1Api");
+        httpClient.DefaultRequestHeaders.Add("apiKey", Environment.GetEnvironmentVariable("APIKEY_F1API"));
+
+        logger.LogInformation("[Formula 1] Fetch events in current season");
+        var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/editorial-eventlisting/events", cancellationToken: _cancellationToken);
+        var listedEvents = data?["events"]?.AsArray() ?? [];
+        foreach (var @event in listedEvents)
+        {
+            var currentEvent = new EventDto
+            {
+                Name = @event!["meetingName"]!.GetValue<string>(),
+                MeetingKey = @event["meetingKey"]!.GetValue<string>(),
+                Location = @event["meetingLocation"]!.GetValue<string>(),
+                StartTime = ParseDateTime(@event["meetingStartDate"]!.GetValue<string>(), @event["gmtOffset"]!.GetValue<string>()),
+                EndTime = ParseDateTime(@event["meetingEndDate"]!.GetValue<string>(), @event["gmtOffset"]!.GetValue<string>())
+            };
+
+            logger.LogInformation("[Formula 1] Fetch sessions of event {event}", currentEvent.Name);
+            var eventData = await httpClient.GetFromJsonAsync<JsonObject>($"/v1/event-tracker/meeting/{currentEvent.MeetingKey}", cancellationToken: _cancellationToken);
+            var eventSessions = eventData?["meetingContext"]?["timetables"]?.AsArray() ?? [];
+            var sessions = eventSessions.Select(session => new SessionDto
+            {
+                Event = currentEvent,
+                Name = session!["description"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = ParseDateTime(session["startTime"]!.GetValue<string>(), session["gmtOffset"]!.GetValue<string>())
+            })
+            .ToArray();
+
+            events[currentEvent] = sessions;
+        }
+
+        return events;
     }
 
     /// <summary>
@@ -196,4 +227,14 @@ public class Formula1(ILogger<Formula1> logger, CancellationTokenSource cts) : I
 
         return flag != Flag.None;
     }
+
+    /// <summary>
+    /// Parses the timestamp plus offset to a UTC <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="timestamp">Timestamp to parse.</param>
+    /// <param name="offset">Offset of the given timestamp.</param>
+    /// <returns>The parsed <see cref="DateTime"/>.</returns>
+    private static DateTime ParseDateTime(string timestamp, string offset) =>
+        DateTime.ParseExact($"{timestamp}{offset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture)
+            .ToUniversalTime();
 }
