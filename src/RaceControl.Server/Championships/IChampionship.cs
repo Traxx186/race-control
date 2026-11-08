@@ -1,5 +1,7 @@
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Events;
+using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -44,4 +46,10 @@ public interface IChampionship
     /// Parses the session status message to relevant action.
     /// </summary>
     void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage);
+
+    /// <summary>
+    /// Fetches the events & sessions of the championship.
+    /// </summary>
+    /// <returns>Dictionary containing events and the session related to the event.</returns>
+    Task<Dictionary<EventDto, SessionDto[]>> FetchRaceCalendarAsync();
 }

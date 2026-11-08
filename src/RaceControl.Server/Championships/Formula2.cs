@@ -1,13 +1,19 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.Server.SignalR;
+using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
-public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : IChampionship
+public class Formula2(
+    ILogger<Formula2> logger,
+    IHttpClientFactory httpClientFactory,
+    CancellationTokenSource cts) : IChampionship
 {
     private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
 
@@ -31,24 +37,17 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
     /// </summary>
     private readonly CancellationToken _cancellationToken = cts.Token;
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public event EventHandler<FlagChangedEventArgs>? FlagParsed;
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public event EventHandler? SessionFinished;
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public bool Connected => _signalR?.Running ?? false;
 
-    /// <summary>
+
     /// <inheritdoc/>
-    /// </summary>
     public async Task StartAsync()
     {
         logger.LogInformation("[Formula 2] Starting API connection");
@@ -68,9 +67,7 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
         await _signalR.InvokeAsync("JoinFeeds", _cancellationToken, "F2", Feeds);
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void Stop()
     {
         FlagParsed = null;
@@ -85,18 +82,15 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
         _signalR = null;
     }
 
-    /// <summary>
+
     /// <inheritdoc/>
     /// Formula 2 live timing API doesn't support Race control messages
-    /// </summary>
     public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
     {
         return;
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
     {
         if (!short.TryParse(trackStatusMessage.Value, out var status))
@@ -118,9 +112,7 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
         OnFlagParsed(flag);
     }
 
-    /// <summary>
     /// <inheritdoc/>
-    /// </summary>
     public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
     {
         if (sessionStatusMessage.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
@@ -149,6 +141,47 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
         }
 
         logger.LogInformation("[Formula 2] Session feed message ignored");
+    }
+
+    /// <inheritdoc/>
+    public async Task<Dictionary<EventDto, SessionDto[]>> FetchRaceCalendarAsync()
+    {
+        var events = new Dictionary<EventDto, SessionDto[]>();
+        var httpClient = httpClientFactory.CreateClient("Formula1Api");
+        httpClient.DefaultRequestHeaders.Add("apiKey", Environment.GetEnvironmentVariable("APIKEY_F2API"));
+
+        logger.LogInformation("[Formula 2] Fetch upcoming event");
+        var data = await httpClient.GetFromJsonAsync<JsonObject>("/v1/core-event-tracker/f2");
+        var eventInfo = data?["race"];
+        if (eventInfo is null)
+            return events;
+
+        var @event = new EventDto
+        {
+            Name = eventInfo["meetingName"]!.GetValue<string>(),
+            MeetingKey = data?["seasonContext"]?["currentOrNextMeetingKey"]?.GetValue<string>() ?? string.Empty,
+            Location = eventInfo["meetingLocation"]!.GetValue<string>(),
+            StartTime = DateTime.ParseExact(eventInfo["meetingStartDate"]!.GetValue<string>(),
+                "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture).ToUniversalTime(),
+            EndTime = DateTime.ParseExact(eventInfo["meetingEndDate"]!.GetValue<string>(), "yyyy-MM-ddTHH:mm:ss.fffZ",
+                CultureInfo.InvariantCulture).ToUniversalTime()
+        };
+
+        // Get the sessions of the upcoming event.
+        logger.LogInformation("[Formula 2] Get sessions for upcoming event {event}", @event.Name);
+        var eventSessions = data?["race"]?["meetingSessions"]?.AsArray() ?? [];
+        var sessions = eventSessions.Select(session => new SessionDto
+            {
+                Event = @event,
+                Name = session!["shortName"]!.GetValue<string>(),
+                Key = session["meetingSessionKey"]!.GetValue<int>(),
+                Type = session["sessionType"]!.GetValue<string>(),
+                StartTime = ParseDateTime(session["startTime"]!.GetValue<string>(), session["gmtOffset"]!.GetValue<string>())
+            })
+            .ToArray();
+
+        events[@event] = sessions;
+        return events;
     }
 
     /// <summary>
@@ -199,11 +232,22 @@ public class Formula2(ILogger<Formula2> logger, CancellationTokenSource cts) : I
     {
         logger.LogInformation("[Formula 2] Parsing session feed message");
         var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageDto>();
-        if (sessionStatusMessage is null) {
+        if (sessionStatusMessage is null)
+        {
             logger.LogError("[Formula 2] Invalid session feed message received");
             return;
         }
 
         ParseSessionStatusMessageAsync(sessionStatusMessage);
     }
+
+    /// <summary>
+    /// Parses the timestamp plus offset to a UTC <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="timestamp">Timestamp to parse.</param>
+    /// <param name="offset">Offset of the given timestamp.</param>
+    /// <returns>The parsed <see cref="DateTime"/>.</returns>
+    private static DateTime ParseDateTime(string timestamp, string offset) =>
+        DateTime.ParseExact($"{timestamp}{offset}", "yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture)
+            .ToUniversalTime();
 }
