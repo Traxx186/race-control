@@ -8,7 +8,7 @@ updates:
     groups:
       dotnet-sdk:
         patterns:
-          "*"
+          - "*"
     labels:
       - dependencies
   - package-ecosystem: nuget
