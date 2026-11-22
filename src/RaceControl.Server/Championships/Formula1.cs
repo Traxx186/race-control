@@ -4,13 +4,13 @@ using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
-using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
 public class Formula1(
     ILogger<Formula1> logger,
     IHttpClientFactory httpClientFactory,
+
     CancellationTokenSource cts) : IChampionship
 {
     /// <inheritdoc/>
@@ -42,7 +42,7 @@ public class Formula1(
     }
 
     /// <inheritdoc/>
-    public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
+    public void ParseRaceControlMessage(RaceControlMessageLiveTimingDto raceControlMessage)
     {
         logger.LogInformation("[Formula 1] Parsing race control message");
 
@@ -96,10 +96,10 @@ public class Formula1(
     }
 
     /// <inheritdoc/>
-    public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    public void ParseTrackStatusMessage(TrackStatusMessageLiveTimingDto trackStatusMessageLiveTiming)
     {
         logger.LogInformation("[Formula 1] Parsing track status message");
-        if (!short.TryParse(trackStatusMessage.Status, out var status))
+        if (!short.TryParse(trackStatusMessageLiveTiming.Status, out var status))
         {
             logger.LogError("[Formula 1] Invalid track status message received");
             return;
@@ -119,11 +119,11 @@ public class Formula1(
     }
 
     /// <inheritdoc/>
-    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageLiveTimingDto sessionStatusMessageLiveTiming)
     {
         logger.LogInformation("[Formula 1] Parsing session status message");
 
-        if (sessionStatusMessage.Status.Equals("started", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Status.Equals("started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session started");
             OnFlagParsed(Flag.Clear);
@@ -131,7 +131,7 @@ public class Formula1(
             return;
         }
 
-        if (!sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        if (!sessionStatusMessageLiveTiming.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session status message ignored");
             return;

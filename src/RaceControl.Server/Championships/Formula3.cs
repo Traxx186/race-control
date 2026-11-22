@@ -5,7 +5,6 @@ using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
 using RaceControl.Server.SignalR;
-using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -91,7 +90,7 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
     /// <inheritdoc/>
     /// Formula 3 live timing API doesn't support Race control messages
     /// </summary>
-    public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
+    public void ParseRaceControlMessage(RaceControlMessageLiveTimingDto raceControlMessage)
     {
         return;
     }
@@ -99,9 +98,9 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    public void ParseTrackStatusMessage(TrackStatusMessageLiveTimingDto trackStatusMessageLiveTiming)
     {
-        if (!short.TryParse(trackStatusMessage.Value, out var status))
+        if (!short.TryParse(trackStatusMessageLiveTiming.Value, out var status))
         {
             logger.LogError("[Formula 3] Invalid track status message received");
             return;
@@ -123,9 +122,9 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
-    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageLiveTimingDto sessionStatusMessageLiveTiming)
     {
-        if (sessionStatusMessage.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 3] Session started");
             OnFlagParsed(Flag.Clear);
@@ -134,7 +133,7 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
             return;
         }
 
-        if (sessionStatusMessage.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 3] Session finished");
             OnFlagParsed(Flag.Chequered);
@@ -142,7 +141,7 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
             return;
         }
 
-        if (sessionStatusMessage.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
+        if (sessionStatusMessageLiveTiming.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
         {
             logger.LogInformation("[Formula 3] Session finalized, closing API connection");
             OnSessionFinishedAsync();
@@ -189,7 +188,7 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
     {
         logger.LogInformation("[Formula 3] Parsing track feed message");
 
-        var trackStatusMessage = message[1]?.Deserialize<TrackStatusMessageDto>();
+        var trackStatusMessage = message[1]?.Deserialize<TrackStatusMessageLiveTimingDto>();
         if (trackStatusMessage is null)
         {
             logger.LogError("[Formula 3] Invalid track status message received");
@@ -207,7 +206,7 @@ public class Formula3(ILogger<Formula3> logger, CancellationTokenSource cts) : I
     private void HandleSessionFeedMessageAsync(JsonArray message)
     {
         logger.LogInformation("[Formula 3] Parsing session feed message");
-        var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageDto>();
+        var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageLiveTimingDto>();
         if (sessionStatusMessage is null) {
             logger.LogError("[Formula 3] Invalid session feed message received");
             return;

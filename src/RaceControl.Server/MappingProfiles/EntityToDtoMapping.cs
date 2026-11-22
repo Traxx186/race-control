@@ -2,7 +2,7 @@ using AutoMapper;
 using RaceControl.Data.Dtos;
 using RaceControl.Database.Entities;
 
-namespace RaceControl.Server.Mapping;
+namespace RaceControl.Server.MappingProfiles;
 
 public class EntityToDtoMapping : Profile
 {

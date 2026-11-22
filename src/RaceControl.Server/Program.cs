@@ -10,6 +10,7 @@ using RaceControl.Server;
 using RaceControl.Server.Championships;
 using RaceControl.Server.Hubs;
 using RaceControl.Server.Jobs;
+using RaceControl.Server.MappingProfiles;
 using RaceControl.Server.Middleware;
 using RaceControl.Server.Services;
 using Serilog;
@@ -51,7 +52,11 @@ builder.Services.AddControllers()
     });
 
 // Configure automapper
-builder.Services.AddAutoMapper(_ => { }, typeof(Program));
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<EntityToDtoMapping>();
+    cfg.AddProfile<DtoToEntityMapping>();
+});
 
 // Load signalr hubs and services to the web application.
 builder.Services.AddSignalR();
@@ -89,8 +94,8 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.ScheduleJob<SyncSessionsJob>(trigger => trigger
         .WithIdentity("SyncSessionsJob-trigger")
-        .WithCronSchedule("0 * * ? * * *")
-        // .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
+        // .WithCronSchedule("0 * * ? * * *")
+        .WithCronSchedule("0 0 2 ? * SUN,THU,FRI,SAT *")
     );
 
     quartz.ScheduleJob<FetchActiveSessionJob>(trigger => trigger

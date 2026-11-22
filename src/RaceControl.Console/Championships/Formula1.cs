@@ -139,7 +139,7 @@ public sealed class Formula1 : IChampionship
     private void HandleTrackStatusMessage(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing track status message");
-        var trackStatusMessage = data.Deserialize<TrackStatusMessageDto>();
+        var trackStatusMessage = data.Deserialize<TrackStatusMessageLiveTimingDto>();
         if (trackStatusMessage is null)
         {
             _logger.LogError("[Formula 1] Invalid track status message received");
@@ -156,7 +156,7 @@ public sealed class Formula1 : IChampionship
     private void HandleRaceControlMessages(JsonNode data)
     {
         _logger.LogInformation("[Formula 1] Parsing race control message");
-        var raceControlMessage = data["Messages"]?[0].Deserialize<RaceControlMessageDto>();
+        var raceControlMessage = data["Messages"]?[0].Deserialize<RaceControlMessageLiveTimingDto>();
         if (raceControlMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid race control message received");
@@ -175,7 +175,7 @@ public sealed class Formula1 : IChampionship
     {
         _logger.LogInformation("[Formula 1] Parsing session status message");
 
-        var sessionStatusMessage = data.Deserialize<SessionStatusMessageDto>();
+        var sessionStatusMessage = data.Deserialize<SessionStatusMessageLiveTimingDto>();
         if (sessionStatusMessage is null)
         {
             _logger.LogWarning("[Formula 1] Invalid session status message received");

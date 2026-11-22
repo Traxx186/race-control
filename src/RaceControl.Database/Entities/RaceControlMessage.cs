@@ -64,7 +64,7 @@ public class RaceControlMessage
     /// <returns>The parsed <see cref="MessageCategory"/>.</returns>
     public static MessageCategory ParseCategory(string category)
     {
-        return category.ToLower() switch
+        return category.ToLowerInvariant() switch
         {
             "carevent" => MessageCategory.CarEvent,
             "drs" => MessageCategory.Drs,
@@ -80,14 +80,14 @@ public class RaceControlMessage
     /// </summary>
     /// <param name="scope">String to parse.</param>
     /// <returns>The parsed <see cref="MessageScope"/>.</returns>
-    public static MessageScope ParseScope(string scope)
+    public static MessageScope? ParseScope(string? scope)
     {
-        return scope.ToLower() switch
+        return scope?.ToLowerInvariant() switch
         {
             "driver" => MessageScope.Driver,
             "sector" => MessageScope.Sector,
             "track" => MessageScope.Track,
-            _ => throw new ArgumentException("Invalid scope value", nameof(scope))
+            _ => null
         };
     }
 }

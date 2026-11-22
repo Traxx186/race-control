@@ -3,7 +3,7 @@ namespace RaceControl.Data.Dtos.LiveTimingDtos;
 /// <summary>
 /// Structure of the content of a single RaceControlMessages message.
 /// </summary>
-public sealed class RaceControlMessageDto : ILiveTimingDto
+public sealed class RaceControlMessageLiveTimingDto : ILiveTimingDto
 {
     /// <summary>
     /// Timestamp when the message was sent in UTC.

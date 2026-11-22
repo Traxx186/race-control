@@ -3,7 +3,7 @@ namespace RaceControl.Data.Dtos.LiveTimingDtos;
 /// <summary>
 /// Structure of a TrackStatus method.
 /// </summary>
-public sealed class TrackStatusMessageDto : ILiveTimingDto
+public sealed class TrackStatusMessageLiveTimingDto : ILiveTimingDto
 {
     /// <summary>
     /// The code of the current active flag on track.
