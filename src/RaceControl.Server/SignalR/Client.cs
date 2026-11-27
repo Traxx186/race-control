@@ -67,16 +67,23 @@ public sealed class Client : IDisposable
     }
 
     public Client(string url, string hub, Version version)
-        : this(url, hub)
     {
-          _version = version;
+        _url = url;
+        _hub = hub;
+        _version = version;
+
+        InitHubConnection();
     }
 
     public Client(string url, string hub, Version version, string customEndpoint)
-        : this(url, hub, version)
     {
+        _url = url;
+        _hub = hub;
+        _version = version;
         _customEndpoint = customEndpoint;
         _useDefaultEndpoint = false;
+
+        InitHubConnection();
     }
 
     /// <summary>
@@ -87,6 +94,8 @@ public sealed class Client : IDisposable
         Log.Information("[SignalR] Connecting to {url}", _url);
 
         await Task.WhenAny(_connection!.Start(), Task.Delay(Timeout.Infinite, cancellationToken));
+
+        Running = _connection!.State == ConnectionState.Connected;
     }
 
     /// <summary>
@@ -162,7 +171,11 @@ public sealed class Client : IDisposable
         _connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
         _connection.CookieContainer = new CookieContainer();
         _connection.Received += HandleMessage;
-        _connection.Closed += () => Log.Information("[SignalR] Hub connection closed");
+        _connection.Closed += () =>
+        {
+            Running = false;
+            Log.Information("[SignalR] Hub connection closed");
+        };
         _connection.Reconnecting += () => Log.Information("[SignalR] Reconnecting");
         _connection.Reconnected += () => Log.Information("[SignalR] Reconnected");
         _connection.Error += e =>
