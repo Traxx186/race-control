@@ -1,16 +1,5 @@
 version: 2
 updates:
-  - package-ecosystem: dotnet-sdk
-    directory: /
-    schedule:
-      interval: weekly
-      day: wednesday
-    groups:
-      dotnet-sdk:
-        patterns:
-          - "*"
-    labels:
-      - dependencies
   - package-ecosystem: nuget
     directory: /
     schedule:

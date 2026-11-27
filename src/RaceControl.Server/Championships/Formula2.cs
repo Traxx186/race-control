@@ -46,7 +46,6 @@ public class Formula2(
     /// <inheritdoc/>
     public bool Connected => _signalR?.Running ?? false;
 
-
     /// <inheritdoc/>
     public async Task StartAsync()
     {
