@@ -1,7 +1,6 @@
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Events;
-using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -35,17 +34,17 @@ public interface IChampionship
     /// <summary>
     /// Parses the received race control message to relevant flag.
     /// </summary>
-    void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage);
+    void ParseRaceControlMessage(RaceControlMessageLiveTimingDto raceControlMessageLiveTiming);
 
     /// <summary>
     /// Parses the received track status message to relevant flag.
     /// </summary>
-    void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage);
+    void ParseTrackStatusMessage(TrackStatusMessageLiveTimingDto trackStatusMessageLiveTiming);
 
     /// <summary>
     /// Parses the session status message to relevant action.
     /// </summary>
-    void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage);
+    void ParseSessionStatusMessageAsync(SessionStatusMessageLiveTimingDto sessionStatusMessageLiveTiming);
 
     /// <summary>
     /// Fetches the events & sessions of the championship.

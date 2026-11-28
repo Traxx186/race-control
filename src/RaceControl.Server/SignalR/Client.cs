@@ -170,7 +170,7 @@ public sealed class Client : IDisposable
 
         _connection = new HubConnection(uriBuilder.ToString(), useDefaultUrl: _useDefaultEndpoint);
         _connection.CookieContainer = new CookieContainer();
-        _connection.Received += HandleMessage;
+        //_connection.Received += HandleMessage;
         _connection.Closed += () =>
         {
             Running = false;
@@ -193,6 +193,8 @@ public sealed class Client : IDisposable
             _connection.Protocol = _version;
 
         _proxy = _connection.CreateHubProxy(_hub);
+        _proxy.On("trackfeed", () => Log.Information("Track Feed"));
+        _proxy.On("sessionfeed", () => Log.Information("Session Feed"));
     }
 
     /// <summary>

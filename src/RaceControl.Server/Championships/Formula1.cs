@@ -4,7 +4,6 @@ using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
-using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -42,12 +41,12 @@ public class Formula1(
     }
 
     /// <inheritdoc/>
-    public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
+    public void ParseRaceControlMessage(RaceControlMessageLiveTimingDto raceControlMessageLiveTiming)
     {
         logger.LogInformation("[Formula 1] Parsing race control message");
 
         // Checks if the slippery surface flag is shown.
-        if (raceControlMessage.Message.Contains("slippery", StringComparison.OrdinalIgnoreCase))
+        if (raceControlMessageLiveTiming.Message.Contains("slippery", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.Surface);
             OnFlagParsed(Flag.Surface);
@@ -56,8 +55,8 @@ public class Formula1(
         }
 
         // Checks if a standing start announcement is made.
-        if (raceControlMessage.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
-            raceControlMessage.Message.Contains("standing start", StringComparison.OrdinalIgnoreCase))
+        if (raceControlMessageLiveTiming.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
+            raceControlMessageLiveTiming.Message.Contains("standing start", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.StandingStart);
             OnFlagParsed(Flag.StandingStart);
@@ -66,8 +65,8 @@ public class Formula1(
         }
 
         // Checks if a rolling start announcement is made.
-        if (raceControlMessage.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
-            raceControlMessage.Message.Contains("rolling start", StringComparison.OrdinalIgnoreCase))
+        if (raceControlMessageLiveTiming.Category.Equals("other", StringComparison.OrdinalIgnoreCase) &&
+            raceControlMessageLiveTiming.Message.Contains("rolling start", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Parsed race control message to {flag}", Flag.RollingStart);
             OnFlagParsed(Flag.RollingStart);
@@ -76,30 +75,30 @@ public class Formula1(
         }
 
         // Skip the message if the message category is related to a flag.
-        if (!raceControlMessage.Category.Equals("flag", StringComparison.OrdinalIgnoreCase))
+        if (!raceControlMessageLiveTiming.Category.Equals("flag", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Race control message ignored");
             return;
         }
 
         // Checks if the flag message contains a valid flag and if the flag should be ignored.
-        if (!TryParseFlag(raceControlMessage.Flag, out var flag))
+        if (!TryParseFlag(raceControlMessageLiveTiming.Flag, out var flag))
         {
             logger.LogInformation("[Formula 1] Parsed race control flag message not relevant");
             return;
         }
 
-        if (!int.TryParse(raceControlMessage.RacingNumber, out var driver))
+        if (!int.TryParse(raceControlMessageLiveTiming.RacingNumber, out var driver))
             driver = 0;
 
         OnFlagParsed(flag, driver == 0 ? null : driver);
     }
 
     /// <inheritdoc/>
-    public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    public void ParseTrackStatusMessage(TrackStatusMessageLiveTimingDto trackStatusMessageLiveTiming)
     {
         logger.LogInformation("[Formula 1] Parsing track status message");
-        if (!short.TryParse(trackStatusMessage.Status, out var status))
+        if (!short.TryParse(trackStatusMessageLiveTiming.Status, out var status))
         {
             logger.LogError("[Formula 1] Invalid track status message received");
             return;
@@ -119,11 +118,11 @@ public class Formula1(
     }
 
     /// <inheritdoc/>
-    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageLiveTimingDto sessionStatusMessageLiveTiming)
     {
         logger.LogInformation("[Formula 1] Parsing session status message");
 
-        if (sessionStatusMessage.Status.Equals("started", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Status.Equals("started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session started");
             OnFlagParsed(Flag.Clear);
@@ -131,7 +130,7 @@ public class Formula1(
             return;
         }
 
-        if (!sessionStatusMessage.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
+        if (!sessionStatusMessageLiveTiming.Status.Equals("finalised", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 1] Session status message ignored");
             return;

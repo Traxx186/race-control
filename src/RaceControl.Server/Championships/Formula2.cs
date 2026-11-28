@@ -1,12 +1,11 @@
 using System.Globalization;
-using System.Text.Json;
+using System.Net;
 using System.Text.Json.Nodes;
+using Microsoft.AspNet.SignalR.Client;
 using RaceControl.Data.Dtos;
 using RaceControl.Data.Dtos.LiveTimingDtos;
 using RaceControl.Data.Enums;
 using RaceControl.Data.Events;
-using RaceControl.Server.SignalR;
-using RaceControlMessageDto = RaceControl.Data.Dtos.LiveTimingDtos.RaceControlMessageDto;
 
 namespace RaceControl.Server.Championships;
 
@@ -15,7 +14,7 @@ public class Formula2(
     IHttpClientFactory httpClientFactory,
     CancellationTokenSource cts) : IChampionship
 {
-    private const string LiveTimingUrl = "https://ltss.fiaformula2.com";
+    private const string LiveTimingUrl = "https://ltss.fiaformula2.com/streaming";
 
     /// <summary>
     /// Which SignalR feeds to subscribe to when connection to the live timing API.
@@ -23,19 +22,19 @@ public class Formula2(
     private static readonly string[] Feeds = ["status"];
 
     /// <summary>
-    /// The SignalR <see cref="Client"/> connection object.
+    /// The connection object.
     /// </summary>
-    private Client? _signalR;
+    private HubConnection? _connection;
+
+    /// <summary>
+    /// Proxy of the connected hub.
+    /// </summary>
+    private IHubProxy? _proxy;
 
     /// <summary>
     /// If the session has actually started.
     /// </summary>
     private bool _hasStarted;
-
-    /// <summary>
-    /// The global CancellationToken.
-    /// </summary>
-    private readonly CancellationToken _cancellationToken = cts.Token;
 
     /// <inheritdoc/>
     public event EventHandler<FlagChangedEventArgs>? FlagParsed;
@@ -44,26 +43,36 @@ public class Formula2(
     public event EventHandler? SessionFinished;
 
     /// <inheritdoc/>
-    public bool Connected => _signalR?.Running ?? false;
+    public bool Connected => _connection!.State == ConnectionState.Connected;
 
     /// <inheritdoc/>
     public async Task StartAsync()
     {
         logger.LogInformation("[Formula 2] Starting API connection");
 
-        _signalR = new Client(
-            LiveTimingUrl,
-            "streaming",
-            new Version(2, 1),
-            "/streaming"
-        );
+        _connection = new HubConnection(LiveTimingUrl, useDefaultUrl: false);
+        _connection.CookieContainer = new CookieContainer();
+        _connection.Protocol = new Version(2, 1);
+        _connection.Closed += () => logger.LogInformation("[Formula 2] Hub connection closed");
+        _connection.Reconnecting += () => logger.LogInformation("[Formula 2] Reconnecting");
+        _connection.Reconnected += () => logger.LogInformation("[Formula 2] Reconnected");
+        _connection.Error += e =>
+        {
+            logger.LogError("[Formula 2] Error occured: {error}", e.Message);
+            OnSessionFinished();
+        };
 
-        _signalR.Error += _ => OnSessionFinishedAsync();
-        _signalR.On<JsonArray>("trackfeed", HandleTrackFeedMessage);
-        _signalR.On<JsonArray>("sessionfeed", HandleSessionFeedMessageAsync);
+#if DEBUG
+        _connection.TraceWriter = Console.Out;
+        _connection.TraceLevel = TraceLevels.All;
+#endif
 
-        await _signalR.StartAsync(_cancellationToken);
-        await _signalR.InvokeAsync("JoinFeeds", _cancellationToken, "F2", Feeds);
+        _proxy = _connection.CreateHubProxy("streaming");
+        _proxy.On<string, JsonNode>("trackfeed", (time, data) => logger.LogInformation(data.ToJsonString()));
+        _proxy.On<string, JsonNode>("sessionfeed", (time, data) => logger.LogInformation(data.ToJsonString()));
+
+        await Task.WhenAny(_connection!.Start(), Task.Delay(Timeout.Infinite, cts.Token));
+        await Task.WhenAny(_proxy!.Invoke("JoinFeeds", "F2", Feeds), Task.Delay(Timeout.Infinite, cts.Token));
     }
 
     /// <inheritdoc/>
@@ -71,28 +80,25 @@ public class Formula2(
     {
         FlagParsed = null;
 
-        if (!_hasStarted || _signalR is null)
-            return;
-
         logger.LogInformation("[Formula 2] Closing API connection");
+        _connection?.Stop();
+        _proxy = null;
+        _connection = null;
         _hasStarted = false;
-
-        _signalR!.Stop();
-        _signalR = null;
     }
 
 
     /// <inheritdoc/>
     /// Formula 2 live timing API doesn't support Race control messages
-    public void ParseRaceControlMessage(RaceControlMessageDto raceControlMessage)
+    public void ParseRaceControlMessage(RaceControlMessageLiveTimingDto raceControlMessageLiveTiming)
     {
         return;
     }
 
     /// <inheritdoc/>
-    public void ParseTrackStatusMessage(TrackStatusMessageDto trackStatusMessage)
+    public void ParseTrackStatusMessage(TrackStatusMessageLiveTimingDto trackStatusMessageLiveTiming)
     {
-        if (!short.TryParse(trackStatusMessage.Value, out var status))
+        if (!short.TryParse(trackStatusMessageLiveTiming.Value, out var status))
         {
             logger.LogError("[Formula 2] Invalid track status message received");
             return;
@@ -112,9 +118,9 @@ public class Formula2(
     }
 
     /// <inheritdoc/>
-    public void ParseSessionStatusMessageAsync(SessionStatusMessageDto sessionStatusMessage)
+    public void ParseSessionStatusMessageAsync(SessionStatusMessageLiveTimingDto sessionStatusMessageLiveTiming)
     {
-        if (sessionStatusMessage.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Value.Equals("Started", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session started");
             OnFlagParsed(Flag.Clear);
@@ -123,7 +129,7 @@ public class Formula2(
             return;
         }
 
-        if (sessionStatusMessage.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
+        if (sessionStatusMessageLiveTiming.Value.Equals("Finished", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogInformation("[Formula 2] Session finished");
             OnFlagParsed(Flag.Chequered);
@@ -131,10 +137,10 @@ public class Formula2(
             return;
         }
 
-        if (sessionStatusMessage.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
+        if (sessionStatusMessageLiveTiming.Value.Equals("Finalised", StringComparison.OrdinalIgnoreCase) && _hasStarted)
         {
             logger.LogInformation("[Formula 2] Session finalized, closing API connection");
-            OnSessionFinishedAsync();
+            OnSessionFinished();
 
             return;
         }
@@ -197,47 +203,12 @@ public class Formula2(
     /// <summary>
     /// Invokes the SessionFinished event.
     /// </summary>
-    private void OnSessionFinishedAsync()
+    private void OnSessionFinished()
     {
         Stop();
 
         SessionFinished?.Invoke(this, EventArgs.Empty);
         SessionFinished = null;
-    }
-
-    /// <summary>
-    /// Deserialize the incoming Tack Feed message to get the current flag of the session.
-    /// </summary>
-    /// <param name="message">Message argument data received from Formula 2 API.</param>
-    private void HandleTrackFeedMessage(JsonArray message)
-    {
-        logger.LogInformation("[Formula 2] Parsing track feed message");
-
-        var trackStatusMessage = message[1]?.Deserialize<TrackStatusMessageDto>();
-        if (trackStatusMessage is null)
-        {
-            logger.LogError("[Formula 2] Invalid track status message received");
-            return;
-        }
-
-        ParseTrackStatusMessage(trackStatusMessage);
-    }
-
-    /// <summary>
-    /// Deserialize the incoming Session Feed message to check if the session is finished.
-    /// </summary>
-    /// <param name="message">Message argument data received from Formula 2 API.</param>
-    private void HandleSessionFeedMessageAsync(JsonArray message)
-    {
-        logger.LogInformation("[Formula 2] Parsing session feed message");
-        var sessionStatusMessage = message[1]?.Deserialize<SessionStatusMessageDto>();
-        if (sessionStatusMessage is null)
-        {
-            logger.LogError("[Formula 2] Invalid session feed message received");
-            return;
-        }
-
-        ParseSessionStatusMessageAsync(sessionStatusMessage);
     }
 
     /// <summary>

@@ -3,7 +3,7 @@ namespace RaceControl.Data.Dtos.LiveTimingDtos;
 /// <summary>
 /// Structure of a SessionStatus method message.
 /// </summary>
-public sealed class SessionStatusMessageDto : ILiveTimingDto
+public sealed class SessionStatusMessageLiveTimingDto : ILiveTimingDto
 {
     /// <summary>
     /// Returns what the status is of the session i.e. started, finished or finalized
